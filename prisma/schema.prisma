@@ -6,7 +6,7 @@
 
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["fullTextSearch"]
+  previewFeatures = ["fullTextSearchPostgres"]
 }
 
 datasource db {
@@ -55,60 +55,255 @@ enum StatusUserEcommerce {
   INDISPONIVEL
 }
 
+enum StatusProduct {
+  DISPONIVEL
+  INDISPONIVEL
+}
+
 enum StatusDescriptionProduct {
   DISPONIVEL
   INDISPONIVEL
 }
 
-model User_ecommerce {
-  id       String              @id @default(uuid())
-  name     String
-  email    String              @unique
-  password String
-  status   StatusUserEcommerce @default(INDISPONIVEL)
-  role     Role                @default(EMPLOYEE)
+enum StatusVariant {
+  DISPONIVEL
+  INDISPONIVEL
+}
+
+enum ProductRelationType {
+  VARIANT // Ex: iPhone 15 ↔ iPhone 15 Pro (alternativas)
+  SIMPLE // Ex: { "cor": "Azul", "tamanho": "M" }
+}
+
+enum ProductType {
+  DIGITAL // Produto digital
+  PHYSICAL // Produto fisico
+}
+
+enum DeliveryMethod {
+  DOWNLOAD // Download direto
+  EMAIL // Envio por e-mail
+  STREAMING // Acesso via streaming (ex: cursos)
+  API // Entrega via integração com API
+}
+
+enum DigitalDelivery {
+  SIM
+  NAO
+}
+
+enum AccessType {
+  PERPETUAL // Acesso vitalício
+  SUBSCRIPTION // Acesso por assinatura
+  TIME_LIMITED // Acesso temporário (ex: 30 dias)
+}
+
+enum StatusReview {
+  ANAILSE
+  APPROVED
+  FAILED
+}
+
+enum Rating {
+  ONE
+  TWO
+  THREE
+  FOUR
+  FIVE
+}
+
+enum DiscountType {
+  PERCENTAGE // Desconto percentual
+  FIXED // Desconto em valor fixo
+  BOGO // Buy One Get One
+  FREE_SHIPPING // Frete grátis
+}
+
+enum PromotionScope {
+  PRODUCT
+  VARIANT
+  CATEGORY
+  ORDER
+  SHIPPING
+}
+
+enum PromotionStatus {
+  ACTIVE
+  SCHEDULED
+  EXPIRED
+  ARCHIVED
+}
+
+enum StatusMarketingPublication {
+  Programado
+  Fim_da_programacao
+  Disponivel
+  Disponivel_programado
+  Indisponivel
+}
+
+enum Position {
+  SLIDER
+  TOP_BANNER
+  SIDEBAR
+  POPUP
+}
+
+enum StatusBuyTogether {
+  SIM
+  NAO
+}
+
+enum EmailTemplateType {
+  ABANDONED_CART_1 // Primeiro lembrete
+  ABANDONED_CART_2 // Segundo lembrete
+  ABANDONED_CART_3 // Última chance com desconto
+  WELCOME // Exemplo para outros tipos
+}
+
+model EcommerceData {
+  id               String  @id @default(uuid())
+  name             String
+  email            String
+  phone            String
+  street           String
+  city             String
+  state            String
+  zipCode          String
+  number           String?
+  neighborhood     String?
+  country          String
+  logo             String?
+  favicon          String?
+  privacy_policies String?
+  about_store      String?
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
-  updated_at DateTime @updatedAt
+
+  @@map("ecommercedatas")
+}
+
+model SEOSettings {
+  id                 String  @id @default(uuid())
+  page               String  @unique
+  title              String?
+  description        String?
+  keywords           Json?
+  ogTitle            String?
+  ogDescription      String?
+  ogImages           Json?
+  ogImageWidth       Int?
+  ogImageHeight      Int?
+  ogImageAlt         String?
+  twitterTitle       String?
+  twitterDescription String?
+  twitterCreator     String?
+  twitterImages      Json?
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+
+  @@map("seo_settings")
+}
+
+model SocialMedias {
+  id         String  @id @default(uuid())
+  name_media String  @db.VarChar(725)
+  link       String?
+  logo_media String?
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+
+  @@map("socialmedias")
+}
+
+model ThemeSettings {
+  id     String @id @default(uuid())
+  colors Json
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+
+  @@map("themessettings")
+}
+
+model User_ecommerce {
+  id                        String                      @id @default(uuid())
+  name                      String
+  email                     String                      @unique
+  password                  String
+  status                    StatusUserEcommerce         @default(INDISPONIVEL)
+  role                      Role                        @default(EMPLOYEE)
+  notificationUserEcommerce NotificationUserEcommerce[]
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
 
   @@map("users_ecommerce")
 }
 
-model User_store {
-  id                 String     @id @default(uuid())
-  email              String     @unique
-  password           String
-  name               String
-  phone              String
-  type_user          TypeUser   @default(FISICA)
-  cpf                String?
-  cnpj               String?
-  date_of_birth      String?
-  sexo               String
-  state_registration String?
-  photo              String?
-  role               Role       @default(EMPLOYEE)
-  addresses          Address[]
-  cart               Cart?
-  orders             Order[]
-  reviews            Review[]
-  payments           Payment[]
-  favorites          Favorite[]
+model PasswordRecoveryUserEcommerce {
+  id    String @id @default(uuid())
+  email String
+
+  @@map("passwordrecoveryusersecommerces")
+}
+
+model Customer {
+  id                    String                  @id @default(uuid())
+  email                 String                  @unique
+  password              String
+  name                  String
+  phone                 String
+  type_user             TypeUser                @default(FISICA)
+  cpf                   String?
+  cnpj                  String?
+  date_of_birth         String?
+  sexo                  String
+  state_registration    String?
+  photo                 String?
+  role                  Role                    @default(EMPLOYEE)
+  addresses             Address[]
+  cart                  Cart?
+  orders                Order[]
+  reviews               Review[]
+  payments              Payment[]
+  favorites             Favorite[]
+  promotionUsage        PromotionUsage[]
+  notificationUserStore NotificationUserStore[]
+  abandonedCart         AbandonedCart[]
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
-  updated_at DateTime @updatedAt
 
   @@map("users_store")
+}
+
+model PasswordRecoveryUserStore {
+  id    String @id @default(uuid())
+  email String
+
+  @@map("passwordrecoveryusersstores")
 }
 
 model Product {
   id                    String                @id @default(uuid())
   name                  String
+  slug                  String?               @unique
+  metaTitle             String?
+  metaDescription       String?
+  keywords              Json?
   brand                 String?
+  ean                   String?
+  description           String
+  skuMaster             String?               @unique // SKU principal (opcional)
   price_of              Float?
   price_per             Float
-  sku                   String                @unique
-  stock                 Int                   @default(0)
+  weight                Float?
+  length                Float?
+  width                 Float?
+  height                Float?
+  promotion             Promotion?            @relation(fields: [promotion_id], references: [id])
+  promotion_id          String?
+  productType           ProductType           @default(PHYSICAL)
+  status                StatusProduct         @default(DISPONIVEL)
+  digitalProduct        DigitalProduct?
   categories            ProductCategory[]
   images                ProductImage[]
   reviews               Review[]
@@ -116,11 +311,76 @@ model Product {
   orderItems            OrderItem[]
   favorites             Favorite[]
   products_descriptions Product_description[]
+  variants              ProductVariant[] // Relacionamento com variantes
+  videos                ProductVideo[]
+  productView           ProductView[]
+  productRelations      ProductRelation[]
+  parentRelations       ProductRelation[]     @relation("parentRelation")
+  childRelations        ProductRelation[]     @relation("childRelation")
+  promotions            Promotion[]           @relation("PromotionToProduct")
+  promotions_product    Promotion[]           @relation("ProductPromotion")
+  buyTogether           buyTogether[]
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
   updated_at DateTime @updatedAt
 
   @@map("products")
+}
+
+model ProductVariant {
+  id               String             @id @default(uuid())
+  product          Product            @relation(fields: [product_id], references: [id])
+  product_id       String
+  sku              String             @unique // SKU único por variante
+  price_of         Float?
+  price_per        Float
+  stock            Int                @default(0)
+  allowBackorders  Boolean            @default(false) // Permitir compras sem estoque?
+  sortOrder        Int                @default(0)
+  ean              String?
+  mainPromotion    Promotion?         @relation("variantMainPromotion", fields: [mainPromotion_id], references: [id])
+  mainPromotion_id String?
+  images           ProductImage[]
+  videos           ProductVideo[]
+  variantAttribute VariantAttribute[]
+  promotions       Promotion[]        @relation("variantPromotions")
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @updatedAt
+
+  @@map("products_variants")
+}
+
+model VariantAttribute {
+  id         String         @id @default(uuid())
+  variant    ProductVariant @relation(fields: [variant_id], references: [id])
+  variant_id String
+  key        String // ex: "cor"
+  value      String // ex: "Azul"
+  status     StatusVariant  @default(DISPONIVEL)
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @updatedAt
+
+  @@map("variants_attributes")
+}
+
+model ProductRelation {
+  id               String              @id @default(uuid())
+  parentProduct    Product             @relation(fields: [parentProduct_id], references: [id], name: "parentRelation")
+  parentProduct_id String
+  childProduct     Product             @relation(fields: [childProductId], references: [id], name: "childRelation")
+  childProductId   String
+  relationType     ProductRelationType @default(VARIANT)
+  sortOrder        Int                 @default(0)
+  isRequired       Boolean             @default(false)
+  product          Product?            @relation(fields: [product_id], references: [id])
+  product_id       String?
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+
+  @@unique([parentProduct_id, childProductId, relationType])
+  @@map("products_relations")
 }
 
 model Product_description {
@@ -132,128 +392,456 @@ model Product_description {
   status      StatusDescriptionProduct @default(DISPONIVEL)
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
-  updated_at DateTime @updatedAt
 
   @@map("products_descriptions")
 }
 
+model ProductImage {
+  id         String          @id @default(uuid())
+  url        String
+  altText    String? // Texto alternativo para SEO
+  product    Product         @relation(fields: [product_id], references: [id])
+  product_id String
+  variant    ProductVariant? @relation(fields: [variant_id], references: [id])
+  variant_id String? // Opcional: imagem específica para uma variante
+  isPrimary  Boolean         @default(false) // Imagem principal?
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @updatedAt
+
+  @@map("products_images")
+}
+
+model ProductVideo {
+  id         String          @id @default(uuid())
+  url        String
+  product_id String
+  product    Product         @relation(fields: [product_id], references: [id])
+  variant_id String? // Opcional: imagem específica para uma variante
+  variant    ProductVariant? @relation(fields: [variant_id], references: [id])
+  isPrimary  Boolean         @default(false) // Imagem principal?
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @updatedAt
+
+  @@map("products_videos")
+}
+
+model DigitalProduct {
+  id              String         @id @default(uuid())
+  product         Product        @relation(fields: [product_id], references: [id])
+  product_id      String         @unique
+  deliveryMethod  DeliveryMethod @default(DOWNLOAD) // Método de entrega
+  accessType      AccessType     @default(PERPETUAL) // Tipo de acesso
+  fileUrl         String? // URL do arquivo (se aplicável)
+  accessDuration  Int? // Duração em dias (para assinaturas)
+  maxDownloads    Int? // Máximo de downloads permitidos
+  licenseRequired Boolean        @default(false) // Precisa de chave de licença?
+  buyTogether     buyTogether[]
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @updatedAt
+
+  @@map("digital_products_details")
+}
+
+model Promotion {
+  id                String           @id @default(uuid())
+  code              String?          @unique
+  name              String
+  description       String?
+  discountType      DiscountType
+  discountValue     Float
+  maxDiscountAmount Decimal?         @db.Decimal(10, 2)
+  startDate         DateTime
+  endDate           DateTime
+  usageLimit        Int?
+  userUsageLimit    Int?             @default(1)
+  minOrderAmount    Decimal?         @db.Decimal(10, 2)
+  status            PromotionStatus  @default(SCHEDULED)
+  stackable         Boolean          @default(false)
+  product           Product?         @relation("ProductPromotion", fields: [product_id], references: [id])
+  product_id        String?
+  products          Product[]        @relation("PromotionToProduct")
+  variantPromotions ProductVariant[] @relation("variantPromotions")
+  categories        Category[]
+  orders            Order[]
+  mainVariants      ProductVariant[] @relation("variantMainPromotion")
+  rules             PromotionRule[]
+  usageHistory      PromotionUsage[]
+  produtos          Product[]
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([code])
+  @@map("promotions")
+}
+
+model ProductView {
+  id         String   @id @default(uuid()) @db.Uuid
+  product    Product? @relation(fields: [product_id], references: [id], onDelete: SetNull)
+  product_id String?  @db.Uuid
+  ipAddress  String?  @db.VarChar(45)
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+
+  @@unique([product_id, ipAddress])
+  @@map("products_views")
+}
+
+model PromotionRule {
+  id           String         @id @default(uuid())
+  promotion    Promotion      @relation(fields: [promotion_id], references: [id])
+  promotion_id String
+  scope        PromotionScope
+  targetIds    String[] // IDs de produtos, variantes ou categorias
+  quantity     Int? // Quantidade necessária para aplicar
+  applyTo      String? // "cheapest", "most_expensive", "all"
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+
+  @@map("promotion_rules")
+}
+
+model PromotionUsage {
+  id              String    @id @default(uuid())
+  promotion       Promotion @relation(fields: [promotion_id], references: [id])
+  promotion_id    String
+  customer        Customer  @relation(fields: [customer_id], references: [id])
+  customer_id     String
+  order           Order     @relation(fields: [order_id], references: [id])
+  order_id        String
+  discountApplied Float
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+
+  @@map("promotion_usages")
+}
+
 model Category {
-  id          String            @id @default(uuid())
-  name        String            @unique
-  description String?
-  products    ProductCategory[]
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+  id           String            @id @default(uuid())
+  name         String            @unique
+  slug         String
+  description  String?
+  image        String?
+  order        Int               @default(0)
+  parentId     String?
+  parent       Category?         @relation("Subcategories", fields: [parentId], references: [id])
+  children     Category[]        @relation("Subcategories")
+  products     ProductCategory[]
+  promotion    Promotion?        @relation(fields: [promotion_id], references: [id])
+  promotion_id String?
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @updatedAt
+
+  @@map("categories")
 }
 
 model ProductCategory {
-  productId  String
-  categoryId String
-  product    Product  @relation(fields: [productId], references: [id])
+  id         String   @id @default(uuid())
+  product    Product  @relation(fields: [product_id], references: [id])
+  product_id String   @db.Uuid
   category   Category @relation(fields: [categoryId], references: [id])
-  createdAt  DateTime @default(now())
+  categoryId String
 
-  @@id([productId, categoryId])
-}
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @updatedAt
 
-model ProductImage {
-  id        String   @id @default(uuid())
-  url       String
-  productId String
-  product   Product  @relation(fields: [productId], references: [id])
-  createdAt DateTime @default(now())
+  @@unique([product_id, categoryId])
+  @@map("product_categories")
 }
 
 model Review {
-  id        String     @id @default(uuid())
-  rating    Int        @range(1, 5)
-  comment   String?
-  productId String
-  userId    String
-  product   Product    @relation(fields: [productId], references: [id])
-  user      User_store @relation(fields: [userId], references: [id])
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id          String       @id @default(uuid())
+  rating      Rating       @default(ONE)
+  comment     String?
+  product     Product      @relation(fields: [product_id], references: [id])
+  product_id  String
+  customer    Customer     @relation(fields: [customer_id], references: [id])
+  customer_id String
+  status      StatusReview @default(ANAILSE)
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @updatedAt
+
+  @@map("reviews")
+}
+
+model buyTogether {
+  id                String            @id @default(uuid())
+  product           Product?          @relation(fields: [product_id], references: [id])
+  product_id        String?
+  digitalProduct    DigitalProduct?   @relation(fields: [digitalProduct_id], references: [id])
+  digitalProduct_id String?
+  name              String?
+  status            StatusBuyTogether @default(SIM)
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+
+  @@map("buystogethers")
 }
 
 model Order {
-  id              String      @id @default(uuid())
-  total           Decimal     @db.Decimal(10, 2)
-  status          OrderStatus @default(PENDING)
-  userId          String
-  shippingAddress String
-  user            User_store  @relation(fields: [userId], references: [id])
-  items           OrderItem[]
-  payment         Payment?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  id                String           @id @default(uuid())
+  total             Float
+  status            OrderStatus      @default(PENDING)
+  shippingAddress   String
+  customer          Customer         @relation(fields: [customer_id], references: [id])
+  customer_id       String
+  promotion         Promotion?       @relation(fields: [promotion_id], references: [id])
+  promotion_id      String?
+  items             OrderItem[]
+  payment           Payment?
+  appliedPromotions PromotionUsage[]
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @updatedAt
+
+  @@map("orders")
 }
 
 model OrderItem {
-  id        String   @id @default(uuid())
-  quantity  Int      @default(1)
-  price     Decimal  @db.Decimal(10, 2)
-  orderId   String
-  productId String
-  order     Order    @relation(fields: [orderId], references: [id])
-  product   Product  @relation(fields: [productId], references: [id])
-  createdAt DateTime @default(now())
+  id              String          @id @default(uuid())
+  quantity        Int             @default(1)
+  price           Float
+  order           Order           @relation(fields: [order_id], references: [id])
+  order_id        String
+  product         Product         @relation(fields: [product_id], references: [id])
+  product_id      String
+  digitalDelivery DigitalDelivery @default(NAO)
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @updatedAt
+
+  @@map("order_itens")
 }
 
 model Cart {
-  id        String     @id @default(uuid())
-  userId    String     @unique
-  user      User_store @relation(fields: [userId], references: [id])
-  items     CartItem[]
-  total     Decimal    @default(0) @db.Decimal(10, 2)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id            String         @id @default(uuid())
+  customer      Customer       @relation(fields: [customer_id], references: [id])
+  customer_id   String         @unique
+  items         CartItem[]
+  total         Float
+  AbandonedCart AbandonedCart?
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @updatedAt
+
+  @@map("carts")
 }
 
 model CartItem {
-  id        String   @id @default(uuid())
-  quantity  Int      @default(1)
-  productId String
-  cartId    String
-  product   Product  @relation(fields: [productId], references: [id])
-  cart      Cart     @relation(fields: [cartId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String  @id @default(uuid())
+  quantity   Int     @default(1)
+  product    Product @relation(fields: [product_id], references: [id])
+  product_id String
+  cart       Cart    @relation(fields: [cart_id], references: [id])
+  cart_id     String
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @updatedAt
+
+  @@map("cart_itens")
+}
+
+model AbandonedCart {
+  id             String          @id @default(uuid())
+  cart           Cart            @relation(fields: [cart_id], references: [id])
+  cart_id        String          @unique
+  customer       Customer        @relation(fields: [customer_id], references: [id])
+  customer_id    String
+  items          Json // Ex: [{ productId: "123", quantity: 2, price: 99.90 }]
+  total          Float
+  abandonedAt    DateTime        @default(now())
+  reminderSentAt DateTime? // Último lembrete enviado
+  reminderCount  Int             @default(0) // Quantidade de lembretes enviados
+  discountCode   String? // Cupom de desconto opcional
+  reminders      EmailReminder[] // Histórico de e-mails enviados
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+
+  @@map("abandoned_carts")
+}
+
+model EmailReminder {
+  id         String        @id @default(uuid())
+  cart       AbandonedCart @relation(fields: [cart_id], references: [id])
+  cart_id     String
+  template   EmailTemplate @relation(fields: [template_id], references: [id])
+  template_id String
+  sentAt     DateTime      @default(now())
+  opened     Boolean       @default(false)
+  clicked    Boolean       @default(false)
+
+  @@map("email_reminders")
+}
+
+model EmailTemplate {
+  id            String            @id @default(uuid())
+  type          EmailTemplateType @unique // Tipo de template (ex: ABANDONED_CART_1)
+  subject       String // Assunto do e-mail (pode usar variáveis como {{customerName}})
+  content       String // Corpo do e-mail (HTML/texto com placeholders)
+  variables     Json // Ex: ["customerName", "cartItems", "discountCode"]
+  isActive      Boolean           @default(true)
+  daysAfter     Int // Dias após o abandono para disparar (ex: 1, 3, 7)
+  emailReminder EmailReminder[]
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @updatedAt
+
+  @@map("email_templates")
 }
 
 model Payment {
-  id            String        @id @default(uuid())
-  amount        Decimal       @db.Decimal(10, 2)
-  method        PaymentMethod
-  status        PaymentStatus @default(PENDING)
-  transactionId String?
-  orderId       String        @unique
-  userId        String
-  order         Order         @relation(fields: [orderId], references: [id])
-  user          User_store    @relation(fields: [userId], references: [id])
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id             String        @id @default(uuid())
+  amount         Float
+  method         PaymentMethod
+  status         PaymentStatus @default(PENDING)
+  transaction_id String?
+  order          Order         @relation(fields: [order_id], references: [id])
+  order_id       String        @unique
+  customer       Customer      @relation(fields: [customer_id], references: [id])
+  customer_id    String
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @updatedAt
+
+  @@map("payments")
 }
 
 model Address {
-  id        String     @id @default(uuid())
-  street    String
-  city      String
-  state     String
-  zipCode   String
-  country   String
-  userId    String
-  user      User_store @relation(fields: [userId], references: [id])
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id           String   @id @default(uuid())
+  street       String
+  city         String
+  state        String
+  zipCode      String
+  number       String?
+  neighborhood String?
+  country      String
+  customer     Customer @relation(fields: [customer_id], references: [id])
+  customer_id  String
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @updatedAt
+
+  @@map("address")
 }
 
 model Favorite {
-  userId    String
-  productId String
-  user      User_store @relation(fields: [userId], references: [id])
-  product   Product    @relation(fields: [productId], references: [id])
-  createdAt DateTime   @default(now())
+  customer    Customer @relation(fields: [customer_id], references: [id])
+  customer_id String
+  product     Product  @relation(fields: [product_id], references: [id])
+  product_id  String
+  created_at  DateTime @default(now()) @db.Timestamptz(3)
 
-  @@id([userId, productId])
+  @@id([customer_id, product_id])
+  @@map("favorites")
+}
+
+model Form_contact {
+  id             String @id @default(uuid())
+  name_user      String @db.VarChar(200)
+  slug_name_user String
+  email_user     String @db.VarChar(200)
+  subject        String @db.VarChar(250)
+  menssage       String @db.VarChar(5000)
+
+  created_at DateTime? @default(now()) @db.Timestamptz(3)
+  updated_at DateTime? @updatedAt
+
+  @@map("form_contacts")
+}
+
+model Newsletter {
+  id         String @id @default(uuid())
+  email_user String @db.VarChar(100)
+
+  created_at DateTime? @default(now()) @db.Timestamptz(3)
+  updated_at DateTime? @updatedAt
+
+  @@map("newsletters")
+}
+
+model NotificationUserEcommerce {
+  id                String          @id @default(uuid())
+  user_ecommerce    User_ecommerce? @relation(fields: [user_ecommerce_id], references: [id])
+  user_ecommerce_id String?
+  type              String
+  message           String          @db.VarChar(500)
+  read              Boolean         @default(false)
+  link              String?
+
+  created_at DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at DateTime? @updatedAt
+
+  @@map("notificationusers")
+}
+
+model NotificationUserStore {
+  id          String    @id @default(uuid())
+  userBlog    Customer? @relation(fields: [customer_id], references: [id])
+  customer_id String?   @db.Uuid
+  type        String
+  message     String    @db.VarChar(500)
+  read        Boolean   @default(false)
+  link        String?
+
+  created_at DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at DateTime? @updatedAt
+
+  @@map("notificationuserecommerce")
+}
+
+model MarketingPublication {
+  id               String                     @id @default(uuid()) @db.Uuid
+  title            String?                    @db.VarChar(555)
+  description      String?                    @db.VarChar(7000)
+  local            String?                    @db.VarChar(555)
+  image_url        String?                    @db.VarChar(4083)
+  redirect_url     String?                    @db.VarChar(5083)
+  position         Position
+  conditions       String?
+  clicks           Float?                     @default(0)
+  text_button      String?                    @db.VarChar(100)
+  status           StatusMarketingPublication @default(Disponivel)
+  text_publication String?                    @db.VarChar(7000)
+  popup_time       Int?
+  publish_at_start DateTime?                  @db.Timestamptz(3)
+  publish_at_end   DateTime?                  @db.Timestamptz(3)
+  is_processing    Boolean                    @default(false)
+  is_completed     Boolean                    @default(false)
+  email_sent       Boolean                    @default(false)
+
+  marketingPublicationView MarketingPublicationView[]
+
+  created_at DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at DateTime? @updatedAt
+
+  @@map("marketingpublications")
+}
+
+model BannerInterval {
+  id                    String  @id @default(uuid())
+  interval_banner       Int
+  label_interval_banner String
+  local_site            String?
+  label_local_site      String?
+
+  created_at DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at DateTime? @updatedAt
+
+  @@map("bannerintervals")
+}
+
+model MarketingPublicationView {
+  id                      String                @id @default(uuid()) @db.Uuid
+  marketingPublication    MarketingPublication? @relation(fields: [marketingPublication_id], references: [id], onDelete: SetNull)
+  marketingPublication_id String?               @db.Uuid
+  ipAddress               String?               @db.VarChar(45)
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+
+  @@unique([marketingPublication_id, ipAddress])
+  @@map("marketingpublicationviews")
 }
