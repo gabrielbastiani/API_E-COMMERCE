@@ -157,11 +157,9 @@ enum StatusBuyTogether {
   NAO
 }
 
-enum EmailTemplateType {
-  ABANDONED_CART_1 // Primeiro lembrete
-  ABANDONED_CART_2 // Segundo lembrete
-  ABANDONED_CART_3 // Última chance com desconto
-  WELCOME // Exemplo para outros tipos
+enum StatusCommentOrder {
+  PRIVATE
+  VISIBLE
 }
 
 model EcommerceData {
@@ -169,6 +167,7 @@ model EcommerceData {
   name             String
   email            String
   phone            String
+  whatsapp         String?
   street           String
   city             String
   state            String
@@ -235,7 +234,9 @@ model User_ecommerce {
   password                  String
   status                    StatusUserEcommerce         @default(INDISPONIVEL)
   role                      Role                        @default(EMPLOYEE)
+  photo                     String?
   notificationUserEcommerce NotificationUserEcommerce[]
+  commentOrder              CommentOrder[]
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
 
@@ -263,7 +264,6 @@ model Customer {
   sexo                  String
   state_registration    String?
   photo                 String?
-  role                  Role                    @default(EMPLOYEE)
   addresses             Address[]
   cart                  Cart?
   orders                Order[]
@@ -273,6 +273,7 @@ model Customer {
   promotionUsage        PromotionUsage[]
   notificationUserStore NotificationUserStore[]
   abandonedCart         AbandonedCart[]
+  commentOrder          CommentOrder[]
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
 
@@ -603,6 +604,7 @@ model Order {
   items             OrderItem[]
   payment           Payment?
   appliedPromotions PromotionUsage[]
+  commentOrder      CommentOrder[]
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
   updated_at DateTime @updatedAt
@@ -656,6 +658,23 @@ model CartItem {
   @@map("cart_itens")
 }
 
+model CommentOrder {
+  id                String             @id @default(uuid())
+  order             Order              @relation(fields: [order_id], references: [id])
+  order_id          String
+  customer          Customer           @relation(fields: [customer_id], references: [id])
+  customer_id       String
+  user_ecommerce    User_ecommerce     @relation(fields: [user_ecommerce_id], references: [id])
+  user_ecommerce_id String
+  menssage          String
+  status            StatusCommentOrder @default(PRIVATE)
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @updatedAt
+
+  @@map("commentsorder")
+}
+
 model AbandonedCart {
   id             String          @id @default(uuid())
   cart           Cart            @relation(fields: [cart_id], references: [id])
@@ -689,12 +708,12 @@ model EmailReminder {
 }
 
 model EmailTemplate {
-  id            String            @id @default(uuid())
-  type          EmailTemplateType @unique // Tipo de template (ex: ABANDONED_CART_1)
+  id            String          @id @default(uuid())
+  title         String
   subject       String // Assunto do e-mail (pode usar variáveis como {{customerName}})
   content       String // Corpo do e-mail (HTML/texto com placeholders)
   variables     Json // Ex: ["customerName", "cartItems", "discountCode"]
-  isActive      Boolean           @default(true)
+  isActive      Boolean         @default(true)
   daysAfter     Int // Dias após o abandono para disparar (ex: 1, 3, 7)
   emailReminder EmailReminder[]
 
