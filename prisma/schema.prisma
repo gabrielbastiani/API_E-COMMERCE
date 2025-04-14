@@ -38,16 +38,19 @@ enum OrderStatus {
 enum PaymentMethod {
   CREDIT_CARD
   DEBIT_CARD
-  PAYPAL
+  BOLETO // Nome usado pela ASAAS para boleto
   PIX
   BANK_TRANSFER
 }
 
 enum PaymentStatus {
-  PENDING
-  COMPLETED
-  FAILED
-  REFUNDED
+  PENDING // Aguardando pagamento
+  RECEIVED // Pagamento confirmado
+  CONFIRMED // Equivalente ao "COMPLETED" anterior
+  OVERDUE // Boleto vencido
+  REFUNDED // Reembolsado
+  FAILED // Falha no pagamento
+  SCHEDULED // Agendado (ex: cartão de crédito com vencimento futuro)
 }
 
 enum StatusUserEcommerce {
@@ -248,6 +251,7 @@ model PasswordRecoveryUserEcommerce {
 
 model Customer {
   id                    String                  @id @default(uuid())
+  asaas_customer_id     String?
   email                 String                  @unique
   password              String
   name                  String
@@ -319,7 +323,7 @@ model Product {
   childRelations        ProductRelation[]     @relation("childRelation")
   promotions            Promotion[]           @relation("PromotionToProduct")
   promotions_product    Promotion[]           @relation("ProductPromotion")
-  buyTogether           buyTogether[]
+  buyTogether           BuyTogether[]
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
   updated_at DateTime @updatedAt
@@ -437,7 +441,7 @@ model DigitalProduct {
   accessDuration  Int? // Duração em dias (para assinaturas)
   maxDownloads    Int? // Máximo de downloads permitidos
   licenseRequired Boolean        @default(false) // Precisa de chave de licença?
-  buyTogether     buyTogether[]
+  buyTogether     BuyTogether[]
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
   updated_at DateTime @updatedAt
@@ -568,7 +572,7 @@ model Review {
   @@map("reviews")
 }
 
-model buyTogether {
+model BuyTogether {
   id                String            @id @default(uuid())
   product           Product?          @relation(fields: [product_id], references: [id])
   product_id        String?
@@ -584,9 +588,14 @@ model buyTogether {
 
 model Order {
   id                String           @id @default(uuid())
-  total             Float
+  total             Float // Total dos produtos
+  shippingCost      Float // Custo do frete (separado para relatórios)
+  grandTotal        Float // total + shippingCost - descontos
   status            OrderStatus      @default(PENDING)
   shippingAddress   String
+  shippingMethod    String?
+  trackingCode      String? // Código de rastreio
+  estimatedDelivery String? // Data estimada de entrega
   customer          Customer         @relation(fields: [customer_id], references: [id])
   customer_id       String
   promotion         Promotion?       @relation(fields: [promotion_id], references: [id])
@@ -622,7 +631,9 @@ model Cart {
   customer      Customer       @relation(fields: [customer_id], references: [id])
   customer_id   String         @unique
   items         CartItem[]
-  total         Float
+  subtotal      Float // Total dos produtos
+  shippingCost  Float? // Frete estimado (pode ser atualizado dinamicamente)
+  total         Float // subtotal + shippingCost
   AbandonedCart AbandonedCart?
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
@@ -637,7 +648,7 @@ model CartItem {
   product    Product @relation(fields: [product_id], references: [id])
   product_id String
   cart       Cart    @relation(fields: [cart_id], references: [id])
-  cart_id     String
+  cart_id    String
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
   updated_at DateTime @updatedAt
@@ -665,14 +676,14 @@ model AbandonedCart {
 }
 
 model EmailReminder {
-  id         String        @id @default(uuid())
-  cart       AbandonedCart @relation(fields: [cart_id], references: [id])
+  id          String        @id @default(uuid())
+  cart        AbandonedCart @relation(fields: [cart_id], references: [id])
   cart_id     String
-  template   EmailTemplate @relation(fields: [template_id], references: [id])
+  template    EmailTemplate @relation(fields: [template_id], references: [id])
   template_id String
-  sentAt     DateTime      @default(now())
-  opened     Boolean       @default(false)
-  clicked    Boolean       @default(false)
+  sentAt      DateTime      @default(now())
+  opened      Boolean       @default(false)
+  clicked     Boolean       @default(false)
 
   @@map("email_reminders")
 }
@@ -694,20 +705,43 @@ model EmailTemplate {
 }
 
 model Payment {
-  id             String        @id @default(uuid())
-  amount         Float
-  method         PaymentMethod
-  status         PaymentStatus @default(PENDING)
-  transaction_id String?
-  order          Order         @relation(fields: [order_id], references: [id])
-  order_id       String        @unique
-  customer       Customer      @relation(fields: [customer_id], references: [id])
-  customer_id    String
+  id                String        @id @default(uuid())
+  amount            Float
+  method            PaymentMethod // Mantém o enum (ajustar conforme ASAAS)
+  status            PaymentStatus @default(PENDING)
+  transaction_id    String? // ID do pagamento na ASAAS (ex: "pay_123456")
+  asaas_customer_id String? // ID do cliente na ASAAS (ex: "cus_000005984447")
+  asaas_payment_id  String? // ID único do pagamento na ASAAS (ex: "pay_123456")
+  description       String? // Descrição opcional
+  installment_plan  Json? // Parcelamento (ex: { installments: 3, value: 33.33 })
+  pix_qr_code       String? // QR Code do PIX (base64 ou URL)
+  pix_expiration    DateTime? // Data de expiração do PIX
+  boleto_url        String? // URL do boleto PDF
+  boleto_barcode    String? // Código de barras do boleto
+  credit_card_token String? // Token do cartão (se usar salvar cartão)
+  gateway_response  Json? // Resposta completa da ASAAS (para debug)
+  order             Order         @relation(fields: [order_id], references: [id])
+  order_id          String        @unique
+  customer          Customer      @relation(fields: [customer_id], references: [id])
+  customer_id       String
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
   updated_at DateTime @updatedAt
 
   @@map("payments")
+}
+
+model PaymentWebhook {
+  id               String  @id @default(uuid())
+  event            String // Ex: "PAYMENT_RECEIVED", "PAYMENT_OVERDUE"
+  payload          Json // Dados completos do webhook
+  asaas_payment_id String // ID do pagamento na ASAAS
+  processed        Boolean @default(false) // Indica se o evento foi processado
+  attempts         Int     @default(0) // Número de tentativas de processamento
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+
+  @@map("payment_webhooks")
 }
 
 model Address {
