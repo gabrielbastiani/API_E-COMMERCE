@@ -15,7 +15,7 @@ declare global {
     }
 }
 
-export async function isAuthenticated(
+export async function isAuthenticatedEcommerce (
     req: Request,
     res: Response,
     next: NextFunction
@@ -34,7 +34,7 @@ export async function isAuthenticated(
             process.env.JWT_SECRET as string
         ) as { sub: string };
 
-        const user = await prisma.user.findUnique({
+        const user = await prisma.userEcommerce.findUnique({
             where: { id: sub },
             select: { id: true, role: true }
         });

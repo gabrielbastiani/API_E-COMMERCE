@@ -8,12 +8,12 @@ interface Payload {
 declare global {
   namespace Express {
     interface Request {
-      user_id?: string;
+      customer_id?: string;
     }
   }
 }
 
-export async function isAuthenticatedBlog(
+export async function isAuthenticatedCustomer (
   req: Request,
   res: Response,
   next: NextFunction
@@ -32,7 +32,7 @@ export async function isAuthenticatedBlog(
       process.env?.JWT_SECRET
     ) as Payload;
 
-    req.user_id = sub;
+    req.customer_id = sub;
 
     return next();
 

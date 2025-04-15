@@ -175,6 +175,29 @@ enum MenuItemType {
   CUSTOM_PAGE // Link para uma página custom (ex.: CMS de páginas institucionais)
 }
 
+enum EmailProcessType {
+  ORDER_PLACED // Pedido realizado
+  ORDER_PAID // Pedido pago
+  ORDER_CANCELED // Pedido cancelado
+  USER_CREATED // Usuário administrativo criado
+  CUSTOMER_REGISTERED // Cliente cadastrado
+  PASSWORD_RECOVERY // Recuperação de senha
+  SHIPPING_NOTIFICATION // Notificação de envio / rastreamento
+  // Adicione outros processos conforme necessário
+}
+
+enum NotificationType {
+  INDEFINIDO
+  USER
+  CATEGORY
+  PRODUCT
+  MARKETING
+  ORDER
+  NEWSLETTER
+  CONTACT_FORM
+  CONTACT_ORDER
+}
+
 model EcommerceData {
   id                     String  @id @default(uuid())
   name                   String
@@ -270,7 +293,7 @@ model PasswordRecoveryUserEcommerce {
 }
 
 model Customer {
-  id                    String                  @id @default(uuid())
+  id                    String                  @id @default(uuid()) @db.Uuid
   asaas_customer_id     String?
   email                 String                  @unique
   password              String
@@ -308,7 +331,7 @@ model PasswordRecoveryUserStore {
 }
 
 model Product {
-  id                   String               @id @default(uuid())
+  id                   String               @id @default(uuid()) @db.Uuid
   name                 String
   slug                 String?              @unique
   metaTitle            String?
@@ -354,7 +377,7 @@ model Product {
 model ProductVariant {
   id               String             @id @default(uuid())
   product          Product            @relation(fields: [product_id], references: [id])
-  product_id       String
+  product_id       String             @db.Uuid
   sku              String             @unique // SKU único por variante
   price_of         Float?
   price_per        Float
@@ -392,14 +415,14 @@ model VariantAttribute {
 model ProductRelation {
   id               String              @id @default(uuid())
   parentProduct    Product             @relation(fields: [parentProduct_id], references: [id], name: "parentRelation")
-  parentProduct_id String
+  parentProduct_id String              @db.Uuid
   childProduct     Product             @relation(fields: [childProductId], references: [id], name: "childRelation")
-  childProductId   String
+  childProductId   String              @db.Uuid
   relationType     ProductRelationType @default(VARIANT)
   sortOrder        Int                 @default(0)
   isRequired       Boolean             @default(false)
   product          Product?            @relation(fields: [product_id], references: [id])
-  product_id       String?
+  product_id       String?             @db.Uuid
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
 
@@ -410,7 +433,7 @@ model ProductRelation {
 model ProductDescription {
   id          String                   @id @default(uuid())
   product     Product                  @relation(fields: [product_id], references: [id])
-  product_id  String
+  product_id  String                   @db.Uuid
   title       String
   description String
   status      StatusDescriptionProduct @default(DISPONIVEL)
@@ -425,7 +448,7 @@ model ProductImage {
   url        String
   altText    String? // Texto alternativo para SEO
   product    Product         @relation(fields: [product_id], references: [id])
-  product_id String
+  product_id String          @db.Uuid
   variant    ProductVariant? @relation(fields: [variant_id], references: [id])
   variant_id String? // Opcional: imagem específica para uma variante
   isPrimary  Boolean         @default(false) // Imagem principal?
@@ -439,10 +462,10 @@ model ProductImage {
 model ProductVideo {
   id         String          @id @default(uuid())
   url        String
-  product_id String
   product    Product         @relation(fields: [product_id], references: [id])
-  variant_id String? // Opcional: vídeo específico para uma variante
+  product_id String          @db.Uuid
   variant    ProductVariant? @relation(fields: [variant_id], references: [id])
+  variant_id String? // Opcional: vídeo específico para uma variante
   isPrimary  Boolean         @default(false)
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
@@ -513,7 +536,7 @@ model PromotionUsage {
   promotion       Promotion @relation(fields: [promotion_id], references: [id])
   promotion_id    String
   customer        Customer  @relation(fields: [customer_id], references: [id])
-  customer_id     String
+  customer_id     String    @db.Uuid
   order           Order     @relation(fields: [order_id], references: [id])
   order_id        String
   discountApplied Float
@@ -569,9 +592,9 @@ model Review {
   rating      Rating       @default(ONE)
   comment     String?
   product     Product      @relation(fields: [product_id], references: [id])
-  product_id  String
+  product_id  String       @db.Uuid
   customer    Customer     @relation(fields: [customer_id], references: [id])
-  customer_id String
+  customer_id String       @db.Uuid
   status      StatusReview @default(ANAILSE)
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
@@ -582,7 +605,7 @@ model Review {
 model BuyTogether {
   id         String            @id @default(uuid())
   product    Product?          @relation(fields: [product_id], references: [id])
-  product_id String?
+  product_id String?           @db.Uuid
   name       String?
   status     StatusBuyTogether @default(SIM)
 
@@ -602,7 +625,7 @@ model Order {
   trackingCode      String? // Código de rastreio
   estimatedDelivery String? // Data estimada de entrega
   customer          Customer         @relation(fields: [customer_id], references: [id])
-  customer_id       String
+  customer_id       String           @db.Uuid
   promotion         Promotion?       @relation(fields: [promotion_id], references: [id])
   promotion_id      String?
   items             OrderItem[]
@@ -622,7 +645,7 @@ model OrderItem {
   order      Order   @relation(fields: [order_id], references: [id])
   order_id   String
   product    Product @relation(fields: [product_id], references: [id])
-  product_id String
+  product_id String  @db.Uuid
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
 
@@ -632,7 +655,7 @@ model OrderItem {
 model Cart {
   id            String         @id @default(uuid())
   customer      Customer       @relation(fields: [customer_id], references: [id])
-  customer_id   String         @unique
+  customer_id   String         @unique @db.Uuid
   items         CartItem[]
   subtotal      Float // Total dos produtos
   shippingCost  Float? // Frete estimado (pode ser atualizado dinamicamente)
@@ -648,7 +671,7 @@ model CartItem {
   id         String  @id @default(uuid())
   quantity   Int     @default(1)
   product    Product @relation(fields: [product_id], references: [id])
-  product_id String
+  product_id String  @db.Uuid
   cart       Cart    @relation(fields: [cart_id], references: [id])
   cart_id    String
 
@@ -662,7 +685,7 @@ model CommentOrder {
   order             Order              @relation(fields: [order_id], references: [id])
   order_id          String
   customer          Customer           @relation(fields: [customer_id], references: [id])
-  customer_id       String
+  customer_id       String             @db.Uuid
   userEcommerce     UserEcommerce      @relation(fields: [user_ecommerce_id], references: [id])
   user_ecommerce_id String
   message           String
@@ -678,7 +701,7 @@ model AbandonedCart {
   cart           Cart            @relation(fields: [cart_id], references: [id])
   cart_id        String          @unique
   customer       Customer        @relation(fields: [customer_id], references: [id])
-  customer_id    String
+  customer_id    String          @db.Uuid
   items          Json // Ex: [{ productId: "123", quantity: 2, price: 99.90 }]
   total          Float
   abandonedAt    DateTime        @default(now())
@@ -742,7 +765,7 @@ model Payment {
   order             Order         @relation(fields: [order_id], references: [id])
   order_id          String        @unique
   customer          Customer      @relation(fields: [customer_id], references: [id])
-  customer_id       String
+  customer_id       String        @db.Uuid
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
   updated_at DateTime @updatedAt
@@ -766,7 +789,7 @@ model PaymentWebhook {
 model Address {
   id           String   @id @default(uuid())
   customer     Customer @relation(fields: [customer_id], references: [id])
-  customer_id  String
+  customer_id  String   @db.Uuid
   street       String
   city         String
   state        String
@@ -785,9 +808,9 @@ model Address {
 
 model Favorite {
   customer    Customer @relation(fields: [customer_id], references: [id])
-  customer_id String
+  customer_id String   @db.Uuid
   product     Product  @relation(fields: [product_id], references: [id])
-  product_id  String
+  product_id  String   @db.Uuid
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
 
@@ -818,12 +841,12 @@ model Newsletter {
 }
 
 model NotificationUserEcommerce {
-  id                String         @id @default(uuid())
-  userEcommerce     UserEcommerce? @relation(fields: [user_ecommerce_id], references: [id])
+  id                String           @id @default(uuid())
+  userEcommerce     UserEcommerce?   @relation(fields: [user_ecommerce_id], references: [id])
   user_ecommerce_id String?
-  type              String
-  message           String         @db.VarChar(500)
-  read              Boolean        @default(false)
+  type              NotificationType @default(INDEFINIDO)
+  message           String           @db.VarChar(500)
+  read              Boolean          @default(false)
   link              String?
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
@@ -832,12 +855,12 @@ model NotificationUserEcommerce {
 }
 
 model NotificationUserStore {
-  id          String    @id @default(uuid())
-  userBlog    Customer? @relation(fields: [customer_id], references: [id])
-  customer_id String?   @db.Uuid
-  type        String
-  message     String    @db.VarChar(500)
-  read        Boolean   @default(false)
+  id          String           @id @default(uuid())
+  userBlog    Customer?        @relation(fields: [customer_id], references: [id])
+  customer_id String?          @db.Uuid
+  type        NotificationType @default(INDEFINIDO)
+  message     String           @db.VarChar(500)
+  read        Boolean          @default(false)
   link        String?
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
