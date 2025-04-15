@@ -176,22 +176,28 @@ enum MenuItemType {
 }
 
 model EcommerceData {
-  id               String  @id @default(uuid())
-  name             String
-  email            String
-  phone            String
-  whatsapp         String?
-  street           String
-  city             String
-  state            String
-  zipCode          String
-  number           String?
-  neighborhood     String?
-  country          String
-  logo             String?
-  favicon          String?
-  privacy_policies String?
-  about_store      String?
+  id                     String  @id @default(uuid())
+  name                   String
+  email                  String
+  phone                  String
+  whatsapp               String?
+  street                 String
+  city                   String
+  state                  String
+  zipCode                String
+  number                 String?
+  neighborhood           String?
+  country                String
+  logo                   String?
+  favicon                String?
+  privacy_policies       String?
+  about_store            String?
+  exchanges_and_returns  String?
+  how_to_buy             String?
+  shipping_delivery_time String?
+  faq                    String?
+  payment_methods        String?
+  technical_assistance   String?
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
 
@@ -988,16 +994,16 @@ model MenuItem {
   productId      String? // Se type = PRODUCT
   // Caso use páginas customizadas, você pode ter algo como:
   customPageSlug String? // Se type = CUSTOM_PAGE
-  icon     String? // Ícone (se quiser exibir um ícone ao lado do label)
-  isActive Boolean @default(true)
-  order    Int     @default(0) // Define a ordem do item dentro do menu ou subitem
+  icon           String? // Ícone (se quiser exibir um ícone ao lado do label)
+  isActive       Boolean      @default(true)
+  order          Int          @default(0) // Define a ordem do item dentro do menu ou subitem
   // Referência ao menu principal a que este item pertence
-  menu     Menu?   @relation(fields: [menu_id], references: [id])
-  menu_id  String?
+  menu           Menu?        @relation(fields: [menu_id], references: [id])
+  menu_id        String?
   // Relacionamento recursivo para submenus
-  parent   MenuItem?  @relation("MenuItemChildren", fields: [parentId], references: [id])
-  parentId String?
-  children MenuItem[] @relation("MenuItemChildren")
+  parent         MenuItem?    @relation("MenuItemChildren", fields: [parentId], references: [id])
+  parentId       String?
+  children       MenuItem[]   @relation("MenuItemChildren")
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
   updated_at DateTime @updatedAt
