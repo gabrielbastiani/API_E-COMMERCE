@@ -78,27 +78,11 @@ enum ProductRelationType {
   SIMPLE // Ex: { "cor": "Azul", "tamanho": "M" }
 }
 
-enum ProductType {
-  DIGITAL // Produto digital
-  PHYSICAL // Produto fisico
-}
-
 enum DeliveryMethod {
   DOWNLOAD // Download direto
   EMAIL // Envio por e-mail
   STREAMING // Acesso via streaming (ex: cursos)
   API // Entrega via integração com API
-}
-
-enum DigitalDelivery {
-  SIM
-  NAO
-}
-
-enum AccessType {
-  PERPETUAL // Acesso vitalício
-  SUBSCRIPTION // Acesso por assinatura
-  TIME_LIMITED // Acesso temporário (ex: 30 dias)
 }
 
 enum StatusReview {
@@ -307,9 +291,7 @@ model Product {
   height               Float?
   promotion            Promotion?           @relation(fields: [promotion_id], references: [id])
   promotion_id         String?
-  productType          ProductType          @default(PHYSICAL)
   status               StatusProduct        @default(DISPONIVEL)
-  digitalProduct       DigitalProduct?
   categories           ProductCategory[]
   images               ProductImage[]
   reviews              Review[]
@@ -431,23 +413,6 @@ model ProductVideo {
   updated_at DateTime @updatedAt
 
   @@map("productsVideos")
-}
-
-model DigitalProduct {
-  id             String         @id @default(uuid())
-  product        Product        @relation(fields: [product_id], references: [id])
-  product_id     String         @unique
-  deliveryMethod DeliveryMethod @default(DOWNLOAD) // Método de entrega
-  accessType     AccessType     @default(PERPETUAL) // Tipo de acesso
-  fileUrl        String? // URL do arquivo (se aplicável)
-  accessDuration Int? // Duração em dias (para assinaturas)
-  maxDownloads   Int? // Máximo de downloads permitidos
-  buyTogether    BuyTogether[]
-
-  created_at DateTime @default(now()) @db.Timestamptz(3)
-  updated_at DateTime @updatedAt
-
-  @@map("digitalProducts")
 }
 
 model Promotion {
@@ -573,13 +538,11 @@ model Review {
 }
 
 model BuyTogether {
-  id                String            @id @default(uuid())
-  product           Product?          @relation(fields: [product_id], references: [id])
-  product_id        String?
-  digitalProduct    DigitalProduct?   @relation(fields: [digitalProduct_id], references: [id])
-  digitalProduct_id String?
-  name              String?
-  status            StatusBuyTogether @default(SIM)
+  id         String            @id @default(uuid())
+  product    Product?          @relation(fields: [product_id], references: [id])
+  product_id String?
+  name       String?
+  status     StatusBuyTogether @default(SIM)
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
 
@@ -611,14 +574,13 @@ model Order {
 }
 
 model OrderItem {
-  id              String          @id @default(uuid())
-  quantity        Int             @default(1)
-  price           Float
-  order           Order           @relation(fields: [order_id], references: [id])
-  order_id        String
-  product         Product         @relation(fields: [product_id], references: [id])
-  product_id      String
-  digitalDelivery DigitalDelivery @default(NAO)
+  id         String  @id @default(uuid())
+  quantity   Int     @default(1)
+  price      Float
+  order      Order   @relation(fields: [order_id], references: [id])
+  order_id   String
+  product    Product @relation(fields: [product_id], references: [id])
+  product_id String
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
 
