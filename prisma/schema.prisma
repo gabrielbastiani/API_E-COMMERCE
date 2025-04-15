@@ -146,6 +146,35 @@ enum StatusCommentOrder {
   VISIBLE
 }
 
+enum FilterType {
+  RANGE // Usado para campos numéricos (ex.: faixa de preço)
+  SELECT // Seleção única (ex.: marca)
+  MULTI_SELECT // Seleção múltipla (ex.: cores, tamanhos)
+}
+
+enum FilterDisplayStyle {
+  SLIDER // Controlador do tipo slider, ideal para range (ex.: faixa de preço)
+  DROPDOWN // Lista suspensa
+  CHECKBOX // Várias opções (checkbox)
+  RADIO // Seleção única (radio button)
+  COLOR_PICKER // Se o filtro representar uma cor
+}
+
+enum FilterDataType {
+  NUMBER
+  STRING
+  DATE
+  BOOLEAN
+}
+
+enum MenuItemType {
+  INTERNAL_LINK // Link interno, ex.: "/minha-pagina"
+  EXTERNAL_LINK // Link externo, ex.: "https://www.meusite.com"
+  CATEGORY // Link para uma categoria específica
+  PRODUCT // Link para um produto específico (opcional)
+  CUSTOM_PAGE // Link para uma página custom (ex.: CMS de páginas institucionais)
+}
+
 model EcommerceData {
   id               String  @id @default(uuid())
   name             String
@@ -489,36 +518,43 @@ model PromotionUsage {
 }
 
 model Category {
-  id           String            @id @default(uuid())
-  name         String            @unique
-  slug         String
-  description  String?
-  image        String?
-  order        Int               @default(0)
-  parentId     String?
-  parent       Category?         @relation("Subcategories", fields: [parentId], references: [id])
-  children     Category[]        @relation("Subcategories")
-  products     ProductCategory[]
-  promotion    Promotion?        @relation(fields: [promotion_id], references: [id])
-  promotion_id String?
+  id            String            @id @default(uuid())
+  name          String            @unique
+  slug          String
+  description   String?
+  image         String?
+  order         Int               @default(0)
+  parentId      String?
+  parent        Category?         @relation("Subcategories", fields: [parentId], references: [id])
+  children      Category[]        @relation("Subcategories")
+  products      ProductCategory[]
+  promotion     Promotion?        @relation(fields: [promotion_id], references: [id])
+  promotion_id  String?
+  // Campo oposto da relação direta
+  directFilters Filter[]          @relation("DirectCategoryFilters")
+
+  // Relação via tabela de junção
+  filters CategoryFilter[]
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
   updated_at DateTime @updatedAt
+  Filter     Filter?  @relation(fields: [filterId], references: [id])
+  filterId   String?
 
   @@map("categories")
 }
 
 model ProductCategory {
-  id         String   @id @default(uuid())
-  product    Product  @relation(fields: [product_id], references: [id])
-  product_id String   @db.Uuid
-  category   Category @relation(fields: [categoryId], references: [id])
-  categoryId String
+  id          String   @id @default(uuid())
+  product     Product  @relation(fields: [product_id], references: [id])
+  product_id  String   @db.Uuid
+  category    Category @relation(fields: [category_id], references: [id])
+  category_id String
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
   updated_at DateTime @updatedAt
 
-  @@unique([product_id, categoryId])
+  @@unique([product_id, category_id])
   @@map("productCategories")
 }
 
@@ -854,4 +890,117 @@ model MarketingPublicationView {
 
   @@unique([marketingPublication_id, ipAddress])
   @@map("marketingPublicationViews")
+}
+
+model Filter {
+  id               String             @id @default(uuid())
+  name             String // Nome a ser exibido no front (ex.: "Preço", "Cor")
+  fieldName        String // Nome do campo ou identificador associado (ex.: "price_per" ou "variantAttribute")
+  type             FilterType // Tipo de filtro: RANGE, SELECT, MULTI_SELECT
+  dataType         FilterDataType // Tipo de dado subjacente (NUMBER, STRING, etc.)
+  displayStyle     FilterDisplayStyle // Define o componente visual a ser usado
+  isActive         Boolean            @default(true) // Permite ativar/desativar o filtro via CMS
+  order            Int                @default(0) // Define a ordem de exibição entre os filtros
+  autoPopulate     Boolean            @default(false) // Se verdadeiro, o sistema pode preencher opções baseado nos produtos cadastrados
+  // Para filtros do tipo RANGE
+  minValue         Float? // Ex.: preço mínimo pré-configurado (opcional)
+  maxValue         Float? // Ex.: preço máximo pré-configurado (opcional)
+  // Relacionamento com grupos de filtros (opcional)
+  group            FilterGroup?       @relation(fields: [groupId], references: [id])
+  groupId          String?
+  // Relacionamento com opções (para SELECT ou MULTI_SELECT)
+  options          FilterOption[]
+  // Relação direta nomeada (ex.: para um filtro "principal" de uma categoria)
+  directCategories Category[]         @relation("DirectCategoryFilters")
+  // Relação via tabela de junção (para configuração dinâmica)
+  category         Category[]
+  categoryFilter   CategoryFilter[]
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @updatedAt
+
+  @@map("filters")
+}
+
+model FilterOption {
+  id        String  @id @default(uuid())
+  filter    Filter  @relation(fields: [filter_id], references: [id])
+  filter_id String
+  label     String // Texto exibido (ex.: "Azul", "Médio", "2023")
+  value     String // Valor utilizado para a query
+  order     Int     @default(0) // Ordem de exibição
+  iconUrl   String? // URL para ícone (útil para filtros de cor ou ícones específicos)
+  colorCode String? // Código de cor (ex.: "#FF0000"), se aplicável
+  isDefault Boolean @default(false) // Se essa opção for padrão na interface
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @updatedAt
+
+  @@map("filterOptions")
+}
+
+model FilterGroup {
+  id      String   @id @default(uuid())
+  name    String // Nome do grupo (ex.: "Características", "Preço")
+  order   Int      @default(0) // Ordem de exibição do grupo na interface de usuário
+  // Relacionamento com filtros que pertencem a este grupo
+  filters Filter[]
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @updatedAt
+
+  @@map("filterGroups")
+}
+
+model CategoryFilter {
+  id          String   @id @default(uuid())
+  category    Category @relation(fields: [category_id], references: [id])
+  category_id String
+  filter      Filter   @relation(fields: [filter_id], references: [id])
+  filter_id   String
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+
+  @@unique([category_id, filter_id])
+  @@map("categoryFilters")
+}
+
+model Menu {
+  id       String     @id @default(uuid())
+  name     String // Nome do menu (ex.: "Header Menu", "Footer Menu")
+  isActive Boolean    @default(true)
+  order    Int        @default(0) // Caso queira ter vários menus e precise de ordenação
+  items    MenuItem[] // Relação com itens de menu
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @updatedAt
+
+  @@map("menus")
+}
+
+model MenuItem {
+  id             String       @id @default(uuid())
+  label          String // Texto exibido no front (ex.: "Maquinas de Corte", "Consumíveis")
+  type           MenuItemType // Tipo de link (INTERNAL_LINK, EXTERNAL_LINK, CATEGORY, etc.)
+  url            String? // Ex.: "/minha-pagina" ou "https://google.com"
+  // Caso o item referencie uma categoria ou produto, podemos ter campos de referência (opcionais):
+  category_id    String? // Se type = CATEGORY
+  productId      String? // Se type = PRODUCT
+  // Caso use páginas customizadas, você pode ter algo como:
+  customPageSlug String? // Se type = CUSTOM_PAGE
+  icon     String? // Ícone (se quiser exibir um ícone ao lado do label)
+  isActive Boolean @default(true)
+  order    Int     @default(0) // Define a ordem do item dentro do menu ou subitem
+  // Referência ao menu principal a que este item pertence
+  menu     Menu?   @relation(fields: [menu_id], references: [id])
+  menu_id  String?
+  // Relacionamento recursivo para submenus
+  parent   MenuItem?  @relation("MenuItemChildren", fields: [parentId], references: [id])
+  parentId String?
+  children MenuItem[] @relation("MenuItemChildren")
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @updatedAt
+
+  @@map("menuItems")
 }
