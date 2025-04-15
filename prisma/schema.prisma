@@ -182,7 +182,7 @@ model EcommerceData {
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
 
-  @@map("ecommercedatas")
+  @@map("ecommerceDatas")
 }
 
 model SEOSettings {
@@ -204,7 +204,7 @@ model SEOSettings {
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
 
-  @@map("seo_settings")
+  @@map("seoSettings")
 }
 
 model SocialMedias {
@@ -215,7 +215,7 @@ model SocialMedias {
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
 
-  @@map("socialmedias")
+  @@map("socialMedias")
 }
 
 model ThemeSettings {
@@ -224,10 +224,10 @@ model ThemeSettings {
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
 
-  @@map("themessettings")
+  @@map("themesSettings")
 }
 
-model User_ecommerce {
+model UserEcommerce {
   id                        String                      @id @default(uuid())
   name                      String
   email                     String                      @unique
@@ -240,14 +240,14 @@ model User_ecommerce {
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
 
-  @@map("users_ecommerce")
+  @@map("usersEcommerce")
 }
 
 model PasswordRecoveryUserEcommerce {
   id    String @id @default(uuid())
   email String
 
-  @@map("passwordrecoveryusersecommerces")
+  @@map("passwordRecoveryUsersEcommerces")
 }
 
 model Customer {
@@ -277,54 +277,54 @@ model Customer {
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
 
-  @@map("users_store")
+  @@map("customers")
 }
 
 model PasswordRecoveryUserStore {
   id    String @id @default(uuid())
   email String
 
-  @@map("passwordrecoveryusersstores")
+  @@map("passwordRecoveryUsersStores")
 }
 
 model Product {
-  id                    String                @id @default(uuid())
-  name                  String
-  slug                  String?               @unique
-  metaTitle             String?
-  metaDescription       String?
-  keywords              Json?
-  brand                 String?
-  ean                   String?
-  description           String
-  skuMaster             String?               @unique // SKU principal (opcional)
-  price_of              Float?
-  price_per             Float
-  weight                Float?
-  length                Float?
-  width                 Float?
-  height                Float?
-  promotion             Promotion?            @relation(fields: [promotion_id], references: [id])
-  promotion_id          String?
-  productType           ProductType           @default(PHYSICAL)
-  status                StatusProduct         @default(DISPONIVEL)
-  digitalProduct        DigitalProduct?
-  categories            ProductCategory[]
-  images                ProductImage[]
-  reviews               Review[]
-  cartItems             CartItem[]
-  orderItems            OrderItem[]
-  favorites             Favorite[]
-  products_descriptions Product_description[]
-  variants              ProductVariant[] // Relacionamento com variantes
-  videos                ProductVideo[]
-  productView           ProductView[]
-  productRelations      ProductRelation[]
-  parentRelations       ProductRelation[]     @relation("parentRelation")
-  childRelations        ProductRelation[]     @relation("childRelation")
-  promotions            Promotion[]           @relation("PromotionToProduct")
-  promotions_product    Promotion[]           @relation("ProductPromotion")
-  buyTogether           BuyTogether[]
+  id                   String               @id @default(uuid())
+  name                 String
+  slug                 String?              @unique
+  metaTitle            String?
+  metaDescription      String?
+  keywords             Json?
+  brand                String?
+  ean                  String?
+  description          String
+  skuMaster            String?              @unique // SKU principal (opcional)
+  price_of             Float?
+  price_per            Float
+  weight               Float?
+  length               Float?
+  width                Float?
+  height               Float?
+  promotion            Promotion?           @relation(fields: [promotion_id], references: [id])
+  promotion_id         String?
+  productType          ProductType          @default(PHYSICAL)
+  status               StatusProduct        @default(DISPONIVEL)
+  digitalProduct       DigitalProduct?
+  categories           ProductCategory[]
+  images               ProductImage[]
+  reviews              Review[]
+  cartItems            CartItem[]
+  orderItems           OrderItem[]
+  favorites            Favorite[]
+  productsDescriptions ProductDescription[]
+  variants             ProductVariant[] // Relacionamento com variantes
+  videos               ProductVideo[]
+  productView          ProductView[]
+  productRelations     ProductRelation[]
+  parentRelations      ProductRelation[]    @relation("parentRelation")
+  childRelations       ProductRelation[]    @relation("childRelation")
+  promotions           Promotion[]          @relation("PromotionToProduct")
+  promotions_product   Promotion[]          @relation("ProductPromotion")
+  buyTogether          BuyTogether[]
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
   updated_at DateTime @updatedAt
@@ -353,7 +353,7 @@ model ProductVariant {
   created_at DateTime @default(now()) @db.Timestamptz(3)
   updated_at DateTime @updatedAt
 
-  @@map("products_variants")
+  @@map("productsVariants")
 }
 
 model VariantAttribute {
@@ -367,7 +367,7 @@ model VariantAttribute {
   created_at DateTime @default(now()) @db.Timestamptz(3)
   updated_at DateTime @updatedAt
 
-  @@map("variants_attributes")
+  @@map("variantsAttributes")
 }
 
 model ProductRelation {
@@ -385,10 +385,10 @@ model ProductRelation {
   created_at DateTime @default(now()) @db.Timestamptz(3)
 
   @@unique([parentProduct_id, childProductId, relationType])
-  @@map("products_relations")
+  @@map("productsRelations")
 }
 
-model Product_description {
+model ProductDescription {
   id          String                   @id @default(uuid())
   product     Product                  @relation(fields: [product_id], references: [id])
   product_id  String
@@ -398,7 +398,7 @@ model Product_description {
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
 
-  @@map("products_descriptions")
+  @@map("productsDescriptions")
 }
 
 model ProductImage {
@@ -414,7 +414,7 @@ model ProductImage {
   created_at DateTime @default(now()) @db.Timestamptz(3)
   updated_at DateTime @updatedAt
 
-  @@map("products_images")
+  @@map("productsImages")
 }
 
 model ProductVideo {
@@ -429,25 +429,24 @@ model ProductVideo {
   created_at DateTime @default(now()) @db.Timestamptz(3)
   updated_at DateTime @updatedAt
 
-  @@map("products_videos")
+  @@map("productsVideos")
 }
 
 model DigitalProduct {
-  id              String         @id @default(uuid())
-  product         Product        @relation(fields: [product_id], references: [id])
-  product_id      String         @unique
-  deliveryMethod  DeliveryMethod @default(DOWNLOAD) // Método de entrega
-  accessType      AccessType     @default(PERPETUAL) // Tipo de acesso
-  fileUrl         String? // URL do arquivo (se aplicável)
-  accessDuration  Int? // Duração em dias (para assinaturas)
-  maxDownloads    Int? // Máximo de downloads permitidos
-  licenseRequired Boolean        @default(false) // Precisa de chave de licença?
-  buyTogether     BuyTogether[]
+  id             String         @id @default(uuid())
+  product        Product        @relation(fields: [product_id], references: [id])
+  product_id     String         @unique
+  deliveryMethod DeliveryMethod @default(DOWNLOAD) // Método de entrega
+  accessType     AccessType     @default(PERPETUAL) // Tipo de acesso
+  fileUrl        String? // URL do arquivo (se aplicável)
+  accessDuration Int? // Duração em dias (para assinaturas)
+  maxDownloads   Int? // Máximo de downloads permitidos
+  buyTogether    BuyTogether[]
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
   updated_at DateTime @updatedAt
 
-  @@map("digital_products_details")
+  @@map("digitalProducts")
 }
 
 model Promotion {
@@ -491,7 +490,7 @@ model ProductView {
   created_at DateTime @default(now()) @db.Timestamptz(3)
 
   @@unique([product_id, ipAddress])
-  @@map("products_views")
+  @@map("productsViews")
 }
 
 model PromotionRule {
@@ -505,7 +504,7 @@ model PromotionRule {
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
 
-  @@map("promotion_rules")
+  @@map("promotionRules")
 }
 
 model PromotionUsage {
@@ -520,7 +519,7 @@ model PromotionUsage {
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
 
-  @@map("promotion_usages")
+  @@map("promotionUsages")
 }
 
 model Category {
@@ -554,7 +553,7 @@ model ProductCategory {
   updated_at DateTime @updatedAt
 
   @@unique([product_id, categoryId])
-  @@map("product_categories")
+  @@map("productCategories")
 }
 
 model Review {
@@ -568,7 +567,6 @@ model Review {
   status      StatusReview @default(ANAILSE)
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
-  updated_at DateTime @updatedAt
 
   @@map("reviews")
 }
@@ -584,7 +582,7 @@ model BuyTogether {
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
 
-  @@map("buystogethers")
+  @@map("buysTogethers")
 }
 
 model Order {
@@ -607,7 +605,6 @@ model Order {
   commentOrder      CommentOrder[]
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
-  updated_at DateTime @updatedAt
 
   @@map("orders")
 }
@@ -623,9 +620,8 @@ model OrderItem {
   digitalDelivery DigitalDelivery @default(NAO)
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
-  updated_at DateTime @updatedAt
 
-  @@map("order_itens")
+  @@map("orderItens")
 }
 
 model Cart {
@@ -639,7 +635,6 @@ model Cart {
   AbandonedCart AbandonedCart?
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
-  updated_at DateTime @updatedAt
 
   @@map("carts")
 }
@@ -653,9 +648,8 @@ model CartItem {
   cart_id    String
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
-  updated_at DateTime @updatedAt
 
-  @@map("cart_itens")
+  @@map("cartItens")
 }
 
 model CommentOrder {
@@ -664,15 +658,14 @@ model CommentOrder {
   order_id          String
   customer          Customer           @relation(fields: [customer_id], references: [id])
   customer_id       String
-  user_ecommerce    User_ecommerce     @relation(fields: [user_ecommerce_id], references: [id])
+  userEcommerce     UserEcommerce      @relation(fields: [user_ecommerce_id], references: [id])
   user_ecommerce_id String
-  menssage          String
+  message           String
   status            StatusCommentOrder @default(PRIVATE)
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
-  updated_at DateTime @updatedAt
 
-  @@map("commentsorder")
+  @@map("commentsOrder")
 }
 
 model AbandonedCart {
@@ -691,7 +684,7 @@ model AbandonedCart {
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
 
-  @@map("abandoned_carts")
+  @@map("abandonedCarts")
 }
 
 model EmailReminder {
@@ -704,7 +697,9 @@ model EmailReminder {
   opened      Boolean       @default(false)
   clicked     Boolean       @default(false)
 
-  @@map("email_reminders")
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+
+  @@map("emailReminders")
 }
 
 model EmailTemplate {
@@ -720,7 +715,7 @@ model EmailTemplate {
   created_at DateTime @default(now()) @db.Timestamptz(3)
   updated_at DateTime @updatedAt
 
-  @@map("email_templates")
+  @@map("emailTemplates")
 }
 
 model Payment {
@@ -760,7 +755,7 @@ model PaymentWebhook {
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
 
-  @@map("payment_webhooks")
+  @@map("paymentWebhooks")
 }
 
 model Address {
@@ -786,7 +781,8 @@ model Favorite {
   customer_id String
   product     Product  @relation(fields: [product_id], references: [id])
   product_id  String
-  created_at  DateTime @default(now()) @db.Timestamptz(3)
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
 
   @@id([customer_id, product_id])
   @@map("favorites")
@@ -798,12 +794,11 @@ model Form_contact {
   slug_name_user String
   email_user     String @db.VarChar(200)
   subject        String @db.VarChar(250)
-  menssage       String @db.VarChar(5000)
+  message        String @db.VarChar(5000)
 
   created_at DateTime? @default(now()) @db.Timestamptz(3)
-  updated_at DateTime? @updatedAt
 
-  @@map("form_contacts")
+  @@map("formContacts")
 }
 
 model Newsletter {
@@ -811,24 +806,22 @@ model Newsletter {
   email_user String @db.VarChar(100)
 
   created_at DateTime? @default(now()) @db.Timestamptz(3)
-  updated_at DateTime? @updatedAt
 
   @@map("newsletters")
 }
 
 model NotificationUserEcommerce {
-  id                String          @id @default(uuid())
-  user_ecommerce    User_ecommerce? @relation(fields: [user_ecommerce_id], references: [id])
+  id                String         @id @default(uuid())
+  userEcommerce     UserEcommerce? @relation(fields: [user_ecommerce_id], references: [id])
   user_ecommerce_id String?
   type              String
-  message           String          @db.VarChar(500)
-  read              Boolean         @default(false)
+  message           String         @db.VarChar(500)
+  read              Boolean        @default(false)
   link              String?
 
-  created_at DateTime  @default(now()) @db.Timestamptz(3)
-  updated_at DateTime? @updatedAt
+  created_at DateTime @default(now()) @db.Timestamptz(3)
 
-  @@map("notificationusers")
+  @@map("notificationUsers")
 }
 
 model NotificationUserStore {
@@ -840,10 +833,9 @@ model NotificationUserStore {
   read        Boolean   @default(false)
   link        String?
 
-  created_at DateTime  @default(now()) @db.Timestamptz(3)
-  updated_at DateTime? @updatedAt
+  created_at DateTime @default(now()) @db.Timestamptz(3)
 
-  @@map("notificationuserecommerce")
+  @@map("notificationUserEcommerce")
 }
 
 model MarketingPublication {
@@ -871,7 +863,7 @@ model MarketingPublication {
   created_at DateTime  @default(now()) @db.Timestamptz(3)
   updated_at DateTime? @updatedAt
 
-  @@map("marketingpublications")
+  @@map("marketingPublications")
 }
 
 model BannerInterval {
@@ -884,7 +876,7 @@ model BannerInterval {
   created_at DateTime  @default(now()) @db.Timestamptz(3)
   updated_at DateTime? @updatedAt
 
-  @@map("bannerintervals")
+  @@map("bannerIntervals")
 }
 
 model MarketingPublicationView {
@@ -896,5 +888,5 @@ model MarketingPublicationView {
   created_at DateTime @default(now()) @db.Timestamptz(3)
 
   @@unique([marketingPublication_id, ipAddress])
-  @@map("marketingpublicationviews")
+  @@map("marketingPublicationViews")
 }
