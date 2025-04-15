@@ -289,8 +289,9 @@ model Product {
   length               Float?
   width                Float?
   height               Float?
-  promotion            Promotion?           @relation(fields: [promotion_id], references: [id])
-  promotion_id         String?
+  // Promoção principal – campo opcional para a promoção destacada
+  mainPromotion        Promotion?           @relation("FeaturedPromotion", fields: [mainPromotionId], references: [id])
+  mainPromotionId      String?
   status               StatusProduct        @default(DISPONIVEL)
   categories           ProductCategory[]
   images               ProductImage[]
@@ -305,8 +306,8 @@ model Product {
   productRelations     ProductRelation[]
   parentRelations      ProductRelation[]    @relation("parentRelation")
   childRelations       ProductRelation[]    @relation("childRelation")
-  promotions           Promotion[]          @relation("PromotionToProduct")
-  promotions_product   Promotion[]          @relation("ProductPromotion")
+  // Relação muitos-para-muitos: promoções adicionais
+  promotions           Promotion[]          @relation("ProductPromotions")
   buyTogether          BuyTogether[]
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
@@ -405,9 +406,9 @@ model ProductVideo {
   url        String
   product_id String
   product    Product         @relation(fields: [product_id], references: [id])
-  variant_id String? // Opcional: imagem específica para uma variante
+  variant_id String? // Opcional: vídeo específico para uma variante
   variant    ProductVariant? @relation(fields: [variant_id], references: [id])
-  isPrimary  Boolean         @default(false) // Imagem principal?
+  isPrimary  Boolean         @default(false)
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
   updated_at DateTime @updatedAt
@@ -430,16 +431,15 @@ model Promotion {
   minOrderAmount    Decimal?         @db.Decimal(10, 2)
   status            PromotionStatus  @default(SCHEDULED)
   stackable         Boolean          @default(false)
-  product           Product?         @relation("ProductPromotion", fields: [product_id], references: [id])
-  product_id        String?
-  products          Product[]        @relation("PromotionToProduct")
+  products          Product[]        @relation("ProductPromotions")
   variantPromotions ProductVariant[] @relation("variantPromotions")
+  // Promoção principal inversa: produtos que têm esta promoção como destaque
+  featuredProducts  Product[]        @relation("FeaturedPromotion")
   categories        Category[]
   orders            Order[]
   mainVariants      ProductVariant[] @relation("variantMainPromotion")
   rules             PromotionRule[]
   usageHistory      PromotionUsage[]
-  produtos          Product[]
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
 
@@ -753,7 +753,7 @@ model Favorite {
   @@map("favorites")
 }
 
-model Form_contact {
+model FormContact {
   id             String @id @default(uuid())
   name_user      String @db.VarChar(200)
   slug_name_user String
