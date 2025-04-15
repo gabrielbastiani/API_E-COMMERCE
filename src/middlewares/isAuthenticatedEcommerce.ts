@@ -5,52 +5,52 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 declare global {
-    namespace Express {
-        interface Request {
-            user?: {
-                id: string;
-                role: string;
-            };
-        }
+  namespace Express {
+    interface Request {
+      userEcommerce?: {
+        id: string;
+        role: string;
+      };
     }
+  }
 }
 
-export async function isAuthenticatedEcommerce (
-    req: Request,
-    res: Response,
-    next: NextFunction
+export async function isAuthenticatedEcommerce(
+  req: Request,
+  res: Response,
+  next: NextFunction
 ) {
-    const authToken = req.headers.authorization;
+  const authToken = req.headers.authorization;
 
-    if (!authToken) {
-        return res.status(401).end();
+  if (!authToken) {
+    return res.status(401).end();
+  }
+
+  const [, token] = authToken.split(" ");
+
+  try {
+    const { sub } = verify(
+      token,
+      process.env.JWT_SECRET as string
+    ) as { sub: string };
+
+    const userEcommerce = await prisma.userEcommerce.findUnique({
+      where: { id: sub },
+      select: { id: true, role: true }
+    });
+
+    if (!userEcommerce) {
+      return res.status(401).json({ error: 'User not found' });
     }
 
-    const [, token] = authToken.split(" ");
+    req.userEcommerce = {
+      id: userEcommerce.id,
+      role: userEcommerce.role
+    };
 
-    try {
-        const { sub } = verify(
-            token,
-            process.env.JWT_SECRET as string
-        ) as { sub: string };
+    return next();
 
-        const user = await prisma.userEcommerce.findUnique({
-            where: { id: sub },
-            select: { id: true, role: true }
-        });
-
-        if (!user) {
-            return res.status(401).json({ error: 'User not found' });
-        }
-
-        req.user = {
-            id: user.id,
-            role: user.role
-        };
-
-        return next();
-
-    } catch (err) {
-        return res.status(401).end();
-    }
+  } catch (err) {
+    return res.status(401).end();
+  }
 }

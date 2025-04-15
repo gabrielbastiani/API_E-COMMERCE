@@ -13,7 +13,7 @@ declare global {
   }
 }
 
-export async function isAuthenticatedCustomer (
+export async function isAuthenticatedCustomer(
   req: Request,
   res: Response,
   next: NextFunction
