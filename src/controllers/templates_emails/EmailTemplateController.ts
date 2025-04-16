@@ -1,9 +1,8 @@
 import { Request, Response } from 'express';
-import EmailTemplateService from '../../services/templates_emails/EmailTemplateService'; 
+import EmailTemplateService from '../../services/templates_emails/EmailTemplateService';
 
 class EmailTemplateController {
-  // Lista todos os templates
-  async getAll(req: Request, res: Response): Promise<void> {
+  async getAll(req: Request, res: Response) {
     try {
       const templates = await EmailTemplateService.getAllTemplates();
       res.json(templates);
@@ -12,78 +11,67 @@ class EmailTemplateController {
     }
   }
 
-  // Retorna um template pelo ID
-  async getById(req: Request, res: Response): Promise<void> {
+  async getById(req: Request, res: Response) {
     try {
-      const { id } = req.params;
-      const template = await EmailTemplateService.getTemplateById(id);
-      if (!template) {
-        res.status(404).json({ error: 'Template not found' });
-        return;
-      }
-      res.json(template);
+      const template = await EmailTemplateService.getTemplateById(req.params.id);
+      template ? res.json(template) : res.status(404).json({ error: 'Template not found' });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   }
 
-  // Cria um novo template
-  async create(req: Request, res: Response): Promise<void> {
+  async create(req: Request, res: Response) {
     try {
-      const { title, subject, content, variables, isActive, daysAfter } = req.body;
-      const newTemplate = await EmailTemplateService.createTemplate({
-        title,
-        subject,
-        content,
-        variables,
-        isActive,
-        daysAfter,
-      });
+      const newTemplate = await EmailTemplateService.createTemplate(req.body);
       res.status(201).json(newTemplate);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      res.status(400).json({ error: error.message });
     }
   }
 
-  // Atualiza um template existente
-  async update(req: Request, res: Response): Promise<void> {
+  async update(req: Request, res: Response) {
     try {
-      const { id } = req.params;
-      const { title, subject, content, variables, isActive, daysAfter } = req.body;
-      const updatedTemplate = await EmailTemplateService.updateTemplate(id, {
-        title,
-        subject,
-        content,
-        variables,
-        isActive,
-        daysAfter,
-      });
+      const updatedTemplate = await EmailTemplateService.updateTemplate(
+        req.params.id,
+        req.body
+      );
       res.json(updatedTemplate);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      res.status(400).json({ error: error.message });
     }
   }
 
-  // Exclui um template pelo ID
-  async delete(req: Request, res: Response): Promise<void> {
+  async delete(req: Request, res: Response) {
     try {
-      const { id } = req.params;
-      const deletedTemplate = await EmailTemplateService.deleteTemplate(id);
+      const deletedTemplate = await EmailTemplateService.deleteTemplate(req.params.id);
       res.json(deletedTemplate);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   }
 
-  // Endpoint para renderizar o template com dados fornecidos (útil para testes de preview)
-  async render(req: Request, res: Response): Promise<void> {
+  async renderById(req: Request, res: Response) {
     try {
-      const { id } = req.params;
-      const data = req.body; // Os dados para substituir os placeholders devem ser enviados no corpo da requisição
-      const renderedContent = await EmailTemplateService.renderTemplate(id, data);
+      const renderedContent = await EmailTemplateService.renderTemplateById(
+        req.params.id,
+        req.body
+      );
       res.send(renderedContent);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      res.status(404).json({ error: error.message });
+    }
+  }
+
+  async renderByName(req: Request, res: Response) {
+    try {
+      const { templateName } = req.params;
+      const renderedContent = await EmailTemplateService.renderTemplate(
+        templateName,
+        req.body
+      );
+      res.send(renderedContent);
+    } catch (error: any) {
+      res.status(404).json({ error: error.message });
     }
   }
 }

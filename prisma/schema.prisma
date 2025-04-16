@@ -293,20 +293,20 @@ model PasswordRecoveryUserEcommerce {
 }
 
 model Customer {
-  id                    String                  @id @default(uuid()) @db.Uuid
+  id                    String                 @id @default(uuid()) @db.Uuid
   asaas_customer_id     String?
-  email                 String                  @unique
+  email                 String                 @unique
   password              String
   name                  String
   phone                 String
-  type_user             TypeUser                @default(FISICA)
+  type_user             TypeUser               @default(FISICA)
   cpf                   String?
   cnpj                  String?
   date_of_birth         String?
   sexo                  String
   state_registration    String?
   photo                 String?
-  newsletter            Boolean                 @default(false)
+  newsletter            Boolean                @default(false)
   addresses             Address[]
   cart                  Cart?
   orders                Order[]
@@ -733,16 +733,17 @@ model EmailReminder {
 model EmailTemplate {
   id            String          @id @default(uuid())
   title         String
-  subject       String // Assunto do e-mail (pode usar variáveis como {{customerName}})
-  content       String // Corpo do e-mail (HTML/texto com placeholders)
-  variables     Json // Ex: ["customerName", "cartItems", "discountCode"]
+  subject       String? // Assunto do e-mail (pode usar variáveis como {{customerName}})
+  templateName  String // Nome do arquivo EJS (ex: "admin-register.ejs")
+  variables     Json? // Ex: ["customerName", "cartItems", "discountCode"]
   isActive      Boolean         @default(true)
-  daysAfter     Int // Dias após o abandono para disparar (ex: 1, 3, 7)
+  hoursAfter    Int? // horas após o abandono para disparar (ex: 1, 3, 7)
   emailReminder EmailReminder[]
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
   updated_at DateTime @updatedAt
 
+  @@unique([templateName])
   @@map("emailTemplates")
 }
 
@@ -856,7 +857,7 @@ model NotificationUserEcommerce {
 
 model NotificationCustomer {
   id          String           @id @default(uuid())
-  userBlog    Customer?        @relation(fields: [customer_id], references: [id])
+  customer    Customer?        @relation(fields: [customer_id], references: [id])
   customer_id String?          @db.Uuid
   type        NotificationType @default(INDEFINIDO)
   message     String           @db.VarChar(500)

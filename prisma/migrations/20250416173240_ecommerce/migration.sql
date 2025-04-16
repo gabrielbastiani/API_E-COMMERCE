@@ -515,11 +515,11 @@ CREATE TABLE "emailReminders" (
 CREATE TABLE "emailTemplates" (
     "id" TEXT NOT NULL,
     "title" TEXT NOT NULL,
-    "subject" TEXT NOT NULL,
-    "content" TEXT NOT NULL,
-    "variables" JSONB NOT NULL,
+    "subject" TEXT,
+    "templateName" TEXT NOT NULL,
+    "variables" JSONB,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
-    "daysAfter" INTEGER NOT NULL,
+    "hoursAfter" INTEGER,
     "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
@@ -843,6 +843,9 @@ CREATE UNIQUE INDEX "carts_customer_id_key" ON "carts"("customer_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "abandonedCarts_cart_id_key" ON "abandonedCarts"("cart_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "emailTemplates_templateName_key" ON "emailTemplates"("templateName");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "payments_order_id_key" ON "payments"("order_id");

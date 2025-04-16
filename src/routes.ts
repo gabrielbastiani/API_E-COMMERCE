@@ -19,8 +19,6 @@ import { CreateConfigurationController } from "./controllers/configuration_ecomm
 
 
 
-
-
 const router = Router();
 const upload_image = multer(uploadConfig.upload("./images"));
 const controller = new ThemeController();
@@ -65,6 +63,7 @@ router.put('/email-templates/:id', EmailTemplateController.update);
 // Rota para excluir um template
 router.delete('/email-templates/:id', EmailTemplateController.delete);
 // Rota para renderizar um template (útil para previews/testes de renderização)
-router.post('/email-templates/:id/render', EmailTemplateController.render);
+router.post('/email-templates/:id/render', EmailTemplateController.renderById);
+router.post('/email-templates/render/:templateName', EmailTemplateController.renderByName);
 
 export { router };

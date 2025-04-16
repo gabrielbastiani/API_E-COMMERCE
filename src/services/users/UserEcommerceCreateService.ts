@@ -241,7 +241,23 @@ class UserEcommerceCreateService {
 
         const infos_ecommerce = await prismaClient.ecommerceData.findFirst();
 
+        await prismaClient.emailTemplate.create({
+            data: {
+                title: "Novo super administrador se cadastrando no CMS",
+                subject: "Novo super administrador se cadastrando no CMS do",
+                templateName: "criacao_de_super_administrador.ejs",
+                isActive: true,
+                hoursAfter: 0
+            }
+        });
+
         const requiredPath = path.join(__dirname, `../../emails_templates/criacao_de_super_administrador.ejs`);
+
+        const data_templates = await prismaClient.emailTemplate.findFirst({
+            where: {
+                templateName: "criacao_de_super_administrador.ejs"
+            }
+        });
 
         const domain_site = process.env.URL_SITE;
         const domain_api = process.env.URL_API;
@@ -257,7 +273,7 @@ class UserEcommerceCreateService {
         await transporter.sendMail({
             from: `"${infos_ecommerce?.name} " <${infos_ecommerce?.email}>`,
             to: user_create_super_admin.email,
-            subject: `Novo super administrador se cadastrando no CMS do ${infos_ecommerce?.name}`,
+            subject: `${data_templates?.subject}`,
             html: data
         });
 
