@@ -1,9 +1,8 @@
-import express, { Request, Response, NextFunction, ErrorRequestHandler } from 'express';
 import 'express-async-errors';
+import express, { Request, Response, NextFunction, ErrorRequestHandler } from 'express';
 import cors from 'cors';
 import { router } from './routes';
 import path from 'path';
-import "./services/post/PostPublishScheduler";
 import cron from "node-cron";
 import { StartMarketingPublicationScheduler } from './services/marketing_publication/StartMarketingPublicationScheduler';
 import { EndMarketingPublicationScheduler } from './services/marketing_publication/EndMarketingPublicationScheduler';

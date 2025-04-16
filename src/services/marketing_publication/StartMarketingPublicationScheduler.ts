@@ -3,6 +3,7 @@ import prismaClient from "../../prisma";
 import path from "path";
 import ejs from "ejs";
 import moment from "moment";
+import { NotificationType, Role } from "@prisma/client";
 
 class StartMarketingPublicationScheduler {
     private transporter;
@@ -73,24 +74,24 @@ class StartMarketingPublicationScheduler {
     private async sendEmail(title: string, start: string, end: string) {
         const domain_sitee = process.env.URL_SITE;
         const domain_apii = process.env.URL_API;
-        const infos_blog = await prismaClient.configurationBlog.findFirst();
-        const name_blog = infos_blog?.name_blog;
-        const logo = infos_blog?.logo;
+        const infos_ecommerce = await prismaClient.ecommerceData.findFirst();
+        const name = infos_ecommerce?.name;
+        const logo = infos_ecommerce?.logo;
         const domain_site = domain_sitee;
         const domain_api = domain_apii;
-        const emailTemplatePath = path.join(__dirname, "../emails_transacionais/publicidade_programada.ejs");
+        const emailTemplatePath = path.join(__dirname, "../../emails_templates/publicidade_programada.ejs");
 
-        const htmlContent = await ejs.renderFile(emailTemplatePath, { title, start, end, name_blog, logo, domain_site, domain_api });
+        const htmlContent = await ejs.renderFile(emailTemplatePath, { title, start, end, name, logo, domain_site, domain_api });
 
         await this.transporter.sendMail({
-            from: `"${infos_blog?.name_blog} " <${infos_blog?.email_blog}>`,
-            to: `${infos_blog?.email_blog}`,
+            from: `"${infos_ecommerce?.name} " <${infos_ecommerce?.email}>`,
+            to: `${infos_ecommerce?.email}`,
             subject: "Publicidade Programada Iniciada",
             html: htmlContent,
         });
 
-        const users_superAdmins = await prismaClient.user.findMany({ where: { role: Role.SUPER_ADMIN } });
-        const users_admins = await prismaClient.user.findMany({ where: { role: Role.ADMIN } });
+        const users_superAdmins = await prismaClient.userEcommerce.findMany({ where: { role: Role.SUPER_ADMIN } });
+        const users_admins = await prismaClient.userEcommerce.findMany({ where: { role: Role.ADMIN } });
 
         const all_user_ids = [
             ...users_superAdmins.map((user) => user.id),
@@ -100,10 +101,10 @@ class StartMarketingPublicationScheduler {
         const notificationsData = all_user_ids.map((user_id) => ({
             user_id,
             message: `Publicidade programada "${title ? title : "Sem titulo"}" foi publicado no blog.`,
-            type: "marketing",
+            type: NotificationType.MARKETING
         }));
 
-        await prismaClient.notificationUser.createMany({ data: notificationsData });
+        await prismaClient.notificationUserEcommerce.createMany({ data: notificationsData });
     }
 
 }

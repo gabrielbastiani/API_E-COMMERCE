@@ -78,18 +78,18 @@ class EndMarketingPublicationScheduler {
         const domain_sites = process.env.URL_SITE;
         const domain_apii = process.env.URL_API;
 
-        const infos_blog = await prismaClient.configurationBlog.findFirst();
-        const name_blog = infos_blog?.name_blog;
+        const infos_blog = await prismaClient.ecommerceData.findFirst();
+        const name = infos_blog?.name;
         const logo = infos_blog?.logo;
         const domain_site = domain_sites;
         const domain_api = domain_apii;
-        const emailTemplatePath = path.join(__dirname, "../emails_transacionais/encerrar_publicidade_programada.ejs");
+        const emailTemplatePath = path.join(__dirname, "../../emails_templates/encerrar_publicidade_programada.ejs");
 
-        const htmlContent = await ejs.renderFile(emailTemplatePath, { title, start, end, name_blog, logo, domain_site, domain_api });
+        const htmlContent = await ejs.renderFile(emailTemplatePath, { title, start, end, name, logo, domain_site, domain_api });
 
         await this.transporter.sendMail({
-            from: `"${infos_blog?.name_blog} " <${infos_blog?.email_blog}>`,
-            to: `${infos_blog?.email_blog}`,
+            from: `"${infos_blog?.name} " <${infos_blog?.email}>`,
+            to: `${infos_blog?.email}`,
             subject: "Publicidade Programada Encerrada",
             html: htmlContent,
         });

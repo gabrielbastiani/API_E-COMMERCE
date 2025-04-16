@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { ThemeService } from '../../../services/configuration_blog/ThemeService';
+import { ThemeService } from '../../../services/configuration_ecommerce/ThemeService'; 
 import { validationResult } from 'express-validator/lib/validation-result';
 
 class ThemeController {

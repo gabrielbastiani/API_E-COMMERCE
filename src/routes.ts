@@ -9,10 +9,11 @@ import { body } from "express-validator/lib/middlewares/validation-chain-builder
 import { UserEcommerceCreateController } from "./controllers/users/UserEcommerceCreateController";
 
 // --- COLORS --- //
-import { ThemeController } from "./controllers/configuration_blog/theme_setting/ThemeController";
+import { ThemeController } from "./controllers/configuration_ecommerce/theme_setting/ThemeController";
 
 // --- TEMPLATES DE EMAILS
 import EmailTemplateController from "./controllers/templates_emails/EmailTemplateController";
+import { CreateConfigurationController } from "./controllers/configuration_ecommerce/theme_setting/CreateConfigurationController";
 
 
 
@@ -48,6 +49,9 @@ router.put(
     ],
     controller.updateTheme
 );
+
+// --- CONFIGURAÇÔES DO ECOMMERCE --- //
+router.post('/create/ecommerce', upload_image.fields([{ name: 'logo', maxCount: 1 }, { name: 'favicon', maxCount: 1 }]), new CreateConfigurationController().handle);
 
 // --- TEMPLATES DE EMAILS --- //
 // Rota para listar todos os templates

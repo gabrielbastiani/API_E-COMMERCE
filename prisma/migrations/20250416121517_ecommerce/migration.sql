@@ -153,7 +153,7 @@ CREATE TABLE "usersEcommerce" (
     "name" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "password" TEXT NOT NULL,
-    "status" "StatusUserEcommerce" NOT NULL DEFAULT 'INDISPONIVEL',
+    "status" "StatusUserEcommerce" NOT NULL DEFAULT 'DISPONIVEL',
     "role" "Role" NOT NULL DEFAULT 'EMPLOYEE',
     "photo" TEXT,
     "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -615,7 +615,7 @@ CREATE TABLE "newsletters" (
 );
 
 -- CreateTable
-CREATE TABLE "notificationUsers" (
+CREATE TABLE "notificationUsersEcommerce" (
     "id" TEXT NOT NULL,
     "user_ecommerce_id" TEXT,
     "type" "NotificationType" NOT NULL DEFAULT 'INDEFINIDO',
@@ -624,11 +624,11 @@ CREATE TABLE "notificationUsers" (
     "link" TEXT,
     "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "notificationUsers_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "notificationUsersEcommerce_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "notificationUserEcommerce" (
+CREATE TABLE "notificationCustomers" (
     "id" TEXT NOT NULL,
     "customer_id" UUID,
     "type" "NotificationType" NOT NULL DEFAULT 'INDEFINIDO',
@@ -637,7 +637,7 @@ CREATE TABLE "notificationUserEcommerce" (
     "link" TEXT,
     "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "notificationUserEcommerce_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "notificationCustomers_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -995,10 +995,10 @@ ALTER TABLE "favorites" ADD CONSTRAINT "favorites_customer_id_fkey" FOREIGN KEY 
 ALTER TABLE "favorites" ADD CONSTRAINT "favorites_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "products"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "notificationUsers" ADD CONSTRAINT "notificationUsers_user_ecommerce_id_fkey" FOREIGN KEY ("user_ecommerce_id") REFERENCES "usersEcommerce"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "notificationUsersEcommerce" ADD CONSTRAINT "notificationUsersEcommerce_user_ecommerce_id_fkey" FOREIGN KEY ("user_ecommerce_id") REFERENCES "usersEcommerce"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "notificationUserEcommerce" ADD CONSTRAINT "notificationUserEcommerce_customer_id_fkey" FOREIGN KEY ("customer_id") REFERENCES "customers"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "notificationCustomers" ADD CONSTRAINT "notificationCustomers_customer_id_fkey" FOREIGN KEY ("customer_id") REFERENCES "customers"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "marketingPublicationViews" ADD CONSTRAINT "marketingPublicationViews_marketingPublication_id_fkey" FOREIGN KEY ("marketingPublication_id") REFERENCES "marketingPublications"("id") ON DELETE SET NULL ON UPDATE CASCADE;

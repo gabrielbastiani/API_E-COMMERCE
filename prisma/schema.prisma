@@ -274,7 +274,7 @@ model UserEcommerce {
   name                      String
   email                     String                      @unique
   password                  String
-  status                    StatusUserEcommerce         @default(INDISPONIVEL)
+  status                    StatusUserEcommerce         @default(DISPONIVEL)
   role                      Role                        @default(EMPLOYEE)
   photo                     String?
   notificationUserEcommerce NotificationUserEcommerce[]
@@ -314,7 +314,7 @@ model Customer {
   payments              Payment[]
   favorites             Favorite[]
   promotionUsage        PromotionUsage[]
-  notificationUserStore NotificationUserStore[]
+  notificationUserStore NotificationCustomer[]
   abandonedCart         AbandonedCart[]
   commentOrder          CommentOrder[]
 
@@ -851,10 +851,10 @@ model NotificationUserEcommerce {
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
 
-  @@map("notificationUsers")
+  @@map("notificationUsersEcommerce")
 }
 
-model NotificationUserStore {
+model NotificationCustomer {
   id          String           @id @default(uuid())
   userBlog    Customer?        @relation(fields: [customer_id], references: [id])
   customer_id String?          @db.Uuid
@@ -865,7 +865,7 @@ model NotificationUserStore {
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
 
-  @@map("notificationUserEcommerce")
+  @@map("notificationCustomers")
 }
 
 model MarketingPublication {
