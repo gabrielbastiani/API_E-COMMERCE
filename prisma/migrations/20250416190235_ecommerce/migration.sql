@@ -156,6 +156,7 @@ CREATE TABLE "usersEcommerce" (
     "status" "StatusUserEcommerce" NOT NULL DEFAULT 'DISPONIVEL',
     "role" "Role" NOT NULL DEFAULT 'EMPLOYEE',
     "photo" TEXT,
+    "last_access" TIMESTAMPTZ(3),
     "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "usersEcommerce_pkey" PRIMARY KEY ("id")
@@ -185,6 +186,7 @@ CREATE TABLE "customers" (
     "state_registration" TEXT,
     "photo" TEXT,
     "newsletter" BOOLEAN NOT NULL DEFAULT false,
+    "last_access" TIMESTAMPTZ(3),
     "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "customers_pkey" PRIMARY KEY ("id")

@@ -7,13 +7,20 @@ import { body } from "express-validator/lib/middlewares/validation-chain-builder
 
 // --- USUARIOS E-COMMERCE --- //
 import { UserEcommerceCreateController } from "./controllers/users/UserEcommerceCreateController";
+import { SuperUserPublicController } from "./controllers/users/SuperUserPublicController";
+import { UserAuthController } from "./controllers/users/UserAuthController";
+import { UserUpdateDataController } from "./controllers/users/UserUpdateDataController";
+import { UserPhotoDeleteController } from "./controllers/users/UserPhotoDeleteController"
 
 // --- COLORS --- //
 import { ThemeController } from "./controllers/configuration_ecommerce/theme_setting/ThemeController";
 
-// --- TEMPLATES DE EMAILS
-import EmailTemplateController from "./controllers/templates_emails/EmailTemplateController";
+// --- CONFIGURAÇÔES DO ECOMMERCE --- //
 import { CreateConfigurationController } from "./controllers/configuration_ecommerce/theme_setting/CreateConfigurationController";
+
+// --- TEMPLATES DE EMAILS
+import EmailTemplateController from "./controllers/templates_emails/EmailTemplateController";;
+
 
 
 
@@ -26,6 +33,10 @@ const controller = new ThemeController();
 
 // --- USUARIOS E-COMMERCE --- //
 router.post('/user/ecommerce/create', upload_image.single('file'), new UserEcommerceCreateController().handle);
+router.post('/user/ecommerce/session', new UserAuthController().handle);
+router.put('/user/ecommerce/update', isAuthenticatedEcommerce, upload_image.single('file'), new UserUpdateDataController().handle);
+router.get('/user/ecommerce/publicSuper_user', new SuperUserPublicController().handle);
+router.put('/user/ecommerce/delete_photo', isAuthenticatedEcommerce, new UserPhotoDeleteController().handle);
 
 // -- COLORS --
 router.get('/theme', controller.getTheme);

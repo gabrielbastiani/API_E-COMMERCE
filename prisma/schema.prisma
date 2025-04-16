@@ -277,6 +277,7 @@ model UserEcommerce {
   status                    StatusUserEcommerce         @default(DISPONIVEL)
   role                      Role                        @default(EMPLOYEE)
   photo                     String?
+  last_access               DateTime?                   @db.Timestamptz(3)
   notificationUserEcommerce NotificationUserEcommerce[]
   commentOrder              CommentOrder[]
 
@@ -307,6 +308,7 @@ model Customer {
   state_registration    String?
   photo                 String?
   newsletter            Boolean                @default(false)
+  last_access           DateTime?              @db.Timestamptz(3)
   addresses             Address[]
   cart                  Cart?
   orders                Order[]
