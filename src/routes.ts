@@ -10,7 +10,9 @@ import { UserEcommerceCreateController } from "./controllers/users/UserEcommerce
 import { SuperUserPublicController } from "./controllers/users/SuperUserPublicController";
 import { UserAuthController } from "./controllers/users/UserAuthController";
 import { UserUpdateDataController } from "./controllers/users/UserUpdateDataController";
-import { UserPhotoDeleteController } from "./controllers/users/UserPhotoDeleteController"
+import { UserPhotoDeleteController } from "./controllers/users/UserPhotoDeleteController";
+import { UserDeleteController } from "./controllers/users/UserDeleteController";
+import { PasswordRecoveryUserController } from "./controllers/users/PasswordRecoveryUserController";
 
 // --- COLORS --- //
 import { ThemeController } from "./controllers/configuration_ecommerce/theme_setting/ThemeController";
@@ -19,7 +21,8 @@ import { ThemeController } from "./controllers/configuration_ecommerce/theme_set
 import { CreateConfigurationController } from "./controllers/configuration_ecommerce/theme_setting/CreateConfigurationController";
 
 // --- TEMPLATES DE EMAILS
-import EmailTemplateController from "./controllers/templates_emails/EmailTemplateController";;
+import EmailTemplateController from "./controllers/templates_emails/EmailTemplateController";import { UserDetailController } from "./controllers/users/UserDetailController";
+import { RequestPasswordUserRecoveryController } from "./controllers/users/RequestPasswordUserRecoveryController";
 
 
 
@@ -34,9 +37,13 @@ const controller = new ThemeController();
 // --- USUARIOS E-COMMERCE --- //
 router.post('/user/ecommerce/create', upload_image.single('file'), new UserEcommerceCreateController().handle);
 router.post('/user/ecommerce/session', new UserAuthController().handle);
+router.get('/user/me', isAuthenticatedEcommerce, new UserDetailController().handle);
 router.put('/user/ecommerce/update', isAuthenticatedEcommerce, upload_image.single('file'), new UserUpdateDataController().handle);
 router.get('/user/ecommerce/publicSuper_user', new SuperUserPublicController().handle);
 router.put('/user/ecommerce/delete_photo', isAuthenticatedEcommerce, new UserPhotoDeleteController().handle);
+router.delete('/user/ecommerce/delete_user', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new UserDeleteController().handle);
+router.put('/user/ecommerce/recovery_password', new PasswordRecoveryUserController().handle);
+router.post('/user/email_recovery_password', new RequestPasswordUserRecoveryController().handle);
 
 // -- COLORS --
 router.get('/theme', controller.getTheme);
