@@ -79,14 +79,31 @@ class StartMarketingPublicationScheduler {
         const logo = infos_ecommerce?.logo;
         const domain_site = domain_sitee;
         const domain_api = domain_apii;
+
+        await prismaClient.emailTemplate.create({
+            data: {
+                title: "Publicidade Programada Iniciada",
+                subject: "Publicidade Programada Iniciada",
+                templateName: "publicidade_programada.ejs",
+                isActive: true,
+                hoursAfter: 0
+            }
+        });
+
         const emailTemplatePath = path.join(__dirname, "../../emails_templates/publicidade_programada.ejs");
+
+        const data_templates = await prismaClient.emailTemplate.findFirst({
+            where: {
+                templateName: "publicidade_programada.ejs"
+            }
+        });
 
         const htmlContent = await ejs.renderFile(emailTemplatePath, { title, start, end, name, logo, domain_site, domain_api });
 
         await this.transporter.sendMail({
             from: `"${infos_ecommerce?.name} " <${infos_ecommerce?.email}>`,
             to: `${infos_ecommerce?.email}`,
-            subject: "Publicidade Programada Iniciada",
+            subject: `${data_templates?.subject}`,
             html: htmlContent,
         });
 

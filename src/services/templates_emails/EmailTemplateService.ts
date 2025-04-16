@@ -39,7 +39,7 @@ class EmailTemplateService {
     templateName: string;
     variables?: string[];
     isActive?: boolean;
-    daysAfter?: number;
+    hoursAfter?: number;
   }): Promise<EmailTemplate> {
     if (!(await this.templateExists(data.templateName))) {
       throw new Error(`Template file ${data.templateName} not found`);
@@ -52,7 +52,7 @@ class EmailTemplateService {
         templateName: data.templateName,
         variables: data.variables || [],
         isActive: data.isActive ?? true,
-        daysAfter: data.daysAfter || 0,
+        hoursAfter: data.hoursAfter || 0,
       },
     });
   }
@@ -65,7 +65,7 @@ class EmailTemplateService {
       templateName?: string;
       variables?: string[];
       isActive?: boolean;
-      daysAfter?: number;
+      hoursAfter?: number;
     }
   ): Promise<EmailTemplate> {
     if (data.templateName && !(await this.templateExists(data.templateName))) {
@@ -80,7 +80,7 @@ class EmailTemplateService {
         templateName: data.templateName,
         variables: data.variables,
         isActive: data.isActive,
-        daysAfter: data.daysAfter,
+        hoursAfter: data.hoursAfter,
       },
     });
   }

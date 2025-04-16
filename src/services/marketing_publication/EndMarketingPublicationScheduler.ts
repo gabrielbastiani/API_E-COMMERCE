@@ -83,14 +83,31 @@ class EndMarketingPublicationScheduler {
         const logo = infos_blog?.logo;
         const domain_site = domain_sites;
         const domain_api = domain_apii;
+
+        await prismaClient.emailTemplate.create({
+            data: {
+                title: "Publicidade Programada Encerrada",
+                subject: "Publicidade Programada Encerrada",
+                templateName: "encerrar_publicidade_programada.ejs",
+                isActive: true,
+                hoursAfter: 0
+            }
+        });
+
         const emailTemplatePath = path.join(__dirname, "../../emails_templates/encerrar_publicidade_programada.ejs");
+
+        const data_templates = await prismaClient.emailTemplate.findFirst({
+            where: {
+                templateName: "encerrar_publicidade_programada.ejs"
+            }
+        });
 
         const htmlContent = await ejs.renderFile(emailTemplatePath, { title, start, end, name, logo, domain_site, domain_api });
 
         await this.transporter.sendMail({
             from: `"${infos_blog?.name} " <${infos_blog?.email}>`,
             to: `${infos_blog?.email}`,
-            subject: "Publicidade Programada Encerrada",
+            subject: `${data_templates?.subject}`,
             html: htmlContent,
         });
     }
