@@ -17,11 +17,12 @@ export async function isAuthenticatedCustomer(
   req: Request,
   res: Response,
   next: NextFunction
-) {
+): Promise<void> {
   const authToken = req.headers.authorization;
 
   if (!authToken) {
-    return res.status(401).end();
+    res.status(401).end();
+    return;
   }
 
   const [, token] = authToken.split(" ")
@@ -34,10 +35,11 @@ export async function isAuthenticatedCustomer(
 
     req.customer_id = sub;
 
-    return next();
+    next();
 
   } catch (err) {
-    return res.status(401).end();
+    res.status(401).end();
+    return;
   }
 
 }

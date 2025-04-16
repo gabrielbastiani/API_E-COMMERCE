@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { UserEcommerceCreateService } from '../../services/users/UserEcommerceCreateService';
 
 class UserEcommerceCreateController {
-    async handle(req: Request, res: Response) {
+    async handle(req: Request, res: Response): Promise<void> {
         const {
             name,
             email,
@@ -28,7 +28,7 @@ class UserEcommerceCreateController {
             send_email
         });
 
-        return res.json(users)
+        res.json(users)
 
     }
 }

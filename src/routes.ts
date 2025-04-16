@@ -13,6 +13,7 @@ import EmailTemplateController from "./controllers/templates_emails/EmailTemplat
 
 // --- USUARIOS E-COMMERCE --- //
 import { UserEcommerceCreateController } from "./controllers/users/UserEcommerceCreateController";
+import { body } from "express-validator/lib/middlewares/validation-chain-builders";
 
 
 

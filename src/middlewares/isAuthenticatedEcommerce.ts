@@ -19,11 +19,12 @@ export async function isAuthenticatedEcommerce(
   req: Request,
   res: Response,
   next: NextFunction
-) {
+): Promise<void> {
   const authToken = req.headers.authorization;
 
   if (!authToken) {
-    return res.status(401).end();
+    res.status(401).end();
+    return;
   }
 
   const [, token] = authToken.split(" ");
@@ -40,7 +41,8 @@ export async function isAuthenticatedEcommerce(
     });
 
     if (!userEcommerce) {
-      return res.status(401).json({ error: 'User not found' });
+      res.status(401).json({ error: 'User not found' });
+      return;
     }
 
     req.userEcommerce = {
@@ -48,9 +50,9 @@ export async function isAuthenticatedEcommerce(
       role: userEcommerce.role
     };
 
-    return next();
-
+    next();
   } catch (err) {
-    return res.status(401).end();
+    res.status(401).end();
+    return;
   }
 }

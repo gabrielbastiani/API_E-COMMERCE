@@ -5,7 +5,7 @@ export function checkRole(allowedRoles: string[]) {
         const userRole = req.userEcommerce?.role;
 
         if (!userRole || !allowedRoles.includes(userRole)) {
-            return res.status(403).json({ error: 'Acesso não autorizado' });
+            res.status(403).json({ error: 'Acesso não autorizado' });
         }
 
         next();
