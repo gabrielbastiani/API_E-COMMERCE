@@ -20,6 +20,9 @@ import { AllUserController } from "./controllers/users/users_ecommerce/AllUserCo
 
 // --- CUSTOMERS --- //
 import { CustomerUpdateDataController } from "./controllers/users/customers/CustomerUpdateDataController";
+import { CustomerPhotoDeleteController } from "./controllers/users/customers/CustomerPhotoDeleteController";
+import { CustomerDetailController } from "./controllers/users/customers/CustomerDetailController";
+import { CustomerDeleteController } from "./controllers/users/customers/CustomerDeleteController";
 
 // --- COLORS --- //
 import { ThemeController } from "./controllers/configuration_ecommerce/theme_setting/ThemeController";
@@ -29,8 +32,7 @@ import { CreateConfigurationController } from "./controllers/configuration_ecomm
 
 // --- TEMPLATES DE EMAILS
 import EmailTemplateController from "./controllers/templates_emails/EmailTemplateController"; import { UserDetailController } from "./controllers/users/users_ecommerce/UserDetailController";
-
-
+import { CustomerCreateController } from "./controllers/users/customers/CustomerCreateController";
 
 
 
@@ -54,7 +56,11 @@ router.get('/user/ecommerce/download_excel', isAuthenticatedEcommerce, checkRole
 router.get('/user/ecommerce/all_users', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new AllUserController().handle);
 
 // --- CUSTOMERS --- //
+router.post('/user/customer/create', upload_image.single('file'), new CustomerCreateController().handle);
 router.put('/user/customer/update', isAuthenticatedCustomer, upload_image.single('file'), new CustomerUpdateDataController().handle);
+router.put('/user/customer/delete_photo', isAuthenticatedCustomer, new CustomerPhotoDeleteController().handle);
+router.get('/user/customer/me', isAuthenticatedCustomer, new CustomerDetailController().handle);
+router.delete('/user/customer/delete_user_customer', isAuthenticatedCustomer, checkRole(['ADMIN', 'SUPER_ADMIN']), new CustomerDeleteController().handle);
 
 // -- COLORS --
 router.get('/theme', controller.getTheme);
