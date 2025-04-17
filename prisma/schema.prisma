@@ -332,7 +332,7 @@ model Customer {
   @@map("customers")
 }
 
-model PasswordRecoveryUserStore {
+model PasswordRecoveryCustomer {
   id    String @id @default(uuid())
   email String
 

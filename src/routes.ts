@@ -23,6 +23,13 @@ import { CustomerUpdateDataController } from "./controllers/users/customers/Cust
 import { CustomerPhotoDeleteController } from "./controllers/users/customers/CustomerPhotoDeleteController";
 import { CustomerDetailController } from "./controllers/users/customers/CustomerDetailController";
 import { CustomerDeleteController } from "./controllers/users/customers/CustomerDeleteController";
+import { CustomerCreateController } from "./controllers/users/customers/CustomerCreateController";
+import { CustomerAuthController } from "./controllers/users/customers/CustomerAuthController";
+import { RequestPasswordCustomerRecoveryController } from "./controllers/users/customers/RequestPasswordCustomerRecoveryController";
+import { PasswordRecoveryCustomerController } from "./controllers/users/customers/PasswordRecoveryCustomerController";
+import { GenerateExcelDeleteCustomerController } from "./controllers/users/customers/GenerateExcelDeleteCustomerController";
+import { BulkDeleteCustomerController } from "./controllers/users/customers/BulkDeleteCustomerController";
+import { AllCustomerController } from "./controllers/users/customers/AllCustomerController";
 
 // --- COLORS --- //
 import { ThemeController } from "./controllers/configuration_ecommerce/theme_setting/ThemeController";
@@ -32,7 +39,8 @@ import { CreateConfigurationController } from "./controllers/configuration_ecomm
 
 // --- TEMPLATES DE EMAILS
 import EmailTemplateController from "./controllers/templates_emails/EmailTemplateController"; import { UserDetailController } from "./controllers/users/users_ecommerce/UserDetailController";
-import { CustomerCreateController } from "./controllers/users/customers/CustomerCreateController";
+
+
 
 
 
@@ -40,6 +48,7 @@ import { CustomerCreateController } from "./controllers/users/customers/Customer
 
 const router = Router();
 const upload_image = multer(uploadConfig.upload("./images"));
+const temp_file = multer(uploadConfig.upload("./temp_file"));
 const controller = new ThemeController();
 
 // --- USUARIOS E-COMMERCE --- //
@@ -57,10 +66,16 @@ router.get('/user/ecommerce/all_users', isAuthenticatedEcommerce, checkRole(['AD
 
 // --- CUSTOMERS --- //
 router.post('/user/customer/create', upload_image.single('file'), new CustomerCreateController().handle);
+router.post('/user/customer/session', new CustomerAuthController().handle);
 router.put('/user/customer/update', isAuthenticatedCustomer, upload_image.single('file'), new CustomerUpdateDataController().handle);
 router.put('/user/customer/delete_photo', isAuthenticatedCustomer, new CustomerPhotoDeleteController().handle);
 router.get('/user/customer/me', isAuthenticatedCustomer, new CustomerDetailController().handle);
 router.delete('/user/customer/delete_user_customer', isAuthenticatedCustomer, checkRole(['ADMIN', 'SUPER_ADMIN']), new CustomerDeleteController().handle);
+router.post('/user/customer/email_recovery_password_customer', new RequestPasswordCustomerRecoveryController().handle);
+router.put('/user/customer/recovery_password_customer', new PasswordRecoveryCustomerController().handle);
+router.get('/user/customer/download_excel_delete_customer', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new GenerateExcelDeleteCustomerController().handle);
+router.post('/user/customer/bulk_delete_customer', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), temp_file.single('file'), new BulkDeleteCustomerController().handle);
+router.get('/user/customer/all_users_customer', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new AllCustomerController().handle);
 
 // -- COLORS --
 router.get('/theme', controller.getTheme);
