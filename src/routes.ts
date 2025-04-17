@@ -18,6 +18,13 @@ import { RequestPasswordUserRecoveryController } from "./controllers/users/users
 import { GenerateExcelController } from "./controllers/users/users_ecommerce/GenerateExcelController";
 import { AllUserController } from "./controllers/users/users_ecommerce/AllUserController";
 
+// --- NOTIFICATIONS --- //
+import { FindNotificationController } from "./controllers/notification/notification_userEcommerce/FindNotificationController";
+import { MarkNotificationReadController } from "./controllers/notification/notification_userEcommerce/MarkNotificationReadController";
+import { MarkAllNotificationsAsReadController } from "./controllers/notification/notification_userEcommerce/MarkAllNotificationsAsReadController";
+import { FindUsersNotificationController } from "./controllers/notification/notification_userEcommerce/FindUsersNotificationController";
+import { NotificationDeleteController } from "./controllers/notification/notification_userEcommerce/NotificationDeleteController";
+
 // --- CUSTOMERS --- //
 import { CustomerUpdateDataController } from "./controllers/users/customers/CustomerUpdateDataController";
 import { CustomerPhotoDeleteController } from "./controllers/users/customers/CustomerPhotoDeleteController";
@@ -57,6 +64,16 @@ import { CreateMarketingPublicationController } from "./controllers/marketing_pu
 import { BulkDeleteMarketingPublicationController } from "./controllers/marketing_publication/BulkDeleteMarketingPublicationController";
 import { AllMarketingPublicationController } from "./controllers/marketing_publication/AllMarketingPublicationController";
 
+// --- NEWSLETTER --- //
+import { NewsletterCreateController } from "./controllers/newsletter/NewsletterCreateController";
+import { NewsletterDeleteController } from "./controllers/newsletter/NewsletterDeleteController";
+import { NewsletterFindController } from "./controllers/newsletter/NewsletterFindController";
+
+// --- FORMULARIO CONTATO --- //
+import { FormContactCreateController } from "./controllers/form_contact/FormContactCreateController";
+import { FormContactDeleteController } from "./controllers/form_contact/FormContactDeleteController";
+import { FormContactFindController } from "./controllers/form_contact/FormContactFindController";
+import { ContactController } from "./controllers/form_contact/ContactController";
 
 
 
@@ -77,6 +94,13 @@ router.put('/user/ecommerce/recovery_password', new PasswordRecoveryUserControll
 router.post('/user/ecommerce/email_recovery_password', new RequestPasswordUserRecoveryController().handle);
 router.get('/user/ecommerce/download_excel', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new GenerateExcelController().handle);
 router.get('/user/ecommerce/all_users', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new AllUserController().handle);
+
+// --- NOTIFICATIONS --- //
+router.get('/user/userEcommerce/notifications', isAuthenticatedEcommerce, new FindNotificationController().handle);
+router.put('/user/notifications/userEcommerce/mark-read', isAuthenticatedEcommerce, new MarkNotificationReadController().handle);
+router.put('/user/notifications/userEcommerce/mark-all-read', isAuthenticatedEcommerce, new MarkAllNotificationsAsReadController().handle);
+router.get('/user/notifications/userEcommerce/central_notifications', isAuthenticatedEcommerce, new FindUsersNotificationController().handle);
+router.delete('/user/notifications/userEcommerce/delete_notification', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new NotificationDeleteController().handle);
 
 // --- CUSTOMERS --- //
 router.post('/user/customer/create', upload_image.single('file'), new CustomerCreateController().handle);
@@ -146,6 +170,17 @@ router.get('/marketing_publication/interval_banner/existing_interval', isAuthent
 router.delete('/marketing_publication/delete', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new DeleteIntervalBannerController().handle);
 router.post('/marketing_publication/bulk_delete_publications', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), temp_file.single('file'), new BulkDeleteMarketingPublicationController().handle);
 router.get('/marketing_publication/all_publications', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new AllMarketingPublicationController().handle);
+
+// --- NEWSLETTER --- //
+router.post('/newsletter/create_newsletter', new NewsletterCreateController().handle);
+router.delete('/newsletter/delete_newsletter', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new NewsletterDeleteController().handle);
+router.get('/newsletter/get_newsletters', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new NewsletterFindController().handle);
+
+// --- FORMULARIO CONTATO --- //
+router.post('/form_contact/create_form_contact', new FormContactCreateController().handle);
+router.delete('/form_contact/delete_form_contatct', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new FormContactDeleteController().handle);
+router.get('/contacts_form/all_contacts', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new FormContactFindController().handle);
+router.get('/contacts_form/contact', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new ContactController().handle);
 
 
 export { router };
