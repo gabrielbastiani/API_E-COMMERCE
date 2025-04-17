@@ -40,8 +40,22 @@ import { CreateConfigurationController } from "./controllers/configuration_ecomm
 // --- TEMPLATES DE EMAILS
 import EmailTemplateController from "./controllers/templates_emails/EmailTemplateController"; import { UserDetailController } from "./controllers/users/users_ecommerce/UserDetailController";
 
-
-
+// --- MARKETING PUBLICAÇÔES --- //
+import { UpdateViewsPuplicationsController } from "./controllers/marketing_publication/UpdateViewsPuplicationsController";
+import { MarketingPublicationController } from "./controllers/marketing_publication/MarketingPublicationController";
+import { MarketingUpdateDataController } from "./controllers/marketing_publication/MarketingUpdateDataController";
+import { MarketingPublicationDeleteDeleteController } from "./controllers/marketing_publication/MarketingPublicationDeleteDeleteController";
+import { MarketingDeleteImageController } from "./controllers/marketing_publication/MarketingDeleteImageController";
+import { IntervalUpdateDataController } from "./controllers/marketing_publication/IntervalUpdateDataController";
+import { IntervalBannerController } from "./controllers/marketing_publication/IntervalBannerController";
+import { IntervalBannerPageController } from "./controllers/marketing_publication/IntervalBannerPageController";
+import { GenerateExcelDeletePublicationController } from "./controllers/marketing_publication/GenerateExcelDeletePublicationController";
+import { ExistingPublicationPageController } from "./controllers/marketing_publication/ExistingPublicationPageController";
+import { ExistingIntervalBannerController } from "./controllers/marketing_publication/ExistingIntervalBannerController";
+import { DeleteIntervalBannerController } from "./controllers/marketing_publication/DeleteIntervalBannerController";
+import { CreateMarketingPublicationController } from "./controllers/marketing_publication/CreateMarketingPublicationController";
+import { BulkDeleteMarketingPublicationController } from "./controllers/marketing_publication/BulkDeleteMarketingPublicationController";
+import { AllMarketingPublicationController } from "./controllers/marketing_publication/AllMarketingPublicationController";
 
 
 
@@ -115,5 +129,23 @@ router.delete('/email-templates/:id', EmailTemplateController.delete);
 // Rota para renderizar um template (útil para previews/testes de renderização)
 router.post('/email-templates/:id/render', EmailTemplateController.renderById);
 router.post('/email-templates/render/:templateName', EmailTemplateController.renderByName);
+
+// --- MARKETING PUBLICAÇÔES --- //
+router.post('/marketing_publication/create', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), upload_image.single('file'), new CreateMarketingPublicationController().handle);
+router.patch('/marketing_publication/:marketingPublication_id/clicks', new UpdateViewsPuplicationsController().handle);
+router.get('/marketing_publication/store_publications/slides', new MarketingPublicationController().handle);
+router.put('/marketing_publication/update', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), upload_image.single('file'), new MarketingUpdateDataController().handle);
+router.delete('/marketing_publication/delete_publications', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new MarketingPublicationDeleteDeleteController().handle);
+router.put('/marketing_publication/delete_publications/delete_image', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new MarketingDeleteImageController().handle);
+router.put('/marketing_publication/interval_banner/update_data', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new IntervalUpdateDataController().handle);
+router.post('/marketing_publication/interval_banner', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new IntervalBannerController().handle);
+router.get('/marketing_publication/interval_banner/page_banner', new IntervalBannerPageController().handle);
+router.get('/marketing_publication/download_excel_delete_marketing', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new GenerateExcelDeletePublicationController().handle);
+router.get('/marketing_publication/existing_publication', new ExistingPublicationPageController().handle);
+router.get('/marketing_publication/interval_banner/existing_interval', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new ExistingIntervalBannerController().handle);
+router.delete('/marketing_publication/delete', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new DeleteIntervalBannerController().handle);
+router.post('/marketing_publication/bulk_delete_publications', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), temp_file.single('file'), new BulkDeleteMarketingPublicationController().handle);
+router.get('/marketing_publication/all_publications', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new AllMarketingPublicationController().handle);
+
 
 export { router };
