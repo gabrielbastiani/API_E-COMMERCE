@@ -1,5 +1,5 @@
 import { NotificationType } from "@prisma/client";
-import prismaClient from "../../prisma";
+import prismaClient from "../../../prisma";
 import fs from 'fs';
 import path from 'path';
 

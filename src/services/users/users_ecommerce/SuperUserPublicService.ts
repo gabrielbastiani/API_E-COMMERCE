@@ -1,5 +1,5 @@
 import { Role } from "@prisma/client";
-import prismaClient from "../../prisma";
+import prismaClient from "../../../prisma";
 
 class SuperUserPublicService {
     async execute() {

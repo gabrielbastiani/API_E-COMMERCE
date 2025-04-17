@@ -1,12 +1,12 @@
 import { Request, Response } from 'express'
-import { UserDetailService } from '../../services/users/UserDetailService'; 
+import { UserPhotoDeleteService } from '../../../services/users/users_ecommerce/UserPhotoDeleteService'; 
 
-class UserDetailController {
+class UserPhotoDeleteController {
     async handle(req: Request, res: Response) {
 
         const userEcommerce_id = req.query.userEcommerce_id as string;
 
-        const detail_user = new UserDetailService();
+        const detail_user = new UserPhotoDeleteService();
 
         const user = await detail_user.execute({ userEcommerce_id });
 
@@ -15,4 +15,4 @@ class UserDetailController {
     }
 }
 
-export { UserDetailController }
+export { UserPhotoDeleteController }

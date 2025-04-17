@@ -1,5 +1,5 @@
 import { NotificationType, Role, StatusUserEcommerce } from '@prisma/client';
-import prismaClient from '../../prisma';
+import prismaClient from '../../../prisma';
 import { hash } from 'bcryptjs';
 import nodemailer from "nodemailer";
 require('dotenv/config');
@@ -15,7 +15,7 @@ interface UserRequest {
     send_email?: boolean;
 }
 
-class UserEcommerceCreateService {
+class UserCreateService {
     async execute({ name, email, password, photo, role, send_email }: UserRequest) {
 
         if (!email) {
@@ -317,4 +317,4 @@ class UserEcommerceCreateService {
 
 }
 
-export { UserEcommerceCreateService }
+export { UserCreateService }

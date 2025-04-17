@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import { UserEcommerceCreateService } from '../../services/users/UserEcommerceCreateService';
+import { UserCreateService } from '../../../services/users/users_ecommerce/UserCreateService';
 
-class UserEcommerceCreateController {
+class UserCreateController {
     async handle(req: Request, res: Response): Promise<void> {
         const {
             name,
@@ -12,7 +12,7 @@ class UserEcommerceCreateController {
             send_email
         } = req.body;
 
-        const createUser = new UserEcommerceCreateService();
+        const createUser = new UserCreateService();
 
         let imageToUpdate = photo;
         if (!photo && req.file) {
@@ -33,4 +33,4 @@ class UserEcommerceCreateController {
     }
 }
 
-export { UserEcommerceCreateController }
+export { UserCreateController }

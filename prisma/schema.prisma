@@ -196,6 +196,12 @@ enum NotificationType {
   NEWSLETTER
   CONTACT_FORM
   CONTACT_ORDER
+  REPORT
+}
+
+enum StatusCustomer {
+  DISPONIVEL
+  INDISPONIVEL
 }
 
 model EcommerceData {
@@ -309,6 +315,7 @@ model Customer {
   photo                 String?
   newsletter            Boolean                @default(false)
   last_access           DateTime?              @db.Timestamptz(3)
+  status                StatusCustomer         @default(DISPONIVEL)
   addresses             Address[]
   cart                  Cart?
   orders                Order[]
@@ -683,15 +690,15 @@ model CartItem {
 }
 
 model CommentOrder {
-  id                String             @id @default(uuid())
-  order             Order              @relation(fields: [order_id], references: [id])
-  order_id          String
-  customer          Customer           @relation(fields: [customer_id], references: [id])
-  customer_id       String             @db.Uuid
-  userEcommerce     UserEcommerce      @relation(fields: [user_ecommerce_id], references: [id])
-  user_ecommerce_id String
-  message           String
-  status            StatusCommentOrder @default(PRIVATE)
+  id               String             @id @default(uuid())
+  order            Order              @relation(fields: [order_id], references: [id])
+  order_id         String
+  customer         Customer           @relation(fields: [customer_id], references: [id])
+  customer_id      String             @db.Uuid
+  userEcommerce    UserEcommerce      @relation(fields: [userEcommerce_id], references: [id])
+  userEcommerce_id String
+  message          String
+  status           StatusCommentOrder @default(PRIVATE)
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
 
@@ -844,13 +851,13 @@ model Newsletter {
 }
 
 model NotificationUserEcommerce {
-  id                String           @id @default(uuid())
-  userEcommerce     UserEcommerce?   @relation(fields: [user_ecommerce_id], references: [id])
-  user_ecommerce_id String?
-  type              NotificationType @default(INDEFINIDO)
-  message           String           @db.VarChar(500)
-  read              Boolean          @default(false)
-  link              String?
+  id               String           @id @default(uuid())
+  userEcommerce    UserEcommerce?   @relation(fields: [userEcommerce_id], references: [id])
+  userEcommerce_id String?
+  type             NotificationType @default(INDEFINIDO)
+  message          String           @db.VarChar(500)
+  read             Boolean          @default(false)
+  link             String?
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
 

@@ -1,12 +1,13 @@
 import ExcelJS from "exceljs";
-import prismaClient from "../../prisma";
+import prismaClient from "../../../prisma";
+import { NotificationType } from "@prisma/client";
 
 interface UserProps {
-    user_id: string;
+    userEcommerce_id: string;
 }
 
 class GenerateExcelService {
-    async execute({ user_id }: UserProps) {
+    async execute({ userEcommerce_id }: UserProps) {
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet("UsersEcommerce");
 
@@ -26,11 +27,11 @@ class GenerateExcelService {
             worksheet.addRow(user);
         });
 
-        await prismaClient.notificationUser.create({
+        await prismaClient.notificationUserEcommerce.create({
             data: {
-                user_id: user_id,
+                userEcommerce_id: userEcommerce_id,
                 message: "Planilha de modelo de importação de usuarios gerada com suscesso",
-                type: "user"
+                type: NotificationType.REPORT
             }
         });
 

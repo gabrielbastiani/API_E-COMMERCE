@@ -1,4 +1,4 @@
-import prismaClient from "../../prisma";
+import prismaClient from "../../../prisma";
 import nodemailer from "nodemailer";
 require('dotenv/config');
 import ejs from 'ejs';

@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { SuperUserPublicService } from "../../services/users/SuperUserPublicService"; 
+import { SuperUserPublicService } from "../../../services/users/users_ecommerce/SuperUserPublicService"; 
 
 class SuperUserPublicController {
     async handle(req: Request, res: Response) {
