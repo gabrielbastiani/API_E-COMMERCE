@@ -6,7 +6,7 @@ interface FormRequest {
 
 class FormContactDeleteService {
     async execute({ id_delete }: FormRequest) {
-        const deletedForms = await prismaClient.form_contact.deleteMany({
+        const deletedForms = await prismaClient.formContact.deleteMany({
             where: {
                 id: {
                     in: id_delete

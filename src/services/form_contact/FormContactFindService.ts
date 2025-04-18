@@ -15,7 +15,7 @@ class FormContactFindService {
         const skip = (page - 1) * limit;
 
         // Construção da cláusula 'where' com filtro de texto e data
-        const whereClause: Prisma.Form_contactWhereInput = {
+        const whereClause: Prisma.FormContactWhereInput = {
             ...(
                 search ? {
                     OR: [
@@ -34,14 +34,14 @@ class FormContactFindService {
             )
         };        
 
-        const all_contacts_form = await prismaClient.form_contact.findMany({
+        const all_contacts_form = await prismaClient.formContact.findMany({
             where: whereClause,
             skip,
             take: limit,
             orderBy: { [orderBy]: orderDirection },
         });
 
-        const total_contacts = await prismaClient.form_contact.count({
+        const total_contacts = await prismaClient.formContact.count({
             where: whereClause,
         });
 
