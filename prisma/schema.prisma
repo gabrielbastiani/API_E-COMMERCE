@@ -570,14 +570,13 @@ model Category {
   promotion_id  String?
   // Campo oposto da relação direta
   directFilters Filter[]          @relation("DirectCategoryFilters")
-
   // Relação via tabela de junção
-  filters CategoryFilter[]
+  filters  CategoryFilter[]
+  Filter   Filter?          @relation(fields: [filterId], references: [id])
+  filterId String?
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
   updated_at DateTime @updatedAt
-  Filter     Filter?  @relation(fields: [filterId], references: [id])
-  filterId   String?
 
   @@map("categories")
 }
