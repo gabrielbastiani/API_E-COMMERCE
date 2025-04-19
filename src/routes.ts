@@ -74,6 +74,8 @@ import { FormContactCreateController } from "./controllers/form_contact/FormCont
 import { FormContactDeleteController } from "./controllers/form_contact/FormContactDeleteController";
 import { FormContactFindController } from "./controllers/form_contact/FormContactFindController";
 import { ContactController } from "./controllers/form_contact/ContactController";
+import { UpdateConfigurationEcommerceController } from "./controllers/configuration_ecommerce/UpdateConfigurationEcommerceController";
+import { GetConfigurationsEcommerceController } from "./controllers/configuration_ecommerce/GetConfigurationsEcommerceController";
 
 
 
@@ -138,6 +140,8 @@ router.put(
 
 // --- CONFIGURAÇÔES DO ECOMMERCE --- //
 router.post('/create/ecommerce', upload_image.fields([{ name: 'logo', maxCount: 1 }, { name: 'favicon', maxCount: 1 }]), new CreateConfigurationController().handle);
+router.put('/configuration_ecommerce/update', isAuthenticatedEcommerce, checkRole(['SUPER_ADMIN']), upload_image.fields([{ name: 'logo', maxCount: 1 }, { name: 'favicon', maxCount: 1 }]), new UpdateConfigurationEcommerceController().handle);
+router.get('/configuration_ecommerce/get_configs', new GetConfigurationsEcommerceController().handle);
 
 // --- TEMPLATES DE EMAILS --- //
 // Rota para listar todos os templates
