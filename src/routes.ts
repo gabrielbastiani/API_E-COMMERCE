@@ -89,6 +89,12 @@ import { AddTwitterImagesController } from "./controllers/configuration_ecommerc
 import { DeleteTwitterImageController } from "./controllers/configuration_ecommerce/seo/DeleteTwitterImageController";
 import { AllSeoEcommercePageController } from "./controllers/configuration_ecommerce/seo/AllSeoEcommercePageController";
 
+// --- MEDIA SOCIAL --- //
+import { CreateMediaSocialEcommerceController } from "./controllers/configuration_ecommerce/media_social/CreateMediaSocialEcommerceController";
+import { DeleteMediasSocialsEcommerceController } from "./controllers/configuration_ecommerce/media_social/DeleteMediasSocialsEcommerceController";
+import { MediasSocialsEcommerceController } from "./controllers/configuration_ecommerce/media_social/MediasSocialsEcommerceController";
+import { UpdateMediaSocialEcommerceController } from "./controllers/configuration_ecommerce/media_social/UpdateMediaSocialEcommerceController";
+
 
 
 const router = Router();
@@ -210,6 +216,12 @@ router.post('/seo/twitter-images', isAuthenticatedEcommerce, checkRole(['ADMIN',
 router.delete('/seo/twitter-image', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new DeleteTwitterImageController().handle);
 router.get('/seo/get_page', new CreateSeoEcommerceController().handle);
 router.get('/seo/all_seos', new AllSeoEcommercePageController().handle);
+
+// --- MEDIA SOCIAL --- //
+router.post('/create/media_social', isAuthenticatedEcommerce, checkRole(['SUPER_ADMIN']), upload_image.single('file'), new CreateMediaSocialEcommerceController().handle);
+router.put('/update/media_social', isAuthenticatedEcommerce, checkRole(['SUPER_ADMIN']), upload_image.single('file'), new UpdateMediaSocialEcommerceController().handle);
+router.get('/get/media_social', new MediasSocialsEcommerceController().handle);
+router.delete('/delete/media_social', isAuthenticatedEcommerce, checkRole(['SUPER_ADMIN']), new DeleteMediasSocialsEcommerceController().handle);
 
 
 export { router };
