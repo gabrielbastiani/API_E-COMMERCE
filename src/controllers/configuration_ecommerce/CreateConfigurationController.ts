@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { CreateConfigurationService } from '../../../services/configuration_ecommerce/CreateConfigurationService'; 
+import { CreateConfigurationService } from '../../services/configuration_ecommerce/CreateConfigurationService';
 
 class CreateConfigurationController {
     async handle(req: Request, res: Response) {

@@ -1,6 +1,6 @@
-import prismaClient from "../../prisma"; 
+import prismaClient from "../../../prisma";
 
-class ThemeService {
+class ColorsService {
     async getThemeSettings() {
         const settings = await prismaClient.themeSettings.findFirst();
         return settings?.colors || {};
@@ -20,4 +20,4 @@ class ThemeService {
 
 }
 
-export { ThemeService };
+export { ColorsService };

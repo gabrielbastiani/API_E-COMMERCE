@@ -39,10 +39,10 @@ import { BulkDeleteCustomerController } from "./controllers/users/customers/Bulk
 import { AllCustomerController } from "./controllers/users/customers/AllCustomerController";
 
 // --- COLORS --- //
-import { ThemeController } from "./controllers/configuration_ecommerce/theme_setting/ThemeController";
+import { ColorsController } from "./controllers/configuration_ecommerce/colors_setting/ColorsController"; 
 
 // --- CONFIGURAÇÔES DO ECOMMERCE --- //
-import { CreateConfigurationController } from "./controllers/configuration_ecommerce/theme_setting/CreateConfigurationController";
+import { CreateConfigurationController } from "./controllers/configuration_ecommerce/CreateConfigurationController";
 
 // --- TEMPLATES DE EMAILS
 import EmailTemplateController from "./controllers/templates_emails/EmailTemplateController"; import { UserDetailController } from "./controllers/users/users_ecommerce/UserDetailController";
@@ -100,7 +100,7 @@ import { UpdateMediaSocialEcommerceController } from "./controllers/configuratio
 const router = Router();
 const upload_image = multer(uploadConfig.upload("./images"));
 const temp_file = multer(uploadConfig.upload("./temp_file"));
-const controller = new ThemeController();
+const controller = new ColorsController();
 
 // --- USUARIOS E-COMMERCE --- //
 router.post('/user/ecommerce/create', upload_image.single('file'), new UserCreateController().handle);
@@ -136,9 +136,9 @@ router.post('/user/customer/bulk_delete_customer', isAuthenticatedEcommerce, che
 router.get('/user/customer/all_users_customer', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new AllCustomerController().handle);
 
 // -- COLORS --
-router.get('/theme', controller.getTheme);
+router.get('/colors', controller.getTheme);
 router.put(
-    '/theme',
+    '/colors',
     isAuthenticatedEcommerce,
     checkRole(['SUPER_ADMIN']),
     [

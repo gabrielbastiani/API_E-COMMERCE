@@ -1,11 +1,11 @@
 import { Request, Response } from 'express';
-import { ThemeService } from '../../../services/configuration_ecommerce/ThemeService'; 
+import { ColorsService } from '../../../services/configuration_ecommerce/colors_setting/ColorsService';
 import { validationResult } from 'express-validator/lib/validation-result';
 
-class ThemeController {
+class ColorsController {
     async getTheme(req: Request, res: Response): Promise<void> {
         try {
-            const themeService = new ThemeService();
+            const themeService = new ColorsService();
             const colors = await themeService.getThemeSettings();
             res.json({ colors });
         } catch (error) {
@@ -21,7 +21,7 @@ class ThemeController {
 
         try {
             const { colors } = req.body;
-            const themeService = new ThemeService();
+            const themeService = new ColorsService();
             await themeService.updateThemeSettings(colors);
             res.json({ colors });
         } catch (error) {
@@ -31,4 +31,4 @@ class ThemeController {
 
 }
 
-export { ThemeController };
+export { ColorsController };
