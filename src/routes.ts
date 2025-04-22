@@ -77,6 +77,18 @@ import { ContactController } from "./controllers/form_contact/ContactController"
 import { UpdateConfigurationEcommerceController } from "./controllers/configuration_ecommerce/UpdateConfigurationEcommerceController";
 import { GetConfigurationsEcommerceController } from "./controllers/configuration_ecommerce/GetConfigurationsEcommerceController";
 
+// --- SEO --- //
+import { CreateSeoEcommerceController } from "./controllers/configuration_ecommerce/seo/CreateSeoEcommerceController";
+import { UpdateSeoSettingsController } from "./controllers/configuration_ecommerce/seo/UpdateSeoSettingsController";
+import { GetSeoUniqueController } from "./controllers/configuration_ecommerce/seo/GetSeoUniqueController";
+import { DeleteKeywordController } from "./controllers/configuration_ecommerce/seo/DeleteKeywordController";
+import { AddKeywordController } from "./controllers/configuration_ecommerce/seo/AddKeywordController";
+import { AddOgImagesController } from "./controllers/configuration_ecommerce/seo/AddOgImagesController";
+import { DeleteOgImageController } from "./controllers/configuration_ecommerce/seo/DeleteOgImageController";
+import { AddTwitterImagesController } from "./controllers/configuration_ecommerce/seo/AddTwitterImagesController";
+import { DeleteTwitterImageController } from "./controllers/configuration_ecommerce/seo/DeleteTwitterImageController";
+import { AllSeoEcommercePageController } from "./controllers/configuration_ecommerce/seo/AllSeoEcommercePageController";
+
 
 
 const router = Router();
@@ -185,6 +197,19 @@ router.post('/form_contact/create_form_contact', new FormContactCreateController
 router.delete('/form_contact/delete_form_contatct', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new FormContactDeleteController().handle);
 router.get('/contacts_form/all_contacts', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new FormContactFindController().handle);
 router.get('/contacts_form/contact', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new ContactController().handle);
+
+// --- SEO --- //
+router.post('/seo/create', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), upload_image.fields([{ name: 'ogImages', maxCount: 5 }, { name: 'twitterImages', maxCount: 5 }]), new CreateSeoEcommerceController().handle);
+router.put('/seo/update_seo', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), upload_image.fields([{ name: 'ogImages', maxCount: 5 }, { name: 'twitterImages', maxCount: 5 }]), new UpdateSeoSettingsController().handle);
+router.get('/seo/get_seo', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new GetSeoUniqueController().handle);
+router.delete('/seo/keyword', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new DeleteKeywordController().handle);
+router.post('/seo/keyword', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new AddKeywordController().handle);
+router.post('/seo/og-images', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), upload_image.array('images'), new AddOgImagesController().handle);
+router.delete('/seo/og-image', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new DeleteOgImageController().handle);
+router.post('/seo/twitter-images', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), upload_image.array('images'), new AddTwitterImagesController().handle);
+router.delete('/seo/twitter-image', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new DeleteTwitterImageController().handle);
+router.get('/seo/get_page', new CreateSeoEcommerceController().handle);
+router.get('/seo/all_seos', new AllSeoEcommercePageController().handle);
 
 
 export { router };
