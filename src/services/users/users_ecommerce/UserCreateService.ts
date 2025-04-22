@@ -285,7 +285,7 @@ class UserCreateService {
             }
         });
 
-        const requiredPath = path.join(__dirname, `../../emails_templates/criacao_de_super_administrador.ejs`);
+        const requiredPath = path.join(__dirname, `../../../emails_templates/criacao_de_super_administrador.ejs`);
 
         const data_templates = await prismaClient.emailTemplate.findFirst({
             where: {
