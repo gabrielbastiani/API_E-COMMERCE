@@ -13,14 +13,15 @@ const updateSchema = z.object({
             const parsed = JSON.parse(val);
             return Array.isArray(parsed) ? parsed.map(Number) : [];
         } catch {
-            [];
+            return [];
         }
     }),
     newKeywords: z.string().transform(val => {
         try {
-            return JSON.parse(val);
+            const parsed = JSON.parse(val);
+            return Array.isArray(parsed) ? parsed : [];
         } catch {
-            [];
+            return [];
         }
     }),
     ogTitle: z.string().optional(),
@@ -36,15 +37,15 @@ const updateSchema = z.object({
             const parsed = JSON.parse(val);
             return Array.isArray(parsed) ? parsed.map(Number) : [];
         } catch {
-            [];
+            return [];
         }
     }),
     twitterImageIndexes: z.string().transform(val => {
         try {
             const parsed = JSON.parse(val);
-            Array.isArray(parsed) ? parsed.map(Number) : [];
+            return Array.isArray(parsed) ? parsed.map(Number) : [];
         } catch {
-            [];
+            return [];
         }
     }),
 });
@@ -62,19 +63,20 @@ class UpdateSeoSettingsController {
 
             // Processar uploads
             /* @ts-ignore */
-            const ogImages = req.files?.['ogImages']?.map(file => file.filename) || [];/* @ts-ignore */
+            const ogImages = req.files?.['ogImages']?.map(file => file.filename) || [];
+            /* @ts-ignore */
             const twitterImages = req.files?.['twitterImages']?.map(file => file.filename) || [];
 
             // Validações
-            if (ogImages.length > validatedData.ogImageIndexes!.length) {
+            if (ogImages.length > validatedData.ogImageIndexes.length) {
                 throw new Error('Mais imagens OG do que índices especificados');
             }
 
-            if (twitterImages.length > validatedData.twitterImageIndexes!.length) {
+            if (twitterImages.length > validatedData.twitterImageIndexes.length) {
                 throw new Error('Mais imagens Twitter do que índices especificados');
             }
 
-            if (validatedData.newKeywords.length > validatedData.keywordIndexes!.length) {
+            if (validatedData.newKeywords.length > validatedData.keywordIndexes.length) {
                 throw new Error('Mais keywords do que índices especificados');
             }
 
@@ -107,7 +109,8 @@ class UpdateSeoSettingsController {
 
         } catch (error: any) {
             console.error('Erro na atualização:', error);
-            res.status(400).json({/* @ts-ignore */
+            res.status(400).json({
+                /* @ts-ignore */
                 error: error.message || 'Erro ao atualizar configurações SEO',
                 details: error.issues || []
             });
@@ -115,4 +118,4 @@ class UpdateSeoSettingsController {
     }
 }
 
-export { UpdateSeoSettingsController }
+export { UpdateSeoSettingsController };
