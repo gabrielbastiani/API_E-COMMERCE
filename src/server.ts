@@ -15,7 +15,7 @@ const app = express();
 app.set('trust proxy', true);
 
 app.use((req: Request, res: Response, next: NextFunction) => {
-    res.header('Access-Control-Allow-Origin', process.env.URL_SITE);
+    res.header('Access-Control-Allow-Origin', process.env.URL_ECOMMERCE);
     res.header('Access-Control-Allow-Methods', 'GET, PATCH, POST, DELETE, PUT');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     next();

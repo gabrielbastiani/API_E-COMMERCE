@@ -43,40 +43,41 @@ class RequestPasswordUserRecoveryService {
             }
         });
 
-        const infos_blog = await prismaClient.ecommerceData.findFirst();
-
-        await prismaClient.emailTemplate.create({
-            data: {
-                title: "Recuperação de senha usuario do e-commerce",
-                subject: "Recuperação de senha",
-                templateName: "recuperar_senha.ejs",
-                isActive: true,
-                hoursAfter: 0
-            }
-        });
-
-        const requiredPath = path.join(__dirname, `../../emails_templates/recuperar_senha.ejs`);
-
+        const infos_ecommerce = await prismaClient.ecommerceData.findFirst();
         const data_templates = await prismaClient.emailTemplate.findFirst({
             where: {
                 templateName: "recuperar_senha.ejs"
             }
         });
 
-        const domain_site = process.env.URL_SITE;
+        if (!data_templates) {
+            await prismaClient.emailTemplate.create({
+                data: {
+                    title: "Recuperação de senha usuario do e-commerce",
+                    subject: "Recuperação de senha",
+                    templateName: "recuperar_senha.ejs",
+                    isActive: true,
+                    hoursAfter: 0
+                }
+            });
+        }
+
+        const requiredPath = path.join(__dirname, `../../../emails_templates/recuperar_senha.ejs`);
+
+        const domain_site = process.env.URL_ECOMMERCE;
         const domain_api = process.env.URL_API;
 
         const data = await ejs.renderFile(requiredPath, {
             name: user.name,
             id: recovery.id,
-            logo: infos_blog?.logo,
-            name_ecommerce: infos_blog?.name,
+            logo: infos_ecommerce?.logo,
+            name_ecommerce: infos_ecommerce?.name,
             domain_site: domain_site,
             domain_api: domain_api
         });
 
         await transporter.sendMail({
-            from: `"${infos_blog?.name} " <${infos_blog?.email}>`,
+            from: `"${infos_ecommerce?.name} " <${infos_ecommerce?.email}>`,
             to: user.email,
             subject: `${data_templates?.subject}`,
             html: data

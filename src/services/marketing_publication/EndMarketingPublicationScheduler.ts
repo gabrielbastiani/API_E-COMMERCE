@@ -75,7 +75,7 @@ class EndMarketingPublicationScheduler {
 
     private async sendEmail(title: string, start: string, end: string) {
 
-        const domain_sites = process.env.URL_SITE;
+        const domain_sites = process.env.URL_ECOMMERCE;
         const domain_apii = process.env.URL_API;
 
         const infos_blog = await prismaClient.ecommerceData.findFirst();

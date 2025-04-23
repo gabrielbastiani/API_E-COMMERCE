@@ -72,7 +72,7 @@ class StartMarketingPublicationScheduler {
     }
 
     private async sendEmail(title: string, start: string, end: string) {
-        const domain_sitee = process.env.URL_SITE;
+        const domain_sitee = process.env.URL_ECOMMERCE;
         const domain_apii = process.env.URL_API;
         const infos_ecommerce = await prismaClient.ecommerceData.findFirst();
         const name = infos_ecommerce?.name;

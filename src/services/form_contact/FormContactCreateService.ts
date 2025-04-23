@@ -94,7 +94,7 @@ class FormContactCreateService {
             }
         });
 
-        const domain_site = process.env.URL_SITE;
+        const domain_site = process.env.URL_ECOMMERCE;
         const domain_api = process.env.URL_API;
 
         const data = await ejs.renderFile(requiredPath, {
