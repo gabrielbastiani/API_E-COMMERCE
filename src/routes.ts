@@ -43,6 +43,7 @@ import { ColorsController } from "./controllers/configuration_ecommerce/colors_s
 
 // --- CONFIGURAÇÔES DO ECOMMERCE --- //
 import { CreateConfigurationController } from "./controllers/configuration_ecommerce/CreateConfigurationController";
+import { DeleteFilesExcelController } from "./controllers/configuration_ecommerce/DeleteFilesExcelController";
 
 // --- TEMPLATES DE EMAILS
 import EmailTemplateController from "./controllers/templates_emails/EmailTemplateController"; import { UserDetailController } from "./controllers/users/users_ecommerce/UserDetailController";
@@ -94,6 +95,7 @@ import { CreateMediaSocialEcommerceController } from "./controllers/configuratio
 import { DeleteMediasSocialsEcommerceController } from "./controllers/configuration_ecommerce/media_social/DeleteMediasSocialsEcommerceController";
 import { MediasSocialsEcommerceController } from "./controllers/configuration_ecommerce/media_social/MediasSocialsEcommerceController";
 import { UpdateMediaSocialEcommerceController } from "./controllers/configuration_ecommerce/media_social/UpdateMediaSocialEcommerceController";
+
 
 
 
@@ -160,6 +162,7 @@ router.put(
 router.post('/create/ecommerce', upload_image.fields([{ name: 'logo', maxCount: 1 }, { name: 'favicon', maxCount: 1 }]), new CreateConfigurationController().handle);
 router.put('/configuration_ecommerce/update', isAuthenticatedEcommerce, checkRole(['SUPER_ADMIN']), upload_image.fields([{ name: 'logo', maxCount: 1 }, { name: 'favicon', maxCount: 1 }]), new UpdateConfigurationEcommerceController().handle);
 router.get('/configuration_ecommerce/get_configs', new GetConfigurationsEcommerceController().handle);
+router.get('/configuration_ecommerce/delete_all_files', isAuthenticatedEcommerce, checkRole(['SUPER_ADMIN']), new DeleteFilesExcelController().handle);
 
 // --- TEMPLATES DE EMAILS --- //
 // Rota para listar todos os templates
