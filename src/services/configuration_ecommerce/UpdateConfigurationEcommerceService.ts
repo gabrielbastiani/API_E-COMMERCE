@@ -5,13 +5,14 @@ import path from 'path';
 interface ConfigEcommerce {
     ecommerceData_id: string;
     name?: string;
-    whatsap?: string;
+    whatsapp?: string;
     logo?: string;
     favicon?: string;
     phone?: string;
     email?: string;
     city?: string;
     state?: string;
+    street?: string;
     zipCode?: string;
     number?: string;
     neighborhood?: string;
@@ -30,13 +31,14 @@ class UpdateConfigurationEcommerceService {
     async execute({
         ecommerceData_id,
         name,
-        whatsap,
+        whatsapp,
         logo,
         favicon,
         phone,
         email,
         city,
         state,
+        street,
         zipCode,
         number,
         neighborhood,
@@ -59,6 +61,10 @@ class UpdateConfigurationEcommerceService {
 
         if (name) {
             dataToUpdate.name = name;
+        }
+
+        if (street) {
+            dataToUpdate.street = street;
         }
 
         if (number) {
@@ -93,8 +99,8 @@ class UpdateConfigurationEcommerceService {
             dataToUpdate.zipCode = zipCode;
         }
 
-        if (whatsap) {
-            dataToUpdate.whatsap = whatsap;
+        if (whatsapp) {
+            dataToUpdate.whatsapp = whatsapp;
         }
 
         if (shipping_delivery_time) {

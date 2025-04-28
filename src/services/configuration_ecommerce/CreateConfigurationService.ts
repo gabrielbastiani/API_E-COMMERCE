@@ -17,6 +17,7 @@ class CreateConfigurationService {
                 logo: logo,
                 favicon: favicon,
                 phone: "(99) 99999-9999",
+                whatsapp: "(99) 99999-9999",
                 street: "Rua XXXXX",
                 city: "cidade",
                 state: "US",
