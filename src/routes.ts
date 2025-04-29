@@ -96,6 +96,9 @@ import { DeleteMediasSocialsEcommerceController } from "./controllers/configurat
 import { MediasSocialsEcommerceController } from "./controllers/configuration_ecommerce/media_social/MediasSocialsEcommerceController";
 import { UpdateMediaSocialEcommerceController } from "./controllers/configuration_ecommerce/media_social/UpdateMediaSocialEcommerceController";
 
+// --- EXPORTDATA --- //
+import { ExportDataController } from "./controllers/export_data/ExportDataController";
+
 
 
 
@@ -225,6 +228,9 @@ router.post('/create/media_social', isAuthenticatedEcommerce, checkRole(['SUPER_
 router.put('/update/media_social', isAuthenticatedEcommerce, checkRole(['SUPER_ADMIN']), upload_image.single('file'), new UpdateMediaSocialEcommerceController().handle);
 router.get('/get/media_social', new MediasSocialsEcommerceController().handle);
 router.delete('/delete/media_social', isAuthenticatedEcommerce, checkRole(['SUPER_ADMIN']), new DeleteMediasSocialsEcommerceController().handle);
+
+// --- EXPORTDATA --- //
+router.post('/export_data', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new ExportDataController().handle);
 
 
 export { router };

@@ -87,23 +87,25 @@ class UserCreateService {
 
             const infos_ecommerce = await prismaClient.ecommerceData.findFirst();
 
-            await prismaClient.emailTemplate.create({
-                data: {
-                    title: "Novo usuario se cadastrando no CMS",
-                    subject: "Novo usuario se cadastrando no CMS",
-                    templateName: "criacao_de_employee.ejs",
-                    isActive: true,
-                    hoursAfter: 0
-                }
-            });
-
-            const requiredPath = path.join(__dirname, `../../emails_templates/criacao_de_employee.ejs`);
-
             const data_templates = await prismaClient.emailTemplate.findFirst({
                 where: {
                     templateName: "criacao_de_employee.ejs"
                 }
             });
+
+            if (!data_templates) {
+                await prismaClient.emailTemplate.create({
+                    data: {
+                        title: "Novo usuario se cadastrando no CMS",
+                        subject: "Novo usuario se cadastrando no CMS",
+                        templateName: "criacao_de_employee.ejs",
+                        isActive: true,
+                        hoursAfter: 0
+                    }
+                });
+            }
+
+            const requiredPath = path.join(__dirname, `../../../emails_templates/criacao_de_employee.ejs`);
 
             const domain_site = process.env.URL_ECOMMERCE;
             const domain_api = process.env.URL_API;
@@ -127,23 +129,25 @@ class UserCreateService {
 
                 const infos_ecommerce = await prismaClient.ecommerceData.findFirst();
 
-                await prismaClient.emailTemplate.create({
-                    data: {
-                        title: "Dados de acesso CMS",
-                        subject: "Dados de acesso CMS",
-                        templateName: "data_login_user.ejs",
-                        isActive: true,
-                        hoursAfter: 0
-                    }
-                });
-
-                const requiredPath = path.join(__dirname, `../../emails_templates/data_login_user.ejs`);
-
                 const data_templates = await prismaClient.emailTemplate.findFirst({
                     where: {
                         templateName: "data_login_user.ejs"
                     }
                 });
+
+                if (!data_templates) {
+                    await prismaClient.emailTemplate.create({
+                        data: {
+                            title: "Dados de acesso CMS",
+                            subject: "Dados de acesso CMS",
+                            templateName: "data_login_user.ejs",
+                            isActive: true,
+                            hoursAfter: 0
+                        }
+                    });
+                }
+
+                const requiredPath = path.join(__dirname, `../../../emails_templates/data_login_user.ejs`);
 
                 const domain_site = process.env.URL_ECOMMERCE;
                 const domain_api = process.env.URL_API;
