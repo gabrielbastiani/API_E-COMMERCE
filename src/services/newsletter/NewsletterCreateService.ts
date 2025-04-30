@@ -30,8 +30,8 @@ class NewsletterCreateService {
             ...users_admins.map(userEcommerce => userEcommerce.id)
         ];
 
-        const notificationsData = all_user_ids.map(user_id => ({
-            user_id,
+        const notificationsData = all_user_ids.map(userEcommerce_id => ({
+            userEcommerce_id,
             message: "Novo newslatter cadastrado",
             type: NotificationType.NEWSLETTER
         }));

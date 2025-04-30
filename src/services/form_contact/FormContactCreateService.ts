@@ -51,8 +51,8 @@ class FormContactCreateService {
             ...users_admins.map(userEcommerce => userEcommerce.id)
         ];
 
-        const notificationsData = all_user_ids.map(user_id => ({
-            user_id,
+        const notificationsData = all_user_ids.map(userEcommerce_id => ({
+            userEcommerce_id,
             message: "Formulario de contato enviado",
             type: NotificationType.CONTACT_FORM
         }));
@@ -76,23 +76,25 @@ class FormContactCreateService {
 
         const infos_ecommerce = await prismaClient.ecommerceData.findFirst();
 
-        await prismaClient.emailTemplate.create({
-            data: {
-                title: "Formulario de contato na loja",
-                subject: "Alguém enviou uma mensagem para loja",
-                templateName: "criacao_de_mensagem_formulario.ejs",
-                isActive: true,
-                hoursAfter: 0
-            }
-        });
-
-        const requiredPath = path.join(__dirname, `../../emails_templates/criacao_de_mensagem_formulario.ejs`);
-
         const data_templates = await prismaClient.emailTemplate.findFirst({
             where: {
                 templateName: "criacao_de_mensagem_formulario.ejs"
             }
         });
+
+        if (!data_templates) {
+            await prismaClient.emailTemplate.create({
+                data: {
+                    title: "Formulario de contato na loja",
+                    subject: "Alguém enviou uma mensagem para loja",
+                    templateName: "criacao_de_mensagem_formulario.ejs",
+                    isActive: true,
+                    hoursAfter: 0
+                }
+            });
+        }
+
+        const requiredPath = path.join(__dirname, `../../emails_templates/criacao_de_mensagem_formulario.ejs`);
 
         const domain_site = process.env.URL_ECOMMERCE;
         const domain_api = process.env.URL_API;
