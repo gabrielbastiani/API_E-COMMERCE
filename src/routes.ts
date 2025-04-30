@@ -99,6 +99,13 @@ import { UpdateMediaSocialEcommerceController } from "./controllers/configuratio
 // --- EXPORTDATA --- //
 import { ExportDataController } from "./controllers/export_data/ExportDataController";
 
+// --- CATEGORY --- //
+import { CategoriesController } from "./controllers/category/CategoriesController";
+import { CategoryCreateController } from "./controllers/category/CategoryCreateController";
+import { CategoryUpdateOrderController } from "./controllers/category/CategoryUpdateOrderController";
+import { BulkCategoryImportController } from "./controllers/category/BulkCategoryImportController";
+import { GenerateExcelCategoryController } from "./controllers/category/GenerateExcelCategoryController";
+
 
 
 
@@ -231,6 +238,13 @@ router.delete('/delete/media_social', isAuthenticatedEcommerce, checkRole(['SUPE
 
 // --- EXPORTDATA --- //
 router.post('/export_data', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new ExportDataController().handle);
+
+// --- CATEGORY --- //
+router.post('/category/create', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), upload_image.single('file'), new CategoryCreateController().handle);
+router.get('/category/cms', isAuthenticatedEcommerce, new CategoriesController().handle);
+router.put('/category/updateOrder', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new CategoryUpdateOrderController().handle);
+router.post('/category/bulk_categories', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), temp_file.single("file"), new BulkCategoryImportController().handle);
+router.get('/category/donwload_excel_categories', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new GenerateExcelCategoryController().handle);
 
 
 export { router };

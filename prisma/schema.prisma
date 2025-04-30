@@ -204,6 +204,11 @@ enum StatusCustomer {
   INDISPONIVEL
 }
 
+enum StatusCategory {
+  DISPONIVEL
+  INDISPONIVEL
+}
+
 model EcommerceData {
   id                     String  @id @default(uuid())
   name                   String
@@ -563,6 +568,7 @@ model Category {
   image         String?
   order         Int               @default(0)
   parentId      String?
+  status        StatusCategory    @default(DISPONIVEL)
   parent        Category?         @relation("Subcategories", fields: [parentId], references: [id])
   children      Category[]        @relation("Subcategories")
   products      ProductCategory[]
@@ -571,9 +577,9 @@ model Category {
   // Campo oposto da relação direta
   directFilters Filter[]          @relation("DirectCategoryFilters")
   // Relação via tabela de junção
-  filters  CategoryFilter[]
-  Filter   Filter?          @relation(fields: [filterId], references: [id])
-  filterId String?
+  filters       CategoryFilter[]
+  Filter        Filter?           @relation(fields: [filterId], references: [id])
+  filterId      String?
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
   updated_at DateTime @updatedAt
