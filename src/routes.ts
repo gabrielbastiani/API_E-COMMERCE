@@ -105,6 +105,8 @@ import { CategoryCreateController } from "./controllers/category/CategoryCreateC
 import { CategoryUpdateOrderController } from "./controllers/category/CategoryUpdateOrderController";
 import { BulkCategoryImportController } from "./controllers/category/BulkCategoryImportController";
 import { GenerateExcelCategoryController } from "./controllers/category/GenerateExcelCategoryController";
+import { AllCategoriesController } from "./controllers/category/AllCategoriesController";
+import { CategoryUpdateDataController } from "./controllers/category/CategoryUpdateDataController";
 
 
 
@@ -245,6 +247,8 @@ router.get('/category/cms', isAuthenticatedEcommerce, new CategoriesController()
 router.put('/category/updateOrder', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new CategoryUpdateOrderController().handle);
 router.post('/category/bulk_categories', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), temp_file.single("file"), new BulkCategoryImportController().handle);
 router.get('/category/donwload_excel_categories', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new GenerateExcelCategoryController().handle);
+router.get('/category/cms/all_categories', isAuthenticatedEcommerce, new AllCategoriesController().handle);
+router.put('/category/update', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), upload_image.single('file'), new CategoryUpdateDataController().handle);
 
 
 export { router };

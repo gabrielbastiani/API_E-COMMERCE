@@ -4,7 +4,7 @@ import ExcelJS from "exceljs";
 import fs from "fs";
 
 class BulkCategoryImportService {
-    async execute(filePath: string, user_id: string) {
+    async execute(filePath: string, userEcommerce_id: string) {
         const workbook = new ExcelJS.Workbook();
 
         try {
@@ -84,7 +84,7 @@ class BulkCategoryImportService {
 
         const users_crate = await prismaClient.userEcommerce.findUnique({
             where: {
-                id: user_id
+                id: userEcommerce_id
             }
         });
 
@@ -98,8 +98,8 @@ class BulkCategoryImportService {
             ...users_superAdmins.map(userEcommerce => userEcommerce.id)
         ];
 
-        const notificationsData = all_user_ids.map(user_id => ({
-            user_id,
+        const notificationsData = all_user_ids.map(userEcommerce_id => ({
+            userEcommerce_id,
             message: `Categoria(s) criada(s) via planilha pelo usuario ${users_crate?.name}`,
             type: NotificationType.CATEGORY
         }));

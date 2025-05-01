@@ -1,4 +1,4 @@
-import { NotificationType, Prisma } from "@prisma/client";
+import { NotificationType } from "@prisma/client";
 import prismaClient from "../../prisma";
 import * as XLSX from 'xlsx';
 
@@ -9,20 +9,26 @@ class ExportDataService {
         'publish_at_start', 'publish_at_end'
     ];
 
-    private async getModelFields(modelName: string): Promise<string[]> {
-        // @ts-ignore - Acesso dinâmico seguro
-        const model = prismaClient[modelName];
-        if (!model) throw new Error(`Tabela ${modelName} não encontrada`);
-
-        // Exemplo genérico (ajuste conforme seus modelos)
-        const sample = await model.findFirst({});
-        return sample ? Object.keys(sample) : [];
-    }
-
     private formatDate(value: any): string {
         if (!value) return 'N/A';
         const date = new Date(value);
         return isNaN(date.getTime()) ? String(value) : date.toLocaleString('pt-BR');
+    }
+
+    private formatRelation(value: any, tableName: string, column: string): string {
+        if (!Array.isArray(value)) return String(value);
+
+        // Casos específicos de relacionamentos conhecidos
+        switch (tableName) {
+            case 'category':
+                if (column === 'children') {
+                    return value.map((child: any) => child.name).join(', ');
+                }
+                break;
+            // Adicione outros casos conforme necessário
+        }
+
+        return JSON.stringify(value);
     }
 
     async execute(
@@ -33,39 +39,42 @@ class ExportDataService {
         customColumnNames: { [key: string]: string }
     ) {
         try {
-            // Validação das colunas
-            const validColumns = await this.getModelFields(tableName);
-            const invalidColumns = columns.filter(col => !validColumns.includes(col));
+            // Construir objeto de seleção dinâmico
+            const select = columns.reduce((acc: any, col) => {
+                acc[col] = true;
+                return acc;
+            }, {});
 
-            if (invalidColumns.length > 0) {
-                throw new Error(`Colunas inválidas: ${invalidColumns.join(', ')}`);
-            }
-
-            // Consulta dinâmica
             // @ts-ignore - Acesso dinâmico seguro
-            const data = await prismaClient[tableName].findMany({
-                select: columns.reduce((acc, col) => ({ ...acc, [col]: true }), {}),
-            });
+            const data = await prismaClient[tableName].findMany({ select });
 
-            // Formatação dos dados
+            // Formatar dados
             const formattedData = data.map((item: { [x: string]: any; }) => {
                 const formattedItem: { [key: string]: any } = {};
                 columns.forEach(col => {
                     let value = item[col];
-                    formattedItem[customColumnNames[col] || col] = this.dateColumns.includes(col)
-                        ? this.formatDate(value)
-                        : value;
+
+                    // Formatar datas
+                    if (this.dateColumns.includes(col)) {
+                        value = this.formatDate(value);
+                    }
+                    // Formatar relacionamentos
+                    else if (typeof value === 'object') {
+                        value = this.formatRelation(value, tableName, col);
+                    }
+
+                    formattedItem[customColumnNames[col] || col] = value;
                 });
                 return formattedItem;
             });
 
-            // Geração do arquivo
+            // Gerar arquivo
             const workbook = XLSX.utils.book_new();
             const worksheet = XLSX.utils.json_to_sheet(formattedData);
             XLSX.utils.book_append_sheet(workbook, worksheet, 'Dados');
             const buffer = XLSX.write(workbook, { bookType: format, type: 'buffer' });
 
-            // Notificação
+            // Criar notificação
             await prismaClient.notificationUserEcommerce.create({
                 data: {
                     userEcommerce_id,
@@ -84,7 +93,7 @@ class ExportDataService {
 
         } catch (error: any) {
             console.error(`Erro na exportação de ${tableName}:`, error);
-            throw new Error(error.message || 'Erro interno');
+            throw new Error(error.message || 'Coluna inválida ou erro interno');
         }
     }
 }

@@ -7,7 +7,7 @@ const upload = multer({ dest: 'temp_file/' }); // Diretório temporário para ar
 class BulkDeleteMarketingPublicationController {
     async handle(req: Request, res: Response) {
 
-        const user_id = req.query.user_id as string;
+        const userEcommerce_id = req.query.userEcommerce_id as string;
         const { file } = req;
 
         if (!file) {
@@ -17,7 +17,7 @@ class BulkDeleteMarketingPublicationController {
         const service = new BulkDeleteMarketingPublicationService();
 
         try {
-            const result = await service.execute(file!.path, user_id);
+            const result = await service.execute(file!.path, userEcommerce_id);
             res.status(200).json({ message: "Publicações de marketing deletados com sucesso", result });
         } catch (error) {/* @ts-ignore */
             res.status(500).json({ error: "Erro ao deletar Publicações de marketing", details: error.message });

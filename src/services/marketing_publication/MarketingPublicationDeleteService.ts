@@ -62,8 +62,8 @@ class MarketingPublicationDeleteService {
         // Criação de notificações para cada publicidade deletada e cada usuário
         await prismaClient.notificationUserEcommerce.createMany({
             data: publications.flatMap((marketingPublication) =>
-                all_user_ids.map((user_id) => ({
-                    user_id,
+                all_user_ids.map((userEcommerce_id) => ({
+                    userEcommerce_id,
                     message: `Publicidade(s) ${marketingPublication.title} foi deletada(s) pelo usuário ${name}.`,
                     type: NotificationType.MARKETING
                 }))
