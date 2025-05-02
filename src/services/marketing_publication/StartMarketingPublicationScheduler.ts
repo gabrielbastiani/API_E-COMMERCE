@@ -117,7 +117,7 @@ class StartMarketingPublicationScheduler {
 
         const notificationsData = all_user_ids.map((userEcommerce_id) => ({
             userEcommerce_id,
-            message: `Publicidade programada "${title ? title : "Sem titulo"}" foi publicado no blog.`,
+            message: `Publicidade programada "${title ? title : "Sem titulo"}" foi publicado na loja.`,
             type: NotificationType.MARKETING
         }));
 

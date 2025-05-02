@@ -17,6 +17,7 @@ import { PasswordRecoveryUserController } from "./controllers/users/users_ecomme
 import { RequestPasswordUserRecoveryController } from "./controllers/users/users_ecommerce/RequestPasswordUserRecoveryController";
 import { GenerateExcelController } from "./controllers/users/users_ecommerce/GenerateExcelController";
 import { AllUserController } from "./controllers/users/users_ecommerce/AllUserController";
+import { UserDetailController } from "./controllers/users/users_ecommerce/UserDetailController";
 
 // --- NOTIFICATIONS --- //
 import { FindNotificationController } from "./controllers/notification/notification_userEcommerce/FindNotificationController";
@@ -39,14 +40,19 @@ import { BulkDeleteCustomerController } from "./controllers/users/customers/Bulk
 import { AllCustomerController } from "./controllers/users/customers/AllCustomerController";
 
 // --- COLORS --- //
-import { ColorsController } from "./controllers/configuration_ecommerce/colors_setting/ColorsController"; 
+import { ColorsController } from "./controllers/configuration_ecommerce/colors_setting/ColorsController";
 
 // --- CONFIGURAÇÔES DO ECOMMERCE --- //
 import { CreateConfigurationController } from "./controllers/configuration_ecommerce/CreateConfigurationController";
 import { DeleteFilesExcelController } from "./controllers/configuration_ecommerce/DeleteFilesExcelController";
 
 // --- TEMPLATES DE EMAILS
-import EmailTemplateController from "./controllers/templates_emails/EmailTemplateController"; import { UserDetailController } from "./controllers/users/users_ecommerce/UserDetailController";
+import { TemplatesEmailsController } from "./controllers/templates_emails/TemplatesEmailsController";
+import { GetTemplateContentController } from "./controllers/templates_emails/GetTemplateContentController";
+import { GetTemplateDataController } from "./controllers/templates_emails/GetTemplateDataController";
+import { UpdateTemplateContentController } from "./controllers/templates_emails/UpdateTemplateContentController";
+import { UpdateTemplateMetadataController } from "./controllers/templates_emails/UpdateTemplateMetadataController";
+import { RenderTemplateController } from "./controllers/templates_emails/RenderTemplateController";
 
 // --- MARKETING PUBLICAÇÔES --- //
 import { UpdateViewsPuplicationsController } from "./controllers/marketing_publication/UpdateViewsPuplicationsController";
@@ -107,6 +113,10 @@ import { BulkCategoryImportController } from "./controllers/category/BulkCategor
 import { GenerateExcelCategoryController } from "./controllers/category/GenerateExcelCategoryController";
 import { AllCategoriesController } from "./controllers/category/AllCategoriesController";
 import { CategoryUpdateDataController } from "./controllers/category/CategoryUpdateDataController";
+import { CategoryDeleteController } from "./controllers/category/CategoryDeleteController";
+import { CategoryDeleteImageController } from "./controllers/category/CategoryDeleteImageController";
+
+
 
 
 
@@ -177,19 +187,12 @@ router.get('/configuration_ecommerce/get_configs', new GetConfigurationsEcommerc
 router.get('/configuration_ecommerce/delete_all_files', isAuthenticatedEcommerce, checkRole(['SUPER_ADMIN']), new DeleteFilesExcelController().handle);
 
 // --- TEMPLATES DE EMAILS --- //
-// Rota para listar todos os templates
-router.get('/email-templates', EmailTemplateController.getAll);
-// Rota para obter um template por ID
-router.get('/email-templates/:id', EmailTemplateController.getById);
-// Rota para criar um novo template
-router.post('/email-templates', EmailTemplateController.create);
-// Rota para atualizar um template existente
-router.put('/email-templates/:id', EmailTemplateController.update);
-// Rota para excluir um template
-router.delete('/email-templates/:id', EmailTemplateController.delete);
-// Rota para renderizar um template (útil para previews/testes de renderização)
-router.post('/email-templates/:id/render', EmailTemplateController.renderById);
-router.post('/email-templates/render/:templateName', EmailTemplateController.renderByName);
+router.get('/all_templates/email-templates', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new TemplatesEmailsController().handle);
+router.get('/template_email/content', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new GetTemplateContentController().handle);
+router.get('/template_email/data', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new GetTemplateDataController().handle);
+router.put('/template_email/update', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new UpdateTemplateContentController().handle);
+router.put('/template_email/metadata', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new UpdateTemplateMetadataController().handle);
+router.post('/template_email/render', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new RenderTemplateController().handle)
 
 // --- MARKETING PUBLICAÇÔES --- //
 router.post('/marketing_publication/create', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), upload_image.single('file'), new CreateMarketingPublicationController().handle);
@@ -249,6 +252,8 @@ router.post('/category/bulk_categories', isAuthenticatedEcommerce, checkRole(['A
 router.get('/category/donwload_excel_categories', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new GenerateExcelCategoryController().handle);
 router.get('/category/cms/all_categories', isAuthenticatedEcommerce, new AllCategoriesController().handle);
 router.put('/category/update', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), upload_image.single('file'), new CategoryUpdateDataController().handle);
+router.delete('/category/delete_category', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new CategoryDeleteController().handle);
+router.put('/category/delete_image', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new CategoryDeleteImageController().handle);
 
 
 export { router };
