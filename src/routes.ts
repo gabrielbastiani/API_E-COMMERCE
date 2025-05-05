@@ -115,6 +115,8 @@ import { AllCategoriesController } from "./controllers/category/AllCategoriesCon
 import { CategoryUpdateDataController } from "./controllers/category/CategoryUpdateDataController";
 import { CategoryDeleteController } from "./controllers/category/CategoryDeleteController";
 import { CategoryDeleteImageController } from "./controllers/category/CategoryDeleteImageController";
+import { CreateTemplateController } from "./controllers/templates_emails/CreateTemplateController";
+import { DeleteTemplateController } from "./controllers/templates_emails/DeleteTemplateController";
 
 
 
@@ -187,12 +189,14 @@ router.get('/configuration_ecommerce/get_configs', new GetConfigurationsEcommerc
 router.get('/configuration_ecommerce/delete_all_files', isAuthenticatedEcommerce, checkRole(['SUPER_ADMIN']), new DeleteFilesExcelController().handle);
 
 // --- TEMPLATES DE EMAILS --- //
+router.post('/email-templates', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new CreateTemplateController().handle);
 router.get('/all_templates/email-templates', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new TemplatesEmailsController().handle);
 router.get('/template_email/content', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new GetTemplateContentController().handle);
 router.get('/template_email/data', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new GetTemplateDataController().handle);
 router.put('/template_email/update', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new UpdateTemplateContentController().handle);
 router.put('/template_email/metadata', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new UpdateTemplateMetadataController().handle);
 router.post('/template_email/render', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new RenderTemplateController().handle)
+router.delete('/email-templates/delete', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new DeleteTemplateController().handle);
 
 // --- MARKETING PUBLICAÇÔES --- //
 router.post('/marketing_publication/create', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), upload_image.single('file'), new CreateMarketingPublicationController().handle);
