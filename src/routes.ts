@@ -53,6 +53,8 @@ import { GetTemplateDataController } from "./controllers/templates_emails/GetTem
 import { UpdateTemplateContentController } from "./controllers/templates_emails/UpdateTemplateContentController";
 import { UpdateTemplateMetadataController } from "./controllers/templates_emails/UpdateTemplateMetadataController";
 import { RenderTemplateController } from "./controllers/templates_emails/RenderTemplateController";
+import { CreateTemplateController } from "./controllers/templates_emails/CreateTemplateController";
+import { DeleteTemplateController } from "./controllers/templates_emails/DeleteTemplateController";
 
 // --- MARKETING PUBLICAÇÔES --- //
 import { UpdateViewsPuplicationsController } from "./controllers/marketing_publication/UpdateViewsPuplicationsController";
@@ -115,8 +117,9 @@ import { AllCategoriesController } from "./controllers/category/AllCategoriesCon
 import { CategoryUpdateDataController } from "./controllers/category/CategoryUpdateDataController";
 import { CategoryDeleteController } from "./controllers/category/CategoryDeleteController";
 import { CategoryDeleteImageController } from "./controllers/category/CategoryDeleteImageController";
-import { CreateTemplateController } from "./controllers/templates_emails/CreateTemplateController";
-import { DeleteTemplateController } from "./controllers/templates_emails/DeleteTemplateController";
+
+// --- PRODUCT --- //
+import { CreateProductController } from "./controllers/product/CreateProductController";
 
 
 
@@ -258,6 +261,9 @@ router.get('/category/cms/all_categories', isAuthenticatedEcommerce, new AllCate
 router.put('/category/update', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), upload_image.single('file'), new CategoryUpdateDataController().handle);
 router.delete('/category/delete_category', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new CategoryDeleteController().handle);
 router.put('/category/delete_image', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new CategoryDeleteImageController().handle);
+
+// --- PRODUCT --- //
+router.post('/create/product', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), upload_image.array('images', 10), new CreateProductController().handle);
 
 
 export { router };
