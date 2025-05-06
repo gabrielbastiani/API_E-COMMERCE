@@ -263,7 +263,16 @@ router.delete('/category/delete_category', isAuthenticatedEcommerce, checkRole([
 router.put('/category/delete_image', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new CategoryDeleteImageController().handle);
 
 // --- PRODUCT --- //
-router.post('/create/product', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), upload_image.array('images', 10), new CreateProductController().handle);
+router.post(
+  '/create/product',
+  isAuthenticatedEcommerce,
+  checkRole(['ADMIN', 'SUPER_ADMIN']),
+  upload_image.fields([
+    { name: 'images', maxCount: 10 },
+    { name: 'variants', maxCount: 10 } // Aceita múltiplas variantes
+  ]),
+  new CreateProductController().handle
+);
 
 
 export { router };
