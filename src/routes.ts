@@ -120,6 +120,7 @@ import { CategoryDeleteImageController } from "./controllers/category/CategoryDe
 
 // --- PRODUCT --- //
 import { CreateProductController } from "./controllers/product/CreateProductController";
+import { AllProductsController } from "./controllers/product/AllProductsController";
 
 
 
@@ -263,16 +264,8 @@ router.delete('/category/delete_category', isAuthenticatedEcommerce, checkRole([
 router.put('/category/delete_image', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new CategoryDeleteImageController().handle);
 
 // --- PRODUCT --- //
-router.post(
-    "/product/create",
-    isAuthenticatedEcommerce,
-    checkRole(["ADMIN", "SUPER_ADMIN"]),
-    upload_image.fields([
-        { name: "imageFiles", maxCount: 15 },
-        { name: "variantImageFiles", maxCount: 15 }
-    ]),
-    new CreateProductController().handle
-);
+router.post("/product/create", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), upload_image.fields([{ name: "imageFiles", maxCount: 15 }, { name: "variantImageFiles", maxCount: 15 }]), new CreateProductController().handle);
+router.get('/get/products_allow', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new AllProductsController().handle);
 
 
 export { router };

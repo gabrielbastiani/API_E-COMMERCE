@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { AllCategoriesService } from "../../services/category/AllCategoriesService";
 import { Prisma } from "@prisma/client";
 
-class AllCategoriesController {
+class AllProductsController {
     async handle(req: Request, res: Response) {
         const {
             page = 1,
@@ -14,8 +14,8 @@ class AllCategoriesController {
             endDate
         } = req.query;
 
-        const allCategories = new AllCategoriesService();
-        const categories = await allCategories.execute(
+        const allProducts = new AllCategoriesService();
+        const products = await allProducts.execute(
             Number(page),
             Number(limit),
             String(search),
@@ -25,8 +25,8 @@ class AllCategoriesController {
             endDate ? String(endDate) : undefined
         );
 
-        res.json(categories);
+        res.json(products);
     }
 }
 
-export { AllCategoriesController };
+export { AllProductsController };
