@@ -1,77 +1,85 @@
-import { Request, Response } from 'express';
-import { CreateProductService } from '../../services/product/CreateProductService';
+import { Request, Response } from "express";
+import { CreateProductService } from "../../services/product/CreateProductService";
 
 class CreateProductController {
     async handle(req: Request, res: Response) {
         try {
-            // Verificar se os arquivos foram processados corretamente
-            const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
-            
-            // Parse dos dados do corpo da requisição
-            const data = JSON.parse(req.body.data);
+            const service = new CreateProductService();
+            const {
+                name,
+                slug,
+                metaTitle,
+                metaDescription,
+                keywords,
+                brand,
+                ean,
+                description,
+                skuMaster,
+                price_per,
+                price_of,
+                weight,
+                length,
+                width,
+                height,
+                mainPromotionId,
+                categoryIds,
+                descriptionBlocks,
+                videoUrls,
+                variants,
+                relations,
+            } = req.body;
 
-            // Processar imagens principais
-            const mainImages = files?.['images']?.map(file => ({
-                url: file.path,
-                altText: file.originalname,
-                isPrimary: false
-            })) || [];
+            const files = req.files as Record<string, Express.Multer.File[]>;
 
-            // Processar variantes com suas imagens
-            const processedVariants = data.variants.map((variant: any, index: number) => {
-                // Adicione conversão para atributos da variante
-                const variantAttributes = variant.variantAttributes?.map((attr: any) => ({
-                  key: attr.key,
-                  value: attr.value,
-                  status: attr.status || 'DISPONIVEL'
-                })) || [];
+            const parsedKeywords = keywords ? JSON.parse(keywords) : undefined;
+            const parsedDescriptions = descriptionBlocks ? JSON.parse(descriptionBlocks) : undefined;
+            const parsedVideoUrls: string[] | undefined =
+                typeof videoUrls === 'string' ? [videoUrls] :
+                    Array.isArray(videoUrls) ? videoUrls :
+                        undefined;
+            const parsedVariants = variants ? JSON.parse(variants) : [];
+            const parsedRelations = relations ? JSON.parse(relations) : undefined;
 
-                return {
-                    ...variant,
-                    variantAttributes,
-                    price_per: Number(variant.price_per),
-                    price_of: variant.price_of ? Number(variant.price_of) : undefined,
-                    stock: variant.stock ? Number(variant.stock) : 0,
-                    sortOrder: variant.sortOrder ? Number(variant.sortOrder) : 0
-                };
+            const variantFiles: Express.Multer.File[] = files['variantImageFiles'] || [];
+            parsedVariants.forEach((v: any) => (v.imageFiles = []));
+
+            variantFiles.forEach(file => {
+                const [idxStr, ...rest] = file.originalname.split('___');
+                const idx = parseInt(idxStr, 10);
+                if (!isNaN(idx) && parsedVariants[idx]) {
+                    parsedVariants[idx].imageFiles.push(file);
+                }
             });
 
-            // Construir o objeto completo do produto
-            const productData = {
-                ...data,
-                images: mainImages,
-                variants: processedVariants,
-                price_per: Number(data.price_per),
-                price_of: data.price_of ? Number(data.price_of) : undefined,
-                weight: data.weight ? Number(data.weight) : undefined,
-                length: data.length ? Number(data.length) : undefined,
-                width: data.width ? Number(data.width) : undefined,
-                height: data.height ? Number(data.height) : undefined,
-                categories: Array.isArray(data.categories) ? data.categories : [],
-                productDescriptions: Array.isArray(data.productDescriptions) ? data.productDescriptions : [],
-                productRelations: JSON.parse(data.productRelations || '[]'),
-                videos: JSON.parse(data.videos || '[]')
-            };
-
-            // Validação de campos obrigatórios
-            if (!productData.name || !productData.description || productData.price_per === undefined) {
-                res.status(400).json({ error: 'Campos obrigatórios faltando: nome, descrição e preço' });
-            }
-
-            const createProductService = new CreateProductService();
-            const product = await createProductService.execute(productData);
+            const product = await service.execute({
+                name,
+                slug,
+                metaTitle,
+                metaDescription,
+                keywords: parsedKeywords,
+                brand,
+                ean,
+                description,
+                skuMaster,
+                price_per: parseFloat(price_per),
+                price_of: price_of ? parseFloat(price_of) : undefined,
+                weight: weight ? parseFloat(weight) : undefined,
+                length: length ? parseFloat(length) : undefined,
+                width: width ? parseFloat(width) : undefined,
+                height: height ? parseFloat(height) : undefined,
+                mainPromotionId,
+                categoryIds: categoryIds ? JSON.parse(categoryIds) : undefined,
+                descriptionBlocks: parsedDescriptions,
+                imageFiles: files["imageFiles"],
+                videoUrls: parsedVideoUrls,
+                variants: parsedVariants,
+                relations: parsedRelations,
+            });
 
             res.status(201).json(product);
-
         } catch (error) {
-            console.error('Erro ao criar produto:', error);
-            const errorMessage = error instanceof Error ? error.message : 'Erro interno do servidor';
-            const errorStack = process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined;
-            
-            res.status(500).json({
-                error: errorMessage,
-                ...(errorStack && { stack: errorStack })
-            });
+            console.error(error);
+            res.status(500).json({ error: 'Internal server error' });
         }
     }
 }

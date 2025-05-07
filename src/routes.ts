@@ -264,14 +264,14 @@ router.put('/category/delete_image', isAuthenticatedEcommerce, checkRole(['ADMIN
 
 // --- PRODUCT --- //
 router.post(
-  '/create/product',
-  isAuthenticatedEcommerce,
-  checkRole(['ADMIN', 'SUPER_ADMIN']),
-  upload_image.fields([
-    { name: 'images', maxCount: 10 },
-    { name: 'variants', maxCount: 10 } // Aceita múltiplas variantes
-  ]),
-  new CreateProductController().handle
+    "/product/create",
+    isAuthenticatedEcommerce,
+    checkRole(["ADMIN", "SUPER_ADMIN"]),
+    upload_image.fields([
+        { name: "imageFiles", maxCount: 15 },
+        { name: "variantImageFiles", maxCount: 15 }
+    ]),
+    new CreateProductController().handle
 );
 
 

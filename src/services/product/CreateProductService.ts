@@ -1,250 +1,163 @@
 import prismaClient from "../../prisma";
-import slugify from 'slugify';
+import { ProductRelationType } from "@prisma/client";
 
-interface VariantAttributeRequest {
-    key: string;
-    value: string;
-    status?: 'DISPONIVEL' | 'INDISPONIVEL';
-}
-
-interface VariantRequest {
+interface VariantInput {
     sku: string;
-    price_of?: number;
     price_per: number;
+    price_of?: number;
     stock?: number;
     allowBackorders?: boolean;
     sortOrder?: number;
     ean?: string;
     mainPromotionId?: string;
-    variantAttributes?: VariantAttributeRequest[];
-    images?: Array<{
-        url: string;
-        altText?: string;
-        isPrimary?: boolean;
-    }>;
-    videos?: Array<{
-        url: string;
-        isPrimary?: boolean;
-    }>;
+    attributes?: { key: string; value: string }[];
+    imageFiles?: Express.Multer.File[];
+    videoUrls?: string[];
 }
 
-interface ProductRelationRequest {
-    childProductId: string;
-    relationType?: 'VARIANT' | 'SIMPLE';
-    isRequired?: boolean;
+interface RelationInput {
+    parentId: string;
+    childId: string;
+    relationType?: ProductRelationType;
     sortOrder?: number;
+    isRequired?: boolean;
 }
 
-interface ProductRequest {
+interface CreateProductProps {
     name: string;
-    skuMaster?: string;
-    status?: 'DISPONIVEL' | 'INDISPONIVEL';
-    description: string;
-    price_per: number;
     slug?: string;
     metaTitle?: string;
     metaDescription?: string;
     keywords?: any;
     brand?: string;
     ean?: string;
+    description: string;
+    skuMaster?: string;
+    price_per: number;
     price_of?: number;
     weight?: number;
     length?: number;
     width?: number;
     height?: number;
     mainPromotionId?: string;
-    categories?: string[];
-    images?: Array<{
-        url: string;
-        altText?: string;
-        isPrimary?: boolean;
-    }>;
-    videos?: Array<{
-        url: string;
-        isPrimary?: boolean;
-    }>;
-    variants?: VariantRequest[];
-    productDescriptions?: Array<{
-        title: string;
-        description: string;
-        status?: 'DISPONIVEL' | 'INDISPONIVEL';
-    }>;
-    productRelations?: ProductRelationRequest[];
+    categoryIds?: string[];
+    descriptionBlocks?: { title: string; description: string }[];
+    imageFiles?: Express.Multer.File[];
+    videoUrls?: string[];
+    variants?: VariantInput[];
+    relations?: RelationInput[];
 }
 
 class CreateProductService {
-    async execute(productData: ProductRequest) {
-        const {
-            name,
-            description,
-            price_per,
-            slug,
-            metaTitle,
-            metaDescription,
-            keywords,
-            brand,
-            ean,
-            price_of,
-            weight,
-            length,
-            width,
-            height,
-            mainPromotionId,
-            categories = [],
-            images = [],
-            videos = [],
-            variants = [],
-            productDescriptions = [],
-            productRelations = [],
-        } = productData;
-
-        // Validação básica
-        if (!name || !description || price_per === undefined) {
-            throw new Error('Campos obrigatórios faltando');
-        }
-
-        // Geração de slug
-        let generatedSlug = slug || slugify(name, { lower: true, strict: true });
-        const existingProduct = await prismaClient.product.findUnique({
-            where: { slug: generatedSlug },
+    async execute(data: CreateProductProps) {
+        // Cria produto principal
+        const product = await prismaClient.product.create({
+            data: {
+                name: data.name,
+                slug: data.slug,
+                metaTitle: data.metaTitle,
+                metaDescription: data.metaDescription,
+                keywords: data.keywords,
+                brand: data.brand,
+                ean: data.ean,
+                description: data.description,
+                skuMaster: data.skuMaster,
+                price_per: data.price_per,
+                price_of: data.price_of,
+                weight: data.weight,
+                length: data.length,
+                width: data.width,
+                height: data.height,
+                mainPromotion: data.mainPromotionId ? { connect: { id: data.mainPromotionId } } : undefined,
+                categories: data.categoryIds
+                    ? { create: data.categoryIds.map(id => ({ category: { connect: { id } } })) }
+                    : undefined,
+                productsDescriptions: data.descriptionBlocks
+                    ? { create: data.descriptionBlocks.map(b => ({ title: b.title, description: b.description })) }
+                    : undefined,
+                images: data.imageFiles
+                    ? {
+                        create: data.imageFiles.map((file, idx) => ({
+                            url: `${file.filename}`,
+                            altText: file.originalname,
+                            isPrimary: idx === 0,
+                        }))
+                    }
+                    : undefined,
+                videos: data.videoUrls
+                    ? { create: data.videoUrls.map((url, idx) => ({ url, isPrimary: idx === 0 })) }
+                    : undefined,
+                variants: data.variants
+                    ? {
+                        create: data.variants.map(v => ({
+                            sku: v.sku,
+                            price_per: v.price_per,
+                            price_of: v.price_of,
+                            stock: v.stock,
+                            allowBackorders: v.allowBackorders,
+                            sortOrder: v.sortOrder,
+                            ean: v.ean,
+                            mainPromotion: v.mainPromotionId ? { connect: { id: v.mainPromotionId } } : undefined,
+                        }))
+                    }
+                    : undefined,
+                productRelations: data.relations
+                    ? {
+                        create: data.relations.map(r => ({
+                            parentProduct: { connect: { id: r.parentId } },
+                            childProduct: { connect: { id: r.childId } },
+                            relationType: r.relationType,
+                            sortOrder: r.sortOrder,
+                            isRequired: r.isRequired,
+                        }))
+                    }
+                    : undefined,
+            }
         });
-        if (existingProduct) {
-            generatedSlug += `-${Date.now()}`;
-        }
 
-        const product = await prismaClient.$transaction(async (prisma) => {
-            // 1. Cria produto principal
-            const newProduct = await prisma.product.create({
-                data: {
-                    name,
-                    description,
-                    price_per,
-                    slug: generatedSlug,
-                    metaTitle,
-                    metaDescription,
-                    keywords,
-                    brand,
-                    ean,
-                    price_of,
-                    weight,
-                    length,
-                    width,
-                    height,
-                    skuMaster: productData.skuMaster,
-                    status: productData.status || 'DISPONIVEL',
-                    mainPromotion: mainPromotionId ? { connect: { id: mainPromotionId } } : undefined,
-                    categories: {
-                        create: categories.map(categoryId => ({
-                            category: { connect: { id: categoryId } }
-                        }))
-                    },
-                    images: {
-                        create: images.map(image => ({
-                            url: image.url,
-                            altText: image.altText,
-                            isPrimary: image.isPrimary || false,
-                        }))
-                    },
-                    videos: {
-                        create: videos.map(video => ({
-                            url: video.url,
-                            isPrimary: video.isPrimary || false,
-                        }))
-                    },
-                    productsDescriptions: {
-                        create: productDescriptions.map(desc => ({
-                            title: desc.title,
-                            description: desc.description,
-                            status: desc.status || 'DISPONIVEL',
-                        }))
-                    }
-                },
-            });
+        // Processa variantes: atributos, imagens e vídeos
+        if (data.variants && data.variants.length) {
+            for (const variant of data.variants) {
+                const createdVariant = await prismaClient.productVariant.findUnique({ where: { sku: variant.sku } });
+                if (!createdVariant) continue;
 
-            // 2. Cria variantes
-            if (variants.length > 0) {
-                await Promise.all(
-                    variants.map(async (variant) => {
-                        await prisma.productVariant.create({
-                            data: {
-                                product_id: newProduct.id,
-                                sku: variant.sku,
-                                price_of: variant.price_of,
-                                price_per: variant.price_per,
-                                stock: variant.stock || 0,
-                                allowBackorders: variant.allowBackorders || false,
-                                sortOrder: variant.sortOrder || 0,
-                                ean: variant.ean,
-                                mainPromotion_id: variant.mainPromotionId,
-                                variantAttribute: {
-                                    create: (variant.variantAttributes || []).map(attr => ({
-                                        key: attr.key,
-                                        value: attr.value,
-                                        status: attr.status || 'DISPONIVEL'
-                                    }))
-                                },
-                                images: variant.images ? {
-                                    create: variant.images.map(img => ({
-                                        url: img.url,
-                                        altText: img.altText,
-                                        isPrimary: img.isPrimary || false,
-                                        product_id: newProduct.id
-                                    }))
-                                } : undefined,
-                                videos: variant.videos ? {
-                                    create: variant.videos.map(video => ({
-                                        url: video.url,
-                                        isPrimary: video.isPrimary || false,
-                                        product_id: newProduct.id
-                                    }))
-                                } : undefined
-                            }
-                        });
-                    })
-                );
-            }
-
-            // 3. Cria relações entre produtos
-            if (productRelations.length > 0) {
-                await Promise.all(
-                    productRelations.map(async (relation) => {
-                        await prisma.productRelation.create({
-                            data: {
-                                parentProduct_id: newProduct.id,
-                                childProductId: relation.childProductId,
-                                relationType: relation.relationType || 'VARIANT',
-                                isRequired: relation.isRequired || false,
-                                sortOrder: relation.sortOrder || 0
-                            }
-                        });
-                    })
-                );
-            }
-
-            return prisma.product.findUnique({
-                where: { id: newProduct.id },
-                include: {
-                    categories: { include: { category: true } },
-                    images: true,
-                    videos: true,
-                    variants: {
-                        include: {
-                            variantAttribute: true,
-                            images: true,
-                            videos: true,
-                            mainPromotion: true
-                        }
-                    },
-                    productsDescriptions: true,
-                    mainPromotion: true,
-                    productRelations: {
-                        include: {
-                            childProduct: true
-                        }
-                    }
+                // Atributos
+                if (variant.attributes) {
+                    await prismaClient.variantAttribute.createMany({
+                        data: variant.attributes.map(a => ({
+                            key: a.key,
+                            value: a.value,
+                            variant_id: createdVariant.id,
+                        }))
+                    });
                 }
-            });
-        });
+
+                // Imagens da variante (precisa informar product_id também)
+                if (variant.imageFiles) {
+                    await prismaClient.productImage.createMany({
+                        data: variant.imageFiles.map((file, idx) => ({
+                            url: file.filename,
+                            altText: file.originalname,
+                            variant_id: createdVariant.id,
+                            product_id: createdVariant.product_id,
+                            isPrimary: idx === 0,
+                        }))
+                    });
+                }
+
+                // Vídeos da variante (precisa informar product_id também)
+                if (variant.videoUrls) {
+                    await prismaClient.productVideo.createMany({
+                        data: variant.videoUrls.map((url, idx) => ({
+                            url,
+                            variant_id: createdVariant.id,
+                            product_id: createdVariant.product_id,
+                            isPrimary: idx === 0,
+                        }))
+                    });
+                }
+            }
+        }
 
         return product;
     }
