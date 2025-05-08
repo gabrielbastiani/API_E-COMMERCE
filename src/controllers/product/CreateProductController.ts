@@ -31,20 +31,25 @@ class CreateProductController {
 
             const files = req.files as Record<string, Express.Multer.File[]>;
 
+            // desserialização
             const parsedKeywords = keywords ? JSON.parse(keywords) : undefined;
-            const parsedDescriptions = descriptionBlocks ? JSON.parse(descriptionBlocks) : undefined;
+            const parsedDescriptions = descriptionBlocks
+                ? JSON.parse(descriptionBlocks)
+                : undefined;
             const parsedVideoUrls: string[] | undefined =
-                typeof videoUrls === 'string' ? [videoUrls] :
-                    Array.isArray(videoUrls) ? videoUrls :
-                        undefined;
+                typeof videoUrls === "string"
+                    ? [videoUrls]
+                    : Array.isArray(videoUrls)
+                        ? videoUrls
+                        : undefined;
             const parsedVariants = variants ? JSON.parse(variants) : [];
-            const parsedRelations = relations ? JSON.parse(relations) : undefined;
+            const parsedRelations = relations ? JSON.parse(relations) : [];
 
-            const variantFiles: Express.Multer.File[] = files['variantImageFiles'] || [];
+            // agrupa arquivos de imagem/variant
+            const variantFiles = files["variantImageFiles"] || [];
             parsedVariants.forEach((v: any) => (v.imageFiles = []));
-
-            variantFiles.forEach(file => {
-                const [idxStr, ...rest] = file.originalname.split('___');
+            variantFiles.forEach((file) => {
+                const [idxStr] = file.originalname.split("___");
                 const idx = parseInt(idxStr, 10);
                 if (!isNaN(idx) && parsedVariants[idx]) {
                     parsedVariants[idx].imageFiles.push(file);
@@ -77,9 +82,9 @@ class CreateProductController {
             });
 
             res.status(201).json(product);
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ error: 'Internal server error' });
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ error: "Internal server error" });
         }
     }
 }

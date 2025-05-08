@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { AllCategoriesService } from "../../services/category/AllCategoriesService";
+import { AllProductsService } from "../../services/product/AllProductsService"; 
 import { Prisma } from "@prisma/client";
 
 class AllProductsController {
@@ -14,7 +14,7 @@ class AllProductsController {
             endDate
         } = req.query;
 
-        const allProducts = new AllCategoriesService();
+        const allProducts = new AllProductsService();
         const products = await allProducts.execute(
             Number(page),
             Number(limit),

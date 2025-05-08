@@ -16,8 +16,8 @@ interface VariantInput {
 }
 
 interface RelationInput {
-    parentId: string;
-    childId: string;
+    parentId?: string;
+    childId?: string;
     relationType?: ProductRelationType;
     sortOrder?: number;
     isRequired?: boolean;
@@ -49,12 +49,21 @@ interface CreateProductProps {
 }
 
 class CreateProductService {
-    async execute(data: CreateProductProps) {
-        // Cria produto principal
+    async execute(data: CreateProductProps & { relations?: RelationInput[] }) {
+        // 1) Cria produto
+        function removerAcentos(s: any) {
+            return s.normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, "")
+                .toLowerCase()
+                .replace(/ +/g, "-")
+                .replace(/-{2,}/g, "-")
+                .replace(/[/]/g, "-");
+        }
+
         const product = await prismaClient.product.create({
             data: {
                 name: data.name,
-                slug: data.slug,
+                slug: removerAcentos(data.slug),
                 metaTitle: data.metaTitle,
                 metaDescription: data.metaDescription,
                 keywords: data.keywords,
@@ -68,28 +77,44 @@ class CreateProductService {
                 length: data.length,
                 width: data.width,
                 height: data.height,
-                mainPromotion: data.mainPromotionId ? { connect: { id: data.mainPromotionId } } : undefined,
+                mainPromotion: data.mainPromotionId
+                    ? { connect: { id: data.mainPromotionId } }
+                    : undefined,
                 categories: data.categoryIds
-                    ? { create: data.categoryIds.map(id => ({ category: { connect: { id } } })) }
+                    ? {
+                        create: data.categoryIds.map((id) => ({
+                            category: { connect: { id } },
+                        })),
+                    }
                     : undefined,
                 productsDescriptions: data.descriptionBlocks
-                    ? { create: data.descriptionBlocks.map(b => ({ title: b.title, description: b.description })) }
+                    ? {
+                        create: data.descriptionBlocks.map((b) => ({
+                            title: b.title,
+                            description: b.description,
+                        })),
+                    }
                     : undefined,
                 images: data.imageFiles
                     ? {
                         create: data.imageFiles.map((file, idx) => ({
-                            url: `${file.filename}`,
+                            url: file.filename,
                             altText: file.originalname,
                             isPrimary: idx === 0,
-                        }))
+                        })),
                     }
                     : undefined,
                 videos: data.videoUrls
-                    ? { create: data.videoUrls.map((url, idx) => ({ url, isPrimary: idx === 0 })) }
+                    ? {
+                        create: data.videoUrls.map((url, idx) => ({
+                            url,
+                            isPrimary: idx === 0,
+                        })),
+                    }
                     : undefined,
                 variants: data.variants
                     ? {
-                        create: data.variants.map(v => ({
+                        create: data.variants.map((v) => ({
                             sku: v.sku,
                             price_per: v.price_per,
                             price_of: v.price_of,
@@ -97,42 +122,57 @@ class CreateProductService {
                             allowBackorders: v.allowBackorders,
                             sortOrder: v.sortOrder,
                             ean: v.ean,
-                            mainPromotion: v.mainPromotionId ? { connect: { id: v.mainPromotionId } } : undefined,
-                        }))
+                            mainPromotion: v.mainPromotionId
+                                ? { connect: { id: v.mainPromotionId } }
+                                : undefined,
+                        })),
                     }
                     : undefined,
-                productRelations: data.relations
-                    ? {
-                        create: data.relations.map(r => ({
-                            parentProduct: { connect: { id: r.parentId } },
-                            childProduct: { connect: { id: r.childId } },
-                            relationType: r.relationType,
-                            sortOrder: r.sortOrder,
-                            isRequired: r.isRequired,
-                        }))
-                    }
-                    : undefined,
-            }
+            },
         });
 
-        // Processa variantes: atributos, imagens e vídeos
-        if (data.variants && data.variants.length) {
+        // 2) Cria as relações, agora **depois** de termos o `product.id`
+        if (data.relations?.length) {
+            for (const r of data.relations) {
+                // se veio apenas childId => novo produto é pai
+                const parentConnect = r.parentId
+                    ? { id: r.parentId }
+                    : { id: product.id };
+
+                // se veio apenas parentId => novo produto é filho
+                const childConnect = r.childId
+                    ? { id: r.childId }
+                    : { id: product.id };
+
+                await prismaClient.productRelation.create({
+                    data: {
+                        parentProduct: { connect: parentConnect },
+                        childProduct: { connect: childConnect },
+                        relationType: r.relationType,
+                        sortOrder: r.sortOrder,
+                        isRequired: r.isRequired,
+                    }
+                });
+            }
+        }
+
+        // 3) Processa variantes (atributos, imagens e vídeos)
+        if (data.variants?.length) {
             for (const variant of data.variants) {
-                const createdVariant = await prismaClient.productVariant.findUnique({ where: { sku: variant.sku } });
+                const createdVariant = await prismaClient.productVariant.findUnique({
+                    where: { sku: variant.sku },
+                });
                 if (!createdVariant) continue;
 
-                // Atributos
                 if (variant.attributes) {
                     await prismaClient.variantAttribute.createMany({
-                        data: variant.attributes.map(a => ({
+                        data: variant.attributes.map((a) => ({
                             key: a.key,
                             value: a.value,
                             variant_id: createdVariant.id,
-                        }))
+                        })),
                     });
                 }
-
-                // Imagens da variante (precisa informar product_id também)
                 if (variant.imageFiles) {
                     await prismaClient.productImage.createMany({
                         data: variant.imageFiles.map((file, idx) => ({
@@ -141,11 +181,9 @@ class CreateProductService {
                             variant_id: createdVariant.id,
                             product_id: createdVariant.product_id,
                             isPrimary: idx === 0,
-                        }))
+                        })),
                     });
                 }
-
-                // Vídeos da variante (precisa informar product_id também)
                 if (variant.videoUrls) {
                     await prismaClient.productVideo.createMany({
                         data: variant.videoUrls.map((url, idx) => ({
@@ -153,7 +191,7 @@ class CreateProductService {
                             variant_id: createdVariant.id,
                             product_id: createdVariant.product_id,
                             isPrimary: idx === 0,
-                        }))
+                        })),
                     });
                 }
             }
