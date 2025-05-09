@@ -122,6 +122,10 @@ import { CategoryDeleteImageController } from "./controllers/category/CategoryDe
 import { CreateProductController } from "./controllers/product/CreateProductController";
 import { AllProductsController } from "./controllers/product/AllProductsController";
 
+// --- PROMOTION --- //
+import { PromotionController } from "./controllers/promotion/PromotionController";
+const promoCtrl = new PromotionController();
+
 
 
 
@@ -266,6 +270,13 @@ router.put('/category/delete_image', isAuthenticatedEcommerce, checkRole(['ADMIN
 // --- PRODUCT --- //
 router.post("/product/create", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), upload_image.fields([{ name: "imageFiles", maxCount: 15 }, { name: "variantImageFiles", maxCount: 15 }]), new CreateProductController().handle);
 router.get('/get/products_allow', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new AllProductsController().handle);
+
+// --- PROMOTION --- //
+router.post('/promotions', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), promoCtrl.create);
+router.get('/promotions', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), promoCtrl.list);
+router.get('/promotions/:id', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), promoCtrl.getById);
+router.put('/promotions/:id', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), promoCtrl.update);
+router.delete('/promotions/:id', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), promoCtrl.delete);
 
 
 export { router };

@@ -363,8 +363,8 @@ model Product {
   height               Float?
   stock                Int                  @default(0)
   // Promoção principal – campo opcional para a promoção destacada
-  mainPromotion        Promotion?           @relation("FeaturedPromotion", fields: [mainPromotionId], references: [id])
-  mainPromotionId      String?
+  mainPromotion        Promotion?           @relation("FeaturedPromotion", fields: [mainPromotion_id], references: [id])
+  mainPromotion_id     String?
   status               StatusProduct        @default(DISPONIVEL)
   categories           ProductCategory[]
   images               ProductImage[]

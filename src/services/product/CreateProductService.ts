@@ -9,7 +9,7 @@ interface VariantInput {
     allowBackorders?: boolean;
     sortOrder?: number;
     ean?: string;
-    mainPromotionId?: string;
+    mainPromotion_id?: string;
     attributes?: { key: string; value: string }[];
     imageFiles?: Express.Multer.File[];
     videoUrls?: string[];
@@ -39,7 +39,8 @@ interface CreateProductProps {
     length?: number;
     width?: number;
     height?: number;
-    mainPromotionId?: string;
+    stock?: number;
+    mainPromotion_id?: string;
     categoryIds?: string[];
     descriptionBlocks?: { title: string; description: string }[];
     imageFiles?: Express.Multer.File[];
@@ -77,8 +78,9 @@ class CreateProductService {
                 length: data.length,
                 width: data.width,
                 height: data.height,
-                mainPromotion: data.mainPromotionId
-                    ? { connect: { id: data.mainPromotionId } }
+                stock: data.stock,
+                mainPromotion: data.mainPromotion_id
+                    ? { connect: { id: data.mainPromotion_id } }
                     : undefined,
                 categories: data.categoryIds
                     ? {
@@ -122,8 +124,8 @@ class CreateProductService {
                             allowBackorders: v.allowBackorders,
                             sortOrder: v.sortOrder,
                             ean: v.ean,
-                            mainPromotion: v.mainPromotionId
-                                ? { connect: { id: v.mainPromotionId } }
+                            mainPromotion: v.mainPromotion_id
+                                ? { connect: { id: v.mainPromotion_id } }
                                 : undefined,
                         })),
                     }
