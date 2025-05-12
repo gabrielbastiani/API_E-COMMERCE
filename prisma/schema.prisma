@@ -362,6 +362,7 @@ model Product {
   width                Float?
   height               Float?
   stock                Int                  @default(0)
+  view                 Int?                 @default(0)
   // Promoção principal – campo opcional para a promoção destacada
   mainPromotion        Promotion?           @relation("FeaturedPromotion", fields: [mainPromotion_id], references: [id])
   mainPromotion_id     String?
@@ -431,8 +432,8 @@ model ProductRelation {
   id               String              @id @default(uuid())
   parentProduct    Product             @relation(fields: [parentProduct_id], references: [id], name: "parentRelation")
   parentProduct_id String              @db.Uuid
-  childProduct     Product             @relation(fields: [childProductId], references: [id], name: "childRelation")
-  childProductId   String              @db.Uuid
+  childProduct     Product             @relation(fields: [childProduct_id], references: [id], name: "childRelation")
+  childProduct_id  String              @db.Uuid
   relationType     ProductRelationType @default(VARIANT)
   sortOrder        Int                 @default(0)
   isRequired       Boolean             @default(false)
@@ -441,7 +442,7 @@ model ProductRelation {
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
 
-  @@unique([parentProduct_id, childProductId, relationType])
+  @@unique([parentProduct_id, childProduct_id, relationType])
   @@map("productsRelations")
 }
 

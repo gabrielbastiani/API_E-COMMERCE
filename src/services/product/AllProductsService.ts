@@ -37,7 +37,20 @@ class AllProductsService {
             where: whereClause,
             skip,
             take: limit,
-            orderBy: { [orderBy]: orderDirection }
+            orderBy: { [orderBy]: orderDirection },
+            include: {
+                categories: {
+                    include: {
+                        category: true,
+                        product: true
+                    }
+                },
+                images: true,
+                productView: true,
+                variants: true,
+                parentRelations: true,
+                productRelations: true
+            }
         });
 
         const total_products = await prismaClient.product.count({
