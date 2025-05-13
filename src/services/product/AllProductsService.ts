@@ -48,8 +48,28 @@ class AllProductsService {
                 images: true,
                 productView: true,
                 variants: true,
-                parentRelations: true,
-                productRelations: true
+                parentRelations: {
+                    include: {
+                        childProduct: true,
+                        parentProduct: true,
+                        product: {
+                            include: {
+                                images: true
+                            }
+                        }
+                    }
+                },
+                productRelations: {
+                    include: {
+                        childProduct: true,
+                        parentProduct: true,
+                        product: {
+                            include: {
+                                images: true
+                            }
+                        }
+                    }
+                }
             }
         });
 

@@ -5,61 +5,34 @@ export class ProductUpdateDataController {
     private service = new ProductUpdateDataService();
 
     public handle = async (req: Request, res: Response) => {
-        const { id } = req.params;
-
         try {
-            // 1) Extrai arquivos do multer
-            const files = req.files as Record<string, Express.Multer.File[]>;
-            const globalImages = files["imageFiles"] || [];
-            const variantFiles = files["variantImageFiles"] || [];
+            // 1) mantém undefined se não houve upload)
+            const files = (req.files as Record<string, Express.Multer.File[]>) || {};
+            const globalImages  = files["imageFiles"];        // undefined | File[]
+            const variantFiles  = files["variantImageFiles"]; // undefined | File[]
 
-            // 2) Desconstrói body e desserializa JSON onde necessário
+            // 2) Extrai body
             const {
-                name,
-                slug,
-                metaTitle,
-                metaDescription,
-                keywords,
-                brand,
-                ean,
-                description,
-                skuMaster,
-                price_per,
-                price_of,
-                weight,
-                length,
-                width,
-                height,
-                stock,
-                mainPromotion_id,
-                categoryIds,
-                descriptionBlocks,
-                videoUrls,
-                variants,
-                relations,
-                status
+                id,
+                name, slug, metaTitle, metaDescription, keywords, brand, ean, description,
+                skuMaster, price_per, price_of, weight, length, width, height, stock,
+                mainPromotion_id, categoryIds, descriptionBlocks, videoUrls,
+                variants, relations, status   // <= agora incluímos status
             } = req.body;
 
+            // 3) Desserializa JSON quando necessário
             const parsedKeywords = keywords ? JSON.parse(keywords) : undefined;
-            const parsedDescriptions = descriptionBlocks ? JSON.parse(descriptionBlocks) : undefined;
-            const parsedVideoUrls: string[] | undefined =
-                typeof videoUrls === "string"
-                    ? [videoUrls]
-                    : Array.isArray(videoUrls)
-                        ? videoUrls
-                        : undefined;
+            const parsedDescBlocks = descriptionBlocks ? JSON.parse(descriptionBlocks) : undefined;
+            const parsedVideoUrls = typeof videoUrls === "string"
+                ? [videoUrls]
+                : Array.isArray(videoUrls) ? videoUrls : undefined;
+            const parsedVariants = variants ? JSON.parse(variants) : undefined;
+            const parsedRelations = relations ? JSON.parse(relations) : undefined;
 
-            // 3) Desserializa variantes e relações
-            const parsedVariants: any[] | undefined = variants ? JSON.parse(variants) : undefined;
-            const parsedRelations: any[] | undefined = relations ? JSON.parse(relations) : undefined;
-
-            // 4) Agrupa arquivos de imagem de variante em cada objeto de parsedVariants
+            // 4) Agrupa arquivos de variante
             if (parsedVariants && variantFiles.length) {
-                // inicializa array de imageFiles em cada variante
-                parsedVariants.forEach(v => v.imageFiles = []);
-
+                parsedVariants.forEach((v: { imageFiles: never[]; }) => (v.imageFiles = []));
                 variantFiles.forEach(file => {
-                    // originalname espera o prefixo "{index}___rest"
                     const [idxStr] = file.originalname.split("___");
                     const idx = parseInt(idxStr, 10);
                     if (!isNaN(idx) && parsedVariants[idx]) {
@@ -68,19 +41,11 @@ export class ProductUpdateDataController {
                 });
             }
 
-            // 5) Monta DTO para o serviço
+            // 5) Monta DTO
             const updateDto = {
                 id,
-                // campos simples
-                name,
-                slug,
-                metaTitle,
-                metaDescription,
-                keywords: parsedKeywords,
-                brand,
-                ean,
-                description,
-                skuMaster,
+                name, slug, metaTitle, metaDescription, keywords: parsedKeywords,
+                brand, ean, description, skuMaster,
                 price_per: price_per ? parseFloat(price_per) : undefined,
                 price_of: price_of ? parseFloat(price_of) : undefined,
                 weight: weight ? parseFloat(weight) : undefined,
@@ -89,25 +54,19 @@ export class ProductUpdateDataController {
                 height: height ? parseFloat(height) : undefined,
                 stock: stock ? parseFloat(stock) : undefined,
                 mainPromotion_id,
-                status,
-
-                // relacionais
+                status,                                 // <= incluímos status
                 categoryIds: categoryIds ? JSON.parse(categoryIds) : undefined,
-                descriptionBlocks: parsedDescriptions,
+                descriptionBlocks: parsedDescBlocks,
                 relations: parsedRelations,
-
-                // mídias
                 imageFiles: globalImages,
                 videoUrls: parsedVideoUrls,
-
-                // variantes
                 variants: parsedVariants,
             };
 
-            // 6) Chama serviço
-            const updatedProduct = await this.service.execute(updateDto);
+            // 6) Executa serviço
+            const updated = await this.service.execute(updateDto);
 
-            res.json(updatedProduct);
+            res.json(updated);
         } catch (err: any) {
             console.error(err);
             res.status(400).json({ error: err.message || "Failed to update product." });

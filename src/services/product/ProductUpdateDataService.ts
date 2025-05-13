@@ -1,4 +1,3 @@
-// services/product/ProductUpdateDataService.ts
 import prismaClient from "../../prisma";
 import { ProductRelationType } from "@prisma/client";
 
@@ -65,26 +64,25 @@ export class ProductUpdateDataService {
             ...fields
         } = data;
 
-        // 1) Monta dados principais, incluindo `status`
+        // 1) Campos principais (inclui status, se presente)
         const updateData: any = { ...fields };
 
-        // promoção principal
         if (fields.mainPromotion_id !== undefined) {
             updateData.mainPromotion = fields.mainPromotion_id
                 ? { connect: { id: fields.mainPromotion_id } }
                 : { disconnect: true };
         }
 
-        // 2) Categorias
-        if (categoryIds) {
+        // 2) Categorias (só se vier categoryIds)
+        if (categoryIds !== undefined) {
             updateData.categories = {
                 deleteMany: {},
                 create: categoryIds.map(cid => ({ category: { connect: { id: cid } } })),
             };
         }
 
-        // 3) Descrições detalhadas
-        if (descriptionBlocks) {
+        // 3) Descrições detalhadas (só se vier descriptionBlocks)
+        if (descriptionBlocks !== undefined) {
             updateData.productsDescriptions = {
                 deleteMany: {},
                 create: descriptionBlocks.map(b => ({
@@ -94,8 +92,8 @@ export class ProductUpdateDataService {
             };
         }
 
-        // 4) Imagens e vídeos globais
-        if (imageFiles) {
+        // 4) Imagens globais (só se tiver feito upload)
+        if (imageFiles && imageFiles.length > 0) {
             updateData.images = {
                 deleteMany: { product_id: id },
                 create: imageFiles.map((file, idx) => ({
@@ -105,7 +103,8 @@ export class ProductUpdateDataService {
                 })),
             };
         }
-        if (videoUrls) {
+        // 5) Vídeos globais (só se tiver vídeo enviado)
+        if (videoUrls && videoUrls.length > 0) {
             updateData.videos = {
                 deleteMany: { product_id: id },
                 create: videoUrls.map((url, idx) => ({
@@ -115,14 +114,14 @@ export class ProductUpdateDataService {
             };
         }
 
-        // 5) Aplica o update principal
+        // 6) Atualiza o produto principal
         await prismaClient.product.update({
             where: { id },
             data: updateData,
         });
 
-        // 6) Relações: limpa e recria
-        if (relations) {
+        // 7) Relações (só se vier relations)
+        if (relations !== undefined) {
             await prismaClient.productRelation.deleteMany({
                 where: {
                     OR: [
@@ -146,29 +145,21 @@ export class ProductUpdateDataService {
             }
         }
 
-        // 7) Variantes: delete + create
-        if (variants) {
-            // remove todas as variantes do produto
-            const existingVariants = await prismaClient.productVariant.findMany({
+        // 8) Variantes (só se vier variants) — delete + create completo
+        if (variants !== undefined) {
+            // Remove todas as variantes e seus dados relacionados
+            const existing = await prismaClient.productVariant.findMany({
                 where: { product_id: id },
-                select: { id: true, sku: true }
+                select: { id: true }
             });
-            const existingIds = existingVariants.map(v => v.id);
-            await prismaClient.productVariant.deleteMany({
-                where: { product_id: id }
-            });
-            // opcionalmente: limpe atributos, imagens e vídeos associados
-            await prismaClient.variantAttribute.deleteMany({
-                where: { variant_id: { in: existingIds } }
-            });
-            await prismaClient.productImage.deleteMany({
-                where: { variant_id: { in: existingIds } }
-            });
-            await prismaClient.productVideo.deleteMany({
-                where: { variant_id: { in: existingIds } }
-            });
+            const ids = existing.map(v => v.id);
 
-            // cria de novo
+            await prismaClient.variantAttribute.deleteMany({ where: { variant_id: { in: ids } } });
+            await prismaClient.productImage.deleteMany({ where: { variant_id: { in: ids } } });
+            await prismaClient.productVideo.deleteMany({ where: { variant_id: { in: ids } } });
+            await prismaClient.productVariant.deleteMany({ where: { product_id: id } });
+
+            // Recria
             for (const v of variants) {
                 const created = await prismaClient.productVariant.create({
                     data: {
@@ -185,8 +176,6 @@ export class ProductUpdateDataService {
                             : undefined
                     }
                 });
-
-                // atributos
                 if (v.attributes) {
                     await prismaClient.variantAttribute.createMany({
                         data: v.attributes.map(a => ({
@@ -196,7 +185,6 @@ export class ProductUpdateDataService {
                         }))
                     });
                 }
-                // imagens
                 if (v.imageFiles) {
                     await prismaClient.productImage.createMany({
                         data: v.imageFiles.map((file, idx) => ({
@@ -208,11 +196,10 @@ export class ProductUpdateDataService {
                         }))
                     });
                 }
-                // vídeos
                 if (v.videoUrls) {
                     await prismaClient.productVideo.createMany({
                         data: v.videoUrls.map((url, idx) => ({
-                            url,
+                            url: url,
                             product_id: id,
                             variant_id: created.id,
                             isPrimary: idx === 0
@@ -222,7 +209,7 @@ export class ProductUpdateDataService {
             }
         }
 
-        // 8) Retorna produto já atualizado
+        // 9) Retorna o produto com tudo já carregado
         return prismaClient.product.findUnique({
             where: { id },
             include: {
