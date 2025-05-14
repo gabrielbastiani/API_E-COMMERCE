@@ -82,6 +82,13 @@ class AllProductsService {
         const products_allow = await prismaClient.product.findMany({
             where: {
                 status: StatusProduct.DISPONIVEL
+            },
+            include: {
+                categories: {
+                    include: {
+                        category: true
+                    }
+                }
             }
         });
 
