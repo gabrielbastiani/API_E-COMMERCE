@@ -19,6 +19,18 @@ export class ProductUpdateDataController {
 
             const parseSafe = (str: string) => str ? JSON.parse(str) : undefined;
 
+            // 1. parse dos campos que vêm como string
+            const rawVariants = parseSafe(req.body.variants);
+            // 2. decisao se vamos mesmo atualizar variantes
+            const shouldUpdateVariants = Array.isArray(rawVariants) && rawVariants.length > 0;
+
+            const variantsWithFiles = shouldUpdateVariants
+                ? rawVariants.map((v: any, idx: number) => ({
+                    ...v,
+                    imageFiles: variantFiles.filter(f => f.fieldname === "variantImageFiles" /* ou outra lógica */)
+                }))
+                : undefined;
+
             const updateDto = {
                 id,
                 name,
@@ -43,8 +55,9 @@ export class ProductUpdateDataController {
                 descriptionBlocks: parseSafe(descriptionBlocks),
                 relations: parseSafe(relations),
                 videoUrls: parseSafe(videoUrls),
-                variants: parseSafe(variants),
-                imageFiles: globalImages
+                variants: variantsWithFiles,
+                variantImageFiles: variantFiles,
+                imageFiles: globalImages,
             };
 
             const updatedProduct = await this.service.execute(updateDto);

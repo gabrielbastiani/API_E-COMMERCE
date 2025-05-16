@@ -49,6 +49,7 @@ interface UpdateProductProps {
     descriptionBlocks?: { title: string; description: string }[];
     imageUrls?: string[];
     imageFiles?: Express.Multer.File[];
+    variantImageFiles?: Express.Multer.File[];
     videoUrls?: string[];
     variants?: VariantInput[];
     relations?: RelationInput[];
@@ -110,29 +111,27 @@ export class ProductUpdateDataService {
 
         // Deleta arquivos físicos
         const uploadsPath = path.join(process.cwd(), 'images');
+
         for (const img of toDelete) {
-            try {
-                await fs.unlink(path.join(uploadsPath, img.url));
-            } catch (err) {
-                console.error(`Erro ao deletar ${img.url}:`, err);
-            }
+            await fs.unlink(path.join(uploadsPath, img.url))
+                .catch(e => console.error(`Erro ao deletar ${img.url}:`, e));
         }
 
-        // Atualiza imagens apenas se houver mudanças
-        if ((data.imageFiles?.length || 0) > 0 || keepUrls.length > 0) {
+        if (toDelete.length > 0 || (data.imageFiles?.length || 0) > 0) {
             updateData.images = {
-                deleteMany: { product_id: id },
+                deleteMany: { id: { in: toDelete.map(img => img.id) } },
                 create: [
-                    ...keepUrls.map(url => ({
-                        url,
-                        altText: existingImages.find(img => img.url === url)?.altText || "",
-                        isPrimary: existingImages.find(img => img.url === url)?.isPrimary || false
-                    })),
-                    ...(data.imageFiles ? data.imageFiles.map((file, idx) => ({
+                    // recria só as que ficam
+                    ...keepUrls.map(url => {
+                        const img = existingImages.find(i => i.url === url)!;
+                        return { url, altText: img.altText, isPrimary: img.isPrimary };
+                    }),
+                    // adiciona novos arquivos
+                    ...(data.imageFiles || []).map((file, idx) => ({
                         url: file.filename,
                         altText: file.originalname,
                         isPrimary: idx === 0
-                    })) : [])
+                    }))
                 ]
             };
         }
@@ -193,7 +192,7 @@ export class ProductUpdateDataService {
         }
 
         // 8. Process Variants (Corrigido)
-        if (variants.length > 0) {
+        if (data.variants) {
             const existingVariants = await prismaClient.productVariant.findMany({
                 where: { product_id: id }
             });

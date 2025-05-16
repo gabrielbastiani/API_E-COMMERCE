@@ -33,7 +33,13 @@ class CmsGetProductService {
                     }
                 },
                 productsDescriptions: true,
-                variants: true,
+                variants: {
+                    include: {
+                        images: true,
+                        mainPromotion: true,
+                        variantAttribute: true
+                    }
+                },
                 videos: true,
                 promotions: {
                     include: {
