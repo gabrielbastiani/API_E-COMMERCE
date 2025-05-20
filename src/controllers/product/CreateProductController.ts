@@ -4,89 +4,51 @@ import { CreateProductService } from "../../services/product/CreateProductServic
 class CreateProductController {
     async handle(req: Request, res: Response) {
         try {
+            const { body, files } = req;
+
+            // Processar arquivos
+            const processFiles = (field: string) => {
+                return (files as any)[field]?.map((f: Express.Multer.File) => ({
+                    url: f.filename,
+                    altText: f.originalname,
+                    isPrimary: false
+                })) || [];
+            };
+
+            // Converter campos JSON
+            const parseJsonField = (field: string) => {
+                return body[field] ? JSON.parse(body[field]) : [];
+            };
+
+            const productData = {
+                ...body,
+                price_of: body.price_of ? Number(body.price_of) : undefined,
+                price_per: Number(body.price_per),
+                weight: body.weight ? Number(body.weight) : undefined,
+                length: body.length ? Number(body.length) : undefined,
+                width: body.width ? Number(body.width) : undefined,
+                height: body.height ? Number(body.height) : undefined,
+                stock: body.stock ? Number(body.stock) : undefined,
+                categoryIds: parseJsonField('categoryIds'),
+                descriptions: parseJsonField('descriptions'),
+                variants: parseJsonField('variants'),
+                relations: parseJsonField('relations'),
+                keywords: parseJsonField('keywords'),
+                images: processFiles('images'),
+                videos: processFiles('videos'),
+            };
+
             const service = new CreateProductService();
-            const {
-                name,
-                slug,
-                metaTitle,
-                metaDescription,
-                keywords,
-                brand,
-                ean,
-                description,
-                skuMaster,
-                price_per,
-                price_of,
-                weight,
-                length,
-                width,
-                height,
-                stock,
-                mainPromotion_id,
-                categoryIds,
-                descriptionBlocks,
-                videoUrls,
-                variants,
-                relations,
-            } = req.body;
-
-            const files = req.files as Record<string, Express.Multer.File[]>;
-
-            // desserialização
-            const parsedKeywords = keywords ? JSON.parse(keywords) : undefined;
-            const parsedDescriptions = descriptionBlocks
-                ? JSON.parse(descriptionBlocks)
-                : undefined;
-            const parsedVideoUrls: string[] | undefined =
-                typeof videoUrls === "string"
-                    ? [videoUrls]
-                    : Array.isArray(videoUrls)
-                        ? videoUrls
-                        : undefined;
-            const parsedVariants = variants ? JSON.parse(variants) : [];
-            const parsedRelations = relations ? JSON.parse(relations) : [];
-
-            // agrupa arquivos de imagem/variant
-            const variantFiles = files["variantImageFiles"] || [];
-            parsedVariants.forEach((v: any) => (v.imageFiles = []));
-            variantFiles.forEach((file) => {
-                const [idxStr] = file.originalname.split("___");
-                const idx = parseInt(idxStr, 10);
-                if (!isNaN(idx) && parsedVariants[idx]) {
-                    parsedVariants[idx].imageFiles.push(file);
-                }
-            });
-
-            const product = await service.execute({
-                name,
-                slug,
-                metaTitle,
-                metaDescription,
-                keywords: parsedKeywords,
-                brand,
-                ean,
-                description,
-                skuMaster,
-                price_per: parseFloat(price_per),
-                price_of: price_of ? parseFloat(price_of) : undefined,
-                weight: weight ? parseFloat(weight) : undefined,
-                length: length ? parseFloat(length) : undefined,
-                width: width ? parseFloat(width) : undefined,
-                height: height ? parseFloat(height) : undefined,
-                stock: stock ? parseFloat(stock) : undefined,
-                mainPromotion_id,
-                categoryIds: categoryIds ? JSON.parse(categoryIds) : undefined,
-                descriptionBlocks: parsedDescriptions,
-                imageFiles: files["imageFiles"],
-                videoUrls: parsedVideoUrls,
-                variants: parsedVariants,
-                relations: parsedRelations,
-            });
+            const product = await service.execute(productData);
 
             res.status(201).json(product);
-        } catch (err) {
-            console.error(err);
-            res.status(500).json({ error: "Internal server error" });
+
+        } catch (error: any) {
+            console.error(error);
+            res.status(500).json({
+                error: "Erro ao criar produto",
+                details: error.message
+            });
         }
     }
 }

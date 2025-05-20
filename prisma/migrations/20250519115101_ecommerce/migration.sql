@@ -74,7 +74,13 @@ CREATE TYPE "MenuItemType" AS ENUM ('INTERNAL_LINK', 'EXTERNAL_LINK', 'CATEGORY'
 CREATE TYPE "EmailProcessType" AS ENUM ('ORDER_PLACED', 'ORDER_PAID', 'ORDER_CANCELED', 'USER_CREATED', 'CUSTOMER_REGISTERED', 'PASSWORD_RECOVERY', 'SHIPPING_NOTIFICATION');
 
 -- CreateEnum
-CREATE TYPE "NotificationType" AS ENUM ('INDEFINIDO', 'USER', 'CATEGORY', 'PRODUCT', 'MARKETING', 'ORDER', 'NEWSLETTER', 'CONTACT_FORM', 'CONTACT_ORDER');
+CREATE TYPE "NotificationType" AS ENUM ('INDEFINIDO', 'USER', 'CATEGORY', 'PRODUCT', 'MARKETING', 'ORDER', 'NEWSLETTER', 'CONTACT_FORM', 'CONTACT_ORDER', 'REPORT');
+
+-- CreateEnum
+CREATE TYPE "StatusCustomer" AS ENUM ('DISPONIVEL', 'INDISPONIVEL');
+
+-- CreateEnum
+CREATE TYPE "StatusCategory" AS ENUM ('DISPONIVEL', 'INDISPONIVEL');
 
 -- CreateTable
 CREATE TABLE "ecommerceDatas" (
@@ -187,6 +193,7 @@ CREATE TABLE "customers" (
     "photo" TEXT,
     "newsletter" BOOLEAN NOT NULL DEFAULT false,
     "last_access" TIMESTAMPTZ(3),
+    "status" "StatusCustomer" NOT NULL DEFAULT 'DISPONIVEL',
     "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "customers_pkey" PRIMARY KEY ("id")
@@ -218,7 +225,9 @@ CREATE TABLE "products" (
     "length" DOUBLE PRECISION,
     "width" DOUBLE PRECISION,
     "height" DOUBLE PRECISION,
-    "mainPromotionId" TEXT,
+    "stock" INTEGER NOT NULL DEFAULT 0,
+    "view" INTEGER DEFAULT 0,
+    "mainPromotion_id" TEXT,
     "status" "StatusProduct" NOT NULL DEFAULT 'DISPONIVEL',
     "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
@@ -228,7 +237,7 @@ CREATE TABLE "products" (
 
 -- CreateTable
 CREATE TABLE "productsVariants" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL,
     "product_id" UUID NOT NULL,
     "sku" TEXT NOT NULL,
     "price_of" DOUBLE PRECISION,
@@ -245,9 +254,32 @@ CREATE TABLE "productsVariants" (
 );
 
 -- CreateTable
-CREATE TABLE "variantsAttributes" (
+CREATE TABLE "productsVariantVideos" (
     "id" TEXT NOT NULL,
-    "variant_id" TEXT NOT NULL,
+    "url" TEXT NOT NULL,
+    "productVariant_id" UUID NOT NULL,
+    "isPrimary" BOOLEAN NOT NULL DEFAULT false,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "productsVariantVideos_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "productsVariantImages" (
+    "id" TEXT NOT NULL,
+    "productVariant_id" UUID NOT NULL,
+    "url" TEXT NOT NULL,
+    "altText" TEXT,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "productsVariantImages_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "variantsAttributes" (
+    "id" UUID NOT NULL,
+    "variant_id" UUID NOT NULL,
     "key" TEXT NOT NULL,
     "value" TEXT NOT NULL,
     "status" "StatusVariant" NOT NULL DEFAULT 'DISPONIVEL',
@@ -258,10 +290,22 @@ CREATE TABLE "variantsAttributes" (
 );
 
 -- CreateTable
+CREATE TABLE "variantsAttributesimages" (
+    "id" TEXT NOT NULL,
+    "variantAttribute_id" UUID NOT NULL,
+    "url" TEXT NOT NULL,
+    "altText" TEXT,
+    "isPrimary" BOOLEAN NOT NULL DEFAULT false,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "variantsAttributesimages_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "productsRelations" (
     "id" TEXT NOT NULL,
     "parentProduct_id" UUID NOT NULL,
-    "childProductId" UUID NOT NULL,
+    "childProduct_id" UUID NOT NULL,
     "relationType" "ProductRelationType" NOT NULL DEFAULT 'VARIANT',
     "sortOrder" INTEGER NOT NULL DEFAULT 0,
     "isRequired" BOOLEAN NOT NULL DEFAULT false,
@@ -289,7 +333,6 @@ CREATE TABLE "productsImages" (
     "url" TEXT NOT NULL,
     "altText" TEXT,
     "product_id" UUID NOT NULL,
-    "variant_id" TEXT,
     "isPrimary" BOOLEAN NOT NULL DEFAULT false,
     "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
@@ -302,7 +345,6 @@ CREATE TABLE "productsVideos" (
     "id" TEXT NOT NULL,
     "url" TEXT NOT NULL,
     "product_id" UUID NOT NULL,
-    "variant_id" TEXT,
     "isPrimary" BOOLEAN NOT NULL DEFAULT false,
     "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
@@ -375,10 +417,11 @@ CREATE TABLE "categories" (
     "image" TEXT,
     "order" INTEGER NOT NULL DEFAULT 0,
     "parentId" TEXT,
+    "status" "StatusCategory" NOT NULL DEFAULT 'DISPONIVEL',
     "promotion_id" TEXT,
+    "filterId" TEXT,
     "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
-    "filterId" TEXT,
 
     CONSTRAINT "categories_pkey" PRIMARY KEY ("id")
 );
@@ -476,7 +519,7 @@ CREATE TABLE "commentsOrder" (
     "id" TEXT NOT NULL,
     "order_id" TEXT NOT NULL,
     "customer_id" UUID NOT NULL,
-    "user_ecommerce_id" TEXT NOT NULL,
+    "userEcommerce_id" TEXT NOT NULL,
     "message" TEXT NOT NULL,
     "status" "StatusCommentOrder" NOT NULL DEFAULT 'PRIVATE',
     "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -619,7 +662,7 @@ CREATE TABLE "newsletters" (
 -- CreateTable
 CREATE TABLE "notificationUsersEcommerce" (
     "id" TEXT NOT NULL,
-    "user_ecommerce_id" TEXT,
+    "userEcommerce_id" TEXT,
     "type" "NotificationType" NOT NULL DEFAULT 'INDEFINIDO',
     "message" VARCHAR(500) NOT NULL,
     "read" BOOLEAN NOT NULL DEFAULT false,
@@ -790,7 +833,7 @@ CREATE TABLE "_ProductPromotions" (
 
 -- CreateTable
 CREATE TABLE "_variantPromotions" (
-    "A" TEXT NOT NULL,
+    "A" UUID NOT NULL,
     "B" TEXT NOT NULL,
 
     CONSTRAINT "_variantPromotions_AB_pkey" PRIMARY KEY ("A","B")
@@ -823,7 +866,7 @@ CREATE UNIQUE INDEX "products_skuMaster_key" ON "products"("skuMaster");
 CREATE UNIQUE INDEX "productsVariants_sku_key" ON "productsVariants"("sku");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "productsRelations_parentProduct_id_childProductId_relationT_key" ON "productsRelations"("parentProduct_id", "childProductId", "relationType");
+CREATE UNIQUE INDEX "productsRelations_parentProduct_id_childProduct_id_relation_key" ON "productsRelations"("parentProduct_id", "childProduct_id", "relationType");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "promotions_code_key" ON "promotions"("code");
@@ -868,7 +911,7 @@ CREATE INDEX "_variantPromotions_B_index" ON "_variantPromotions"("B");
 CREATE INDEX "_DirectCategoryFilters_B_index" ON "_DirectCategoryFilters"("B");
 
 -- AddForeignKey
-ALTER TABLE "products" ADD CONSTRAINT "products_mainPromotionId_fkey" FOREIGN KEY ("mainPromotionId") REFERENCES "promotions"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "products" ADD CONSTRAINT "products_mainPromotion_id_fkey" FOREIGN KEY ("mainPromotion_id") REFERENCES "promotions"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "productsVariants" ADD CONSTRAINT "productsVariants_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "products"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -877,13 +920,22 @@ ALTER TABLE "productsVariants" ADD CONSTRAINT "productsVariants_product_id_fkey"
 ALTER TABLE "productsVariants" ADD CONSTRAINT "productsVariants_mainPromotion_id_fkey" FOREIGN KEY ("mainPromotion_id") REFERENCES "promotions"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "productsVariantVideos" ADD CONSTRAINT "productsVariantVideos_productVariant_id_fkey" FOREIGN KEY ("productVariant_id") REFERENCES "productsVariants"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "productsVariantImages" ADD CONSTRAINT "productsVariantImages_productVariant_id_fkey" FOREIGN KEY ("productVariant_id") REFERENCES "productsVariants"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "variantsAttributes" ADD CONSTRAINT "variantsAttributes_variant_id_fkey" FOREIGN KEY ("variant_id") REFERENCES "productsVariants"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "variantsAttributesimages" ADD CONSTRAINT "variantsAttributesimages_variantAttribute_id_fkey" FOREIGN KEY ("variantAttribute_id") REFERENCES "variantsAttributes"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "productsRelations" ADD CONSTRAINT "productsRelations_parentProduct_id_fkey" FOREIGN KEY ("parentProduct_id") REFERENCES "products"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "productsRelations" ADD CONSTRAINT "productsRelations_childProductId_fkey" FOREIGN KEY ("childProductId") REFERENCES "products"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "productsRelations" ADD CONSTRAINT "productsRelations_childProduct_id_fkey" FOREIGN KEY ("childProduct_id") REFERENCES "products"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "productsRelations" ADD CONSTRAINT "productsRelations_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "products"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -895,13 +947,7 @@ ALTER TABLE "productsDescriptions" ADD CONSTRAINT "productsDescriptions_product_
 ALTER TABLE "productsImages" ADD CONSTRAINT "productsImages_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "products"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "productsImages" ADD CONSTRAINT "productsImages_variant_id_fkey" FOREIGN KEY ("variant_id") REFERENCES "productsVariants"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "productsVideos" ADD CONSTRAINT "productsVideos_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "products"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "productsVideos" ADD CONSTRAINT "productsVideos_variant_id_fkey" FOREIGN KEY ("variant_id") REFERENCES "productsVariants"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "productsViews" ADD CONSTRAINT "productsViews_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "products"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -970,7 +1016,7 @@ ALTER TABLE "commentsOrder" ADD CONSTRAINT "commentsOrder_order_id_fkey" FOREIGN
 ALTER TABLE "commentsOrder" ADD CONSTRAINT "commentsOrder_customer_id_fkey" FOREIGN KEY ("customer_id") REFERENCES "customers"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "commentsOrder" ADD CONSTRAINT "commentsOrder_user_ecommerce_id_fkey" FOREIGN KEY ("user_ecommerce_id") REFERENCES "usersEcommerce"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "commentsOrder" ADD CONSTRAINT "commentsOrder_userEcommerce_id_fkey" FOREIGN KEY ("userEcommerce_id") REFERENCES "usersEcommerce"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "abandonedCarts" ADD CONSTRAINT "abandonedCarts_cart_id_fkey" FOREIGN KEY ("cart_id") REFERENCES "carts"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -1000,7 +1046,7 @@ ALTER TABLE "favorites" ADD CONSTRAINT "favorites_customer_id_fkey" FOREIGN KEY 
 ALTER TABLE "favorites" ADD CONSTRAINT "favorites_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "products"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "notificationUsersEcommerce" ADD CONSTRAINT "notificationUsersEcommerce_user_ecommerce_id_fkey" FOREIGN KEY ("user_ecommerce_id") REFERENCES "usersEcommerce"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "notificationUsersEcommerce" ADD CONSTRAINT "notificationUsersEcommerce_userEcommerce_id_fkey" FOREIGN KEY ("userEcommerce_id") REFERENCES "usersEcommerce"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "notificationCustomers" ADD CONSTRAINT "notificationCustomers_customer_id_fkey" FOREIGN KEY ("customer_id") REFERENCES "customers"("id") ON DELETE SET NULL ON UPDATE CASCADE;

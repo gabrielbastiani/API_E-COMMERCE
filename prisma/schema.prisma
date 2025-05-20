@@ -354,7 +354,7 @@ model Product {
   brand                String?
   ean                  String?
   description          String
-  skuMaster            String?              @unique // SKU principal (opcional)
+  skuMaster            String?              @unique
   price_of             Float?
   price_per            Float
   weight               Float?
@@ -363,7 +363,6 @@ model Product {
   height               Float?
   stock                Int                  @default(0)
   view                 Int?                 @default(0)
-  // Promoção principal – campo opcional para a promoção destacada
   mainPromotion        Promotion?           @relation("FeaturedPromotion", fields: [mainPromotion_id], references: [id])
   mainPromotion_id     String?
   status               StatusProduct        @default(DISPONIVEL)
@@ -380,7 +379,6 @@ model Product {
   productRelations     ProductRelation[]
   parentRelations      ProductRelation[]    @relation("parentRelation")
   childRelations       ProductRelation[]    @relation("childRelation")
-  // Relação muitos-para-muitos: promoções adicionais
   promotions           Promotion[]          @relation("ProductPromotions")
   buyTogether          BuyTogether[]
 
@@ -391,7 +389,7 @@ model Product {
 }
 
 model ProductVariant {
-  id               String             @id @default(uuid())
+  id               String             @id @default(uuid()) @db.Uuid
   product          Product            @relation(fields: [product_id], references: [id])
   product_id       String             @db.Uuid
   sku              String             @unique // SKU único por variante
@@ -403,10 +401,11 @@ model ProductVariant {
   ean              String?
   mainPromotion    Promotion?         @relation("variantMainPromotion", fields: [mainPromotion_id], references: [id])
   mainPromotion_id String?
-  images           ProductImage[]
-  videos           ProductVideo[]
   variantAttribute VariantAttribute[]
   promotions       Promotion[]        @relation("variantPromotions")
+
+  productVariantImage ProductVariantImage[]
+  productVariantVideo ProductVariantVideo[]
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
   updated_at DateTime @updatedAt
@@ -414,18 +413,59 @@ model ProductVariant {
   @@map("productsVariants")
 }
 
+model ProductVariantVideo {
+  id                String         @id @default(uuid())
+  url               String
+  productVariant    ProductVariant @relation(fields: [productVariant_id], references: [id])
+  productVariant_id String         @db.Uuid
+  isPrimary         Boolean        @default(false)
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @updatedAt
+
+  @@map("productsVariantVideos")
+}
+
+model ProductVariantImage {
+  id                String         @id @default(uuid())
+  productVariant    ProductVariant @relation(fields: [productVariant_id], references: [id])
+  productVariant_id String         @db.Uuid
+  url               String
+  altText           String?
+  isPrimary         Boolean        @default(false)
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+
+  @@map("productsVariantImages")
+}
+
 model VariantAttribute {
-  id         String         @id @default(uuid())
+  id         String         @id @default(uuid()) @db.Uuid
   variant    ProductVariant @relation(fields: [variant_id], references: [id])
-  variant_id String
+  variant_id String         @db.Uuid
   key        String // ex: "cor"
   value      String // ex: "Azul"
   status     StatusVariant  @default(DISPONIVEL)
+
+  variantAttributeImage VariantAttributeImage[]
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
   updated_at DateTime @updatedAt
 
   @@map("variantsAttributes")
+}
+
+model VariantAttributeImage {
+  id                  String           @id @default(uuid())
+  variantAttribute    VariantAttribute @relation(fields: [variantAttribute_id], references: [id])
+  variantAttribute_id String           @db.Uuid
+  url                 String
+  altText             String?
+  isPrimary           Boolean          @default(false)
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+
+  @@map("variantsAttributesimages")
 }
 
 model ProductRelation {
@@ -460,14 +500,12 @@ model ProductDescription {
 }
 
 model ProductImage {
-  id         String          @id @default(uuid())
+  id         String  @id @default(uuid())
   url        String
   altText    String?
-  product    Product         @relation(fields: [product_id], references: [id])
-  product_id String          @db.Uuid
-  variant    ProductVariant? @relation(fields: [variant_id], references: [id])
-  variant_id String? // Opcional: imagem específica para uma variante
-  isPrimary  Boolean         @default(false) // Imagem principal?
+  product    Product @relation(fields: [product_id], references: [id])
+  product_id String  @db.Uuid
+  isPrimary  Boolean @default(false) // Imagem principal?
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
   updated_at DateTime @updatedAt
@@ -476,13 +514,11 @@ model ProductImage {
 }
 
 model ProductVideo {
-  id         String          @id @default(uuid())
+  id         String  @id @default(uuid())
   url        String
-  product    Product         @relation(fields: [product_id], references: [id])
-  product_id String          @db.Uuid
-  variant    ProductVariant? @relation(fields: [variant_id], references: [id])
-  variant_id String? // Opcional: vídeo específico para uma variante
-  isPrimary  Boolean         @default(false)
+  product    Product @relation(fields: [product_id], references: [id])
+  product_id String  @db.Uuid
+  isPrimary  Boolean @default(false)
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
   updated_at DateTime @updatedAt

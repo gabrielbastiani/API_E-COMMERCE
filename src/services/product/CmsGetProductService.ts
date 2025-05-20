@@ -35,7 +35,8 @@ class CmsGetProductService {
                 productsDescriptions: true,
                 variants: {
                     include: {
-                        images: true,
+                        productVariantImage: true,
+                        productVariantVideo: true,
                         mainPromotion: true,
                         variantAttribute: true
                     }
