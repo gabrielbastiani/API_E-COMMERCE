@@ -4,51 +4,24 @@ import { CreateProductService } from "../../services/product/CreateProductServic
 class CreateProductController {
     async handle(req: Request, res: Response) {
         try {
-            const { body, files } = req;
-
-            // Processar arquivos
-            const processFiles = (field: string) => {
-                return (files as any)[field]?.map((f: Express.Multer.File) => ({
-                    url: f.filename,
-                    altText: f.originalname,
-                    isPrimary: false
-                })) || [];
-            };
-
-            // Converter campos JSON
-            const parseJsonField = (field: string) => {
-                return body[field] ? JSON.parse(body[field]) : [];
-            };
+            const files = req.files as { [fieldname: string]: Express.Multer.File[] };
 
             const productData = {
-                ...body,
-                price_of: body.price_of ? Number(body.price_of) : undefined,
-                price_per: Number(body.price_per),
-                weight: body.weight ? Number(body.weight) : undefined,
-                length: body.length ? Number(body.length) : undefined,
-                width: body.width ? Number(body.width) : undefined,
-                height: body.height ? Number(body.height) : undefined,
-                stock: body.stock ? Number(body.stock) : undefined,
-                categoryIds: parseJsonField('categoryIds'),
-                descriptions: parseJsonField('descriptions'),
-                variants: parseJsonField('variants'),
-                relations: parseJsonField('relations'),
-                keywords: parseJsonField('keywords'),
-                images: processFiles('images'),
-                videos: processFiles('videos'),
+                ...req.body,
+                keywords: req.body.keywords ? JSON.parse(req.body.keywords) : [],
+                categories: req.body.categories ? JSON.parse(req.body.categories) : [],
+                descriptions: req.body.descriptions ? JSON.parse(req.body.descriptions) : [],
+                variants: req.body.variants ? JSON.parse(req.body.variants) : [],
+                relations: req.body.relations ? JSON.parse(req.body.relations) : []
             };
 
-            const service = new CreateProductService();
-            const product = await service.execute(productData);
+            const createProductService = new CreateProductService();
+            const product = await createProductService.execute(productData, files);
 
-            res.status(201).json(product);
-
-        } catch (error: any) {
+            res.json(product);
+        } catch (error) {
             console.error(error);
-            res.status(500).json({
-                error: "Erro ao criar produto",
-                details: error.message
-            });
+            res.status(500).json({ error: "Internal server error" });
         }
     }
 }

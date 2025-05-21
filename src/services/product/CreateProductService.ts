@@ -1,28 +1,7 @@
 import prismaClient from "../../prisma";
-import { StatusProduct, StatusDescriptionProduct, ProductRelationType } from "@prisma/client";
+import { ProductRelationType, StatusProduct, StatusDescriptionProduct, StatusVariant } from "@prisma/client";
 
-interface IVariantAttribute {
-    key: string;
-    value: string;
-    isPrimaryImage?: boolean;
-    attributeImageUrl?: string;
-}
-
-interface IVariant {
-    mainPromotion_id?: string;
-    sku: string;
-    price_of?: number;
-    price_per: number;
-    stock?: number;
-    allowBackorders?: boolean;
-    ean?: string;
-    sortOrder?: number;
-    images?: { url: string; altText?: string; isPrimary?: boolean }[];
-    videos?: { url: string; isPrimary?: boolean }[];
-    attributes?: IVariantAttribute[];
-}
-
-interface ICreateProductDTO {
+interface ProductRequest {
     name: string;
     slug?: string;
     metaTitle?: string;
@@ -31,7 +10,6 @@ interface ICreateProductDTO {
     brand?: string;
     ean?: string;
     description: string;
-    mainPromotion_id?: string;
     skuMaster?: string;
     price_of?: number;
     price_per: number;
@@ -41,117 +19,216 @@ interface ICreateProductDTO {
     height?: number;
     stock?: number;
     status?: StatusProduct;
-    categoryIds?: string[];
-    images?: { url: string; altText?: string; isPrimary?: boolean }[];
-    videos?: { url: string; isPrimary?: boolean }[];
-    descriptions?: { title: string; description: string; status?: StatusDescriptionProduct }[];
-    variants?: IVariant[];
-    relations?: { parentId: string; childId: string; type?: ProductRelationType; sortOrder?: number; isRequired?: boolean }[];
+    categories?: string[];
+    descriptions?: {
+        title: string;
+        description: string;
+        status?: StatusDescriptionProduct;
+    }[];
+    variants?: {
+        sku: string;
+        price_of?: number;
+        price_per: number;
+        stock: number;
+        allowBackorders?: boolean;
+        sortOrder?: number;
+        ean?: string;
+        attributes: {
+            key: string;
+            value: string;
+            status?: StatusVariant;
+            images?: string[];
+        }[];
+    }[];
+    relations?: {
+        childProductId: string;
+        relationType: ProductRelationType;
+        sortOrder?: number;
+        isRequired?: boolean;
+    }[];
 }
 
 class CreateProductService {
-    async execute(data: ICreateProductDTO) {
-        const processSlug = (name: string) => {
-            return name
-                .normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, "")
-                .toLowerCase()
-                .replace(/ +/g, "-")
-                .replace(/-{2,}/g, "-")
-                .replace(/[/]/g, "-");
-        };
+    async execute(productData: ProductRequest, files: any) {
+        const slug = productData.slug || this.generateSlug(productData.name);
 
-        const createMedia = {
-            images: (items: any[], type: string) => items.map((item, index) => ({
-                url: item.url,
-                altText: item.altText || `${type} ${index + 1}`,
-                isPrimary: index === 0
-            })),
-            videos: (items: any[]) => items.map(video => ({
-                url: video.url,
-                isPrimary: video.isPrimary ?? false
-            }))
-        };
-
-        try {
-            return await prismaClient.product.create({
+        return await prismaClient.$transaction(async (prisma) => {
+            // Criação do produto principal
+            const product = await prisma.product.create({
                 data: {
-                    ...data,
-                    slug: data.slug || processSlug(data.name), // Usa o slug fornecido ou gera um
-                    keywords: data.keywords || [],
-                    categories: {
-                        create: (data.categoryIds || []).map(id => ({
-                            category: { connect: { id } }
-                        }))
-                    },
-                    images: {
-                        create: createMedia.images(data.images || [], 'Produto')
-                    },
-                    videos: {
-                        create: createMedia.videos(data.videos || [])
-                    },
-                    productsDescriptions: {
-                        create: (data.descriptions || []).map(desc => ({
-                            ...desc,
-                            status: desc.status || StatusDescriptionProduct.DISPONIVEL
-                        }))
-                    },
-                    productRelations: {
-                        create: (data.relations || []).map(r => ({
-                            parentProduct: { connect: { id: r.parentId } },
-                            childProduct: { connect: { id: r.childId } },
-                            relationType: r.type ?? ProductRelationType.VARIANT,
-                            sortOrder: r.sortOrder ?? 0,
-                            isRequired: r.isRequired ?? false
-                        }))
-                    },
-                    variants: {
-                        create: (data.variants || []).map(variant => ({
-                            ...variant,
-                            productVariantImage: {
-                                create: createMedia.images(variant.images || [], 'Variante')
-                            },
-                            productVariantVideo: {
-                                create: createMedia.videos(variant.videos || [])
-                            },
-                            variantAttribute: {
-                                create: (variant.attributes || []).map(attr => ({
-                                    key: attr.key,
-                                    value: attr.value,
-                                    variantAttributeImage: attr.attributeImageUrl ? {
-                                        create: {
-                                            url: attr.attributeImageUrl,
-                                            altText: `Atributo ${attr.key}`,
-                                            isPrimary: attr.isPrimaryImage ?? false
-                                        }
-                                    } : undefined
-                                }))
-                            }
-                        }))
-                    }
-                },
+                    name: productData.name,
+                    slug,
+                    metaTitle: productData.metaTitle,
+                    metaDescription: productData.metaDescription,
+                    keywords: productData.keywords,
+                    brand: productData.brand,
+                    ean: productData.ean,
+                    description: productData.description,
+                    skuMaster: productData.skuMaster,
+                    price_of: productData.price_of,
+                    price_per: productData.price_per,
+                    weight: productData.weight,
+                    length: productData.length,
+                    width: productData.width,
+                    height: productData.height,
+                    stock: productData.stock || 0,
+                    status: productData.status || StatusProduct.DISPONIVEL,
+                }
+            });
+
+            // Processar categorias
+            if (productData.categories && productData.categories.length > 0) {
+                await prisma.productCategory.createMany({
+                    data: productData.categories.map(categoryId => ({
+                        product_id: product.id,
+                        category_id: categoryId
+                    }))
+                });
+            }
+
+            // Processar descrições
+            if (productData.descriptions) {
+                await prisma.productDescription.createMany({
+                    data: productData.descriptions.map(desc => ({
+                        product_id: product.id,
+                        title: desc.title,
+                        description: desc.description,
+                        status: desc.status || StatusDescriptionProduct.DISPONIVEL
+                    }))
+                });
+            }
+
+            // Processar imagens principais
+            if (files.images) {
+                await this.processMainImages(prisma, product.id, files.images);
+            }
+
+            // Processar variantes
+            if (productData.variants) {
+                for (const variant of productData.variants) {
+                    await this.processVariant(prisma, product.id, variant, files);
+                }
+            }
+
+            // Processar relações entre produtos
+            if (productData.relations) {
+                await this.processProductRelations(prisma, product.id, productData.relations);
+            }
+
+            return await prisma.product.findUnique({
+                where: { id: product.id },
                 include: {
                     categories: true,
-                    images: true,
-                    videos: true,
                     productsDescriptions: true,
-                    productRelations: true,
+                    images: true,
                     variants: {
                         include: {
-                            productVariantImage: true,
-                            productVariantVideo: true,
                             variantAttribute: {
                                 include: {
                                     variantAttributeImage: true
                                 }
                             }
                         }
-                    }
+                    },
+                    productRelations: true
                 }
             });
-        } catch (error) {
-            console.error('Erro ao criar produto:', error);
-            throw new Error('Falha ao cadastrar o produto');
+        });
+    }
+
+    private generateSlug(name: string): string {
+        return name
+            .toLowerCase()
+            .replace(/[^a-z0-9]/g, '-')
+            .replace(/-+/g, '-')
+            .replace(/^-|-$/g, '');
+    }
+
+    private async processMainImages(prisma: any, productId: string, images: any[]) {
+        const imageRecords = images.map((image, index) => ({
+            product_id: productId,
+            url: image.path,
+            altText: image.originalname,
+            isPrimary: index === 0
+        }));
+
+        await prisma.productImage.createMany({
+            data: imageRecords
+        });
+    }
+
+    private async processVariant(prisma: any, productId: string, variant: any, files: any) {
+        const newVariant = await prisma.productVariant.create({
+            data: {
+                product_id: productId,
+                sku: variant.sku,
+                price_of: variant.price_of,
+                price_per: variant.price_per,
+                stock: variant.stock,
+                allowBackorders: variant.allowBackorders || false,
+                sortOrder: variant.sortOrder || 0,
+                ean: variant.ean
+            }
+        });
+
+        // Processar atributos da variante
+        for (const attribute of variant.attributes) {
+            const newAttribute = await prisma.variantAttribute.create({
+                data: {
+                    variant_id: newVariant.id,
+                    key: attribute.key,
+                    value: attribute.value,
+                    status: attribute.status || StatusVariant.DISPONIVEL
+                }
+            });
+
+            // Processar imagens do atributo
+            if (files.attributeImages && attribute.images) {
+                const attributeImages = files.attributeImages
+                    .filter((img: any) => attribute.images.includes(img.originalname))
+                    .map((img: any) => ({
+                        variantAttribute_id: newAttribute.id,
+                        url: img.path,
+                        altText: img.originalname,
+                        isPrimary: false
+                    }));
+
+                await prisma.variantAttributeImage.createMany({
+                    data: attributeImages
+                });
+            }
+        }
+
+        // Processar imagens da variante
+        if (files.variantImages) {
+            const variantImages = files.variantImages
+                .filter((img: any) => img.fieldname === `variant-${variant.sku}`)
+                .map((img: any) => ({
+                    productVariant_id: newVariant.id,
+                    url: img.path,
+                    altText: img.originalname,
+                    isPrimary: false
+                }));
+
+            if (variantImages.length > 0) {
+                await prisma.productVariantImage.createMany({
+                    data: variantImages
+                });
+            }
+        }
+    }
+
+    private async processProductRelations(prisma: any, productId: string, relations: any[]) {
+        for (const relation of relations) {
+            await prisma.productRelation.create({
+                data: {
+                    parentProduct_id: productId,
+                    childProduct_id: relation.childProductId,
+                    relationType: relation.relationType,
+                    sortOrder: relation.sortOrder || 0,
+                    isRequired: relation.isRequired || false
+                }
+            });
         }
     }
 }

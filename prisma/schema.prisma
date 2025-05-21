@@ -183,7 +183,6 @@ enum EmailProcessType {
   CUSTOMER_REGISTERED // Cliente cadastrado
   PASSWORD_RECOVERY // Recuperação de senha
   SHIPPING_NOTIFICATION // Notificação de envio / rastreamento
-  // Adicione outros processos conforme necessário
 }
 
 enum NotificationType {
