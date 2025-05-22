@@ -30,6 +30,45 @@ class CategoriesService {
             where: {
                 status: StatusCategory.DISPONIVEL
             },
+            include: {
+                children: {
+                    include: {
+                        parent: {
+                            include: {
+                                children: {
+                                    include: {
+                                        parent: {
+                                            include: {
+                                                children: {
+                                                    include: {
+                                                        parent: {
+                                                            include: {
+                                                                children: {
+                                                                    include: {
+                                                                        parent: {
+                                                                            include: {
+                                                                                children: {
+                                                                                    include: {
+                                                                                        parent: true
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         });
 
         const data = {
