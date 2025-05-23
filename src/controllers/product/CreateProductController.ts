@@ -16,7 +16,7 @@ class CreateProductController {
                         return [];
                     }
                 }
-                Array.isArray(raw) ? raw : [];
+                return Array.isArray(raw) ? raw : [];
             };
 
             const productData = {

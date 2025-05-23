@@ -91,7 +91,7 @@ class CreateProductService {
 
             // Vídeos do produto
             if (productData.videoLinks && productData.videoLinks.length > 0) {
-                console.log('Processando vídeos do produto:', productData.videoLinks);
+                console.log('Criando vídeos do produto:', productData.videoLinks); // Debug
                 await prisma.productVideo.createMany({
                     data: productData.videoLinks.map((url, idx) => ({
                         product_id: product.id,
@@ -188,8 +188,8 @@ class CreateProductService {
         });
 
         // Vídeos da variante
-        if (variant.videoLinks && variant.videoLinks.length > 0) {
-            console.log('Processando vídeos da variante:', variant.videoLinks);
+        if (variant.videoLinks?.length) {
+            console.log('Criando vídeos da variante:', variant.videoLinks); // Debug
             await prisma.productVariantVideo.createMany({
                 data: variant.videoLinks.map((url: string, idx: number) => ({
                     productVariant_id: newVariant.id,
