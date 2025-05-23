@@ -6,13 +6,35 @@ class CreateProductController {
         try {
             const files = req.files as { [fieldname: string]: Express.Multer.File[] };
 
+            const safeParse = (raw?: any) => {
+                if (raw === undefined || raw === null) return [];
+                if (typeof raw === 'string') {
+                    try {
+                        return JSON.parse(raw);
+                    } catch (e) {
+                        console.error('Erro ao parsear JSON:', raw);
+                        return [];
+                    }
+                }
+                Array.isArray(raw) ? raw : [];
+            };
+
             const productData = {
                 ...req.body,
-                keywords: req.body.keywords ? JSON.parse(req.body.keywords) : [],
-                categories: req.body.categories ? JSON.parse(req.body.categories) : [],
-                descriptions: req.body.descriptions ? JSON.parse(req.body.descriptions) : [],
-                variants: req.body.variants ? JSON.parse(req.body.variants) : [],
-                relations: req.body.relations ? JSON.parse(req.body.relations) : []
+                price_of: Number(req.body.price_of),
+                price_per: Number(req.body.price_per),
+                weight: req.body.weight ? Number(req.body.weight) : undefined,
+                length: req.body.length ? Number(req.body.length) : undefined,
+                width: req.body.width ? Number(req.body.width) : undefined,
+                height: req.body.height ? Number(req.body.height) : undefined,
+                stock: req.body.stock ? Number(req.body.stock) : undefined,
+                mainPromotion_id: req.body.mainPromotion_id,
+                keywords: safeParse(req.body.keywords),
+                categories: safeParse(req.body.categories),
+                descriptions: safeParse(req.body.productDescriptions),
+                variants: safeParse(req.body.variants),
+                relations: safeParse(req.body.relations),
+                videoLinks: safeParse(req.body.videoLinks)
             };
 
             const createProductService = new CreateProductService();

@@ -611,9 +611,7 @@ model Category {
   products      ProductCategory[]
   promotion     Promotion?        @relation(fields: [promotion_id], references: [id])
   promotion_id  String?
-  // Campo oposto da relação direta
   directFilters Filter[]          @relation("DirectCategoryFilters")
-  // Relação via tabela de junção
   filters       CategoryFilter[]
   Filter        Filter?           @relation(fields: [filterId], references: [id])
   filterId      String?
