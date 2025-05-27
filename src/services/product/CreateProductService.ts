@@ -29,6 +29,7 @@ interface ProductRequest {
         status?: StatusDescriptionProduct;
     }[];
     variants?: {
+        id?: string;
         sku: string;
         price_of?: number;
         price_per: number;
@@ -91,9 +92,11 @@ class CreateProductService {
 
             // Vídeos do produto
             if (productData.videoLinks && productData.videoLinks.length > 0) {
-                console.log('Criando vídeos do produto:', productData.videoLinks); // Debug
+                const validVideoLinks = productData.videoLinks
+                    .filter(url => typeof url === 'string' && url.startsWith('http'));
+
                 await prisma.productVideo.createMany({
-                    data: productData.videoLinks.map((url, idx) => ({
+                    data: validVideoLinks.map((url, idx) => ({
                         product_id: product.id,
                         url,
                         isPrimary: idx === 0
@@ -173,6 +176,12 @@ class CreateProductService {
     }
 
     private async processVariant(prisma: any, productId: string, variant: any, files: any) {
+
+        if (!variant?.id) {
+            console.error('Variante sem ID:', variant);
+            return;
+        }
+
         const newVariant = await prisma.productVariant.create({
             data: {
                 product_id: productId,
@@ -189,8 +198,7 @@ class CreateProductService {
 
         // Vídeos da variante
         if (variant.videoLinks?.length) {
-            console.log('Criando vídeos da variante:', variant.videoLinks); // Debug
-            await prisma.productVariantVideo.createMany({
+            const result = await prisma.productVariantVideo.createMany({
                 data: variant.videoLinks.map((url: string, idx: number) => ({
                     productVariant_id: newVariant.id,
                     url,

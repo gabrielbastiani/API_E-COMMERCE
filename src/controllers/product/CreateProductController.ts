@@ -19,6 +19,11 @@ class CreateProductController {
                 return Array.isArray(raw) ? raw : [];
             };
 
+            const variants = safeParse(req.body.variants).map((variant: any) => ({
+                ...variant,
+                videoLinks: safeParse(variant.videoLinks).filter((url: any) => typeof url === 'string')
+            }));
+
             const productData = {
                 ...req.body,
                 price_of: Number(req.body.price_of),
@@ -32,9 +37,9 @@ class CreateProductController {
                 keywords: safeParse(req.body.keywords),
                 categories: safeParse(req.body.categories),
                 descriptions: safeParse(req.body.productDescriptions),
-                variants: safeParse(req.body.variants),
+                variants: variants,
+                videoLinks: safeParse(req.body.videoLinks).filter((url: any) => typeof url === 'string'),
                 relations: safeParse(req.body.relations),
-                videoLinks: safeParse(req.body.videoLinks)
             };
 
             const createProductService = new CreateProductService();
