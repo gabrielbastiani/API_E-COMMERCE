@@ -254,6 +254,7 @@ class CreateProductService {
         }
     }
 
+    // Proutos relacionados
     private async processProductRelations(
         prisma: any,
         productId: string,
@@ -263,7 +264,6 @@ class CreateProductService {
         for (const rel of rels) {
             const isChild = rel.relationDirection === "child";
 
-            // 1) valida existência de ambos
             const parentId = isChild ? productId : rel.relatedProductId;
             const childId = isChild ? rel.relatedProductId : productId;
 
@@ -277,7 +277,6 @@ class CreateProductService {
                 );
             }
 
-            // 2) cria relação com connect
             await prisma.productRelation.create({
                 data: {
                     relationType: rel.relationType,

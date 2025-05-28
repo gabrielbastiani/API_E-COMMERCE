@@ -1,197 +1,77 @@
 import { Request, Response } from "express";
 import { ProductUpdateDataService } from "../../services/product/ProductUpdateDataService";
-import { StatusVariant, ProductRelationType } from "@prisma/client";
-import path from "path";
-import { unlink } from "fs/promises";
+import { ProductRelationType, StatusVariant } from "@prisma/client";
 
-type FileMap = {
-    [key: string]: Express.Multer.File[];
-};
-
-interface ProcessedVariant {
-    id?: string;
-    sku: string;
-    price_per: number;
-    price_of?: number;
-    stock: number;
-    allowBackorders: boolean;
-    sortOrder: number;
-    ean?: string;
-    mainPromotion_id?: string;
-    status?: StatusVariant;
-    existingImages: string[];
-    newImages: Express.Multer.File[];
-    attributes: {
-        key: string;
-        value: string;
-        existingImages: string[];
-        newImages: Express.Multer.File[];
-    }[];
-}
-
-class ProductUpdateDataController {
-    private service = new ProductUpdateDataService();
-
-    private parseJSONField<T>(field: any, defaultValue: T): T {
+export class ProductUpdateDataController {
+    async handle(req: Request, res: Response) {
         try {
-            return typeof field === "string" ? JSON.parse(field) : field || defaultValue;
-        } catch (error) {
-            console.error(`Error parsing field: ${error}`);
-            return defaultValue;
-        }
-    }
+            const files = req.files as { [field: string]: Express.Multer.File[] };
 
-    private parseStatus(status?: string): StatusVariant | undefined {
-        if (!status) return undefined;
-        return Object.values(StatusVariant).includes(status as StatusVariant)
-            ? status as StatusVariant
-            : undefined;
-    }
-
-    private processVariantFiles(files: Express.Multer.File[]): ProcessedVariant[] {
-        const variantsMap: Record<string, ProcessedVariant> = {};
-
-        files.forEach((file) => {
-            const [prefix, variantIndex, attributeIndex] = file.originalname.split("___")[0].split("-");
-            
-            if (!variantsMap[variantIndex]) {
-                variantsMap[variantIndex] = {
-                    sku: "",
-                    price_per: 0,
-                    stock: 0,
-                    allowBackorders: false,
-                    sortOrder: 0,
-                    existingImages: [],
-                    newImages: [],
-                    attributes: [],
-                };
-            }
-
-            switch (prefix) {
-                case "variant":
-                    variantsMap[variantIndex].newImages.push(file);
-                    break;
-                case "attribute":
-                    if (attributeIndex !== undefined) {
-                        const attrIndex = parseInt(attributeIndex);
-                        if (!variantsMap[variantIndex].attributes[attrIndex]) {
-                            variantsMap[variantIndex].attributes[attrIndex] = {
-                                key: "",
-                                value: "",
-                                existingImages: [],
-                                newImages: [],
-                            };
-                        }
-                        variantsMap[variantIndex].attributes[attrIndex].newImages.push(file);
+            const safeParse = (raw?: any) => {
+                if (raw == null) return [];
+                if (typeof raw === "string") {
+                    try {
+                        return JSON.parse(raw);
+                    } catch {
+                        return [];
                     }
-                    break;
-            }
-        });
-
-        return Object.values(variantsMap);
-    }
-
-    private async cleanupTempFiles(files: Express.Multer.File[]) {
-        await Promise.all(
-            files.map(async (file) => {
-                try {
-                    await unlink(path.resolve(file.path));
-                } catch (error) {
-                    console.error(`Error deleting temp file ${file.path}:`, error);
                 }
-            })
-        );
-    }
-
-    async handle(req: Request, res: Response): Promise<void> {
-        let tempFiles: Express.Multer.File[] = [];
-
-        try {
-            const files = req.files as FileMap || {};
-            const body = req.body;
-
-            // Processar arquivos principais
-            const mainImages = files["imageFiles"] || [];
-            tempFiles = [...mainImages];
-
-            // Processar variantes e atributos
-            const variantFiles = files["variantImageFiles"] || [];
-            const processedVariants = this.processVariantFiles(variantFiles);
-
-            // Parse dos dados
-            const variants: ProcessedVariant[] = this.parseJSONField<ProcessedVariant[]>(
-                body.variants,
-                []
-            ).map((v, index) => ({
-                ...v,
-                status: this.parseStatus(v.status),
-                ...processedVariants[index],
-                attributes: v.attributes?.map((attr, attrIndex) => ({
-                    ...attr,
-                    ...processedVariants[index]?.attributes[attrIndex],
-                })) || [],
-            }));
-
-            // Construir DTO de atualização
-            const updateData = {
-                id: body.id,
-                name: body.name,
-                slug: body.slug,
-                metaTitle: body.metaTitle,
-                metaDescription: body.metaDescription,
-                keywords: this.parseJSONField(body.keywords, []),
-                brand: body.brand,
-                ean: body.ean,
-                description: body.description,
-                skuMaster: body.skuMaster,
-                price_per: parseFloat(body.price_per),
-                price_of: body.price_of ? parseFloat(body.price_of) : undefined,
-                weight: body.weight ? parseFloat(body.weight) : undefined,
-                length: body.length ? parseFloat(body.length) : undefined,
-                width: body.width ? parseFloat(body.width) : undefined,
-                height: body.height ? parseFloat(body.height) : undefined,
-                stock: body.stock ? parseInt(body.stock) : undefined,
-                status: this.parseStatus(body.status),
-                mainPromotion_id: body.mainPromotion_id,
-                categoryIds: this.parseJSONField<string[]>(body.categoryIds, []),
-                descriptionBlocks: this.parseJSONField<Array<{ title: string; description: string }>>(
-                    body.descriptionBlocks,
-                    []
-                ),
-                existingImages: this.parseJSONField<string[]>(body.existingImages, []),
-                newImages: mainImages,
-                variants: variants,
-                relations: this.parseJSONField<Array<{
-                    parentId?: string;
-                    childId?: string;
-                    relationType: ProductRelationType;
-                    sortOrder: number;
-                    isRequired: boolean;
-                }>>(body.relations, []).map(rel => ({
-                    ...rel,
-                    relationType: rel.relationType as ProductRelationType
-                })),
+                return Array.isArray(raw) ? raw : [];
             };
 
-            if (!updateData.id) {
-                res.status(400).json({ error: "Product ID is required" });
-                return;
-            }
+            // monta variants
+            const variants = safeParse(req.body.variants).map((v: any) => ({
+                ...v,
+                videoLinks: safeParse(v.videoLinks).filter((u: any) => typeof u === "string"),
+                images: safeParse(v.images),
+                attributes: safeParse(v.attributes).map((a: any) => ({
+                    ...a,
+                    images: safeParse(a.images),
+                })),
+            }));
 
-            const updatedProduct = await this.service.execute(updateData);
-            await this.cleanupTempFiles(tempFiles);
+            // monta relations
+            const relations = (safeParse(req.body.relations) as any[]).map((r) => ({
+                relationDirection: r.relationDirection as "child" | "parent",
+                relatedProductId: r.relatedProductId as string,
+                relationType: r.relationType as ProductRelationType,
+                sortOrder: r.sortOrder != null ? Number(r.sortOrder) : undefined,
+                isRequired: !!r.isRequired,
+            }));
 
-            res.json(updatedProduct);
-        } catch (error: any) {
-            console.error("Update error:", error);
-            await this.cleanupTempFiles(tempFiles);
+            // dados básicos
+            const productData = {
+                id: req.body.id as string,
+                name: req.body.name,
+                metaTitle: req.body.metaTitle,
+                metaDescription: req.body.metaDescription,
+                keywords: safeParse(req.body.keywords),
+                brand: req.body.brand,
+                ean: req.body.ean,
+                description: req.body.description,
+                skuMaster: req.body.skuMaster,
+                price_of: req.body.price_of ? Number(req.body.price_of) : undefined,
+                price_per: req.body.price_per ? Number(req.body.price_per) : undefined,
+                weight: req.body.weight ? Number(req.body.weight) : undefined,
+                length: req.body.length ? Number(req.body.length) : undefined,
+                width: req.body.width ? Number(req.body.width) : undefined,
+                height: req.body.height ? Number(req.body.height) : undefined,
+                stock: req.body.stock ? Number(req.body.stock) : undefined,
+                status: req.body.status as StatusVariant,
+                mainPromotion_id: req.body.mainPromotion_id || null,
+                videoLinks: safeParse(req.body.videoLinks).filter((u: any) => typeof u === "string"),
+                categories: safeParse(req.body.categories),
+                descriptions: safeParse(req.body.descriptions),
+                variants,
+                relations,
+            };
 
-            res.status(500).json({
-                error: error.message || "Failed to update product",
-                details: process.env.NODE_ENV === "development" ? error.stack : undefined,
-            });
+            const service = new ProductUpdateDataService();
+            const updated = await service.execute(productData, files);
+            res.json(updated);
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ error: "Erro interno ao atualizar produto" });
         }
     }
 }
-
-export { ProductUpdateDataController };

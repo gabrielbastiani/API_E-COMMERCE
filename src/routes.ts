@@ -277,25 +277,10 @@ router.delete('/category/delete_category', isAuthenticatedEcommerce, checkRole([
 router.put('/category/delete_image', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new CategoryDeleteImageController().handle);
 
 // --- PRODUCT --- //
-router.post(
-    "/product/create",
-    isAuthenticatedEcommerce,
-    checkRole(["ADMIN", "SUPER_ADMIN"]),
-    upload_image.fields(fields),
-    new CreateProductController().handle
-);
+router.post("/product/create", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), upload_image.fields(fields), new CreateProductController().handle);
 router.get('/get/products', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new AllProductsController().handle);
 router.get('/product/cms/get', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new CmsGetProductController().handle);
-router.put(
-    "/product/update",
-    isAuthenticatedEcommerce,
-    checkRole(["ADMIN", "SUPER_ADMIN"]),
-    upload_image.fields([
-        { name: "imageFiles", maxCount: 20 },       // Imagens principais
-        { name: "variantImageFiles", maxCount: 20 } // Imagens de variantes/atributos
-    ]),
-    new ProductUpdateDataController().handle
-);
+router.put("/product/update", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), upload_image.fields(fields), new ProductUpdateDataController().handle);
 
 // --- PROMOTION --- //
 router.get('/promotions/get', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new AllPromotionsController().handle);
