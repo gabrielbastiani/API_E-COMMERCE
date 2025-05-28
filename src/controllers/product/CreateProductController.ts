@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { CreateProductService } from "../../services/product/CreateProductService";
+import { ProductRelationType } from "@prisma/client";
 
 class CreateProductController {
     async handle(req: Request, res: Response) {
@@ -24,6 +25,15 @@ class CreateProductController {
                 videoLinks: safeParse(variant.videoLinks).filter((url: any) => typeof url === 'string')
             }));
 
+            const rawRelations = safeParse(req.body.relations) as any[];
+            const relations = rawRelations.map((r) => ({
+                relationDirection: r.relationDirection as "child" | "parent",
+                relatedProductId: r.relatedProductId as string,
+                relationType: r.relationType as ProductRelationType,
+                sortOrder: r.sortOrder ? Number(r.sortOrder) : undefined,
+                isRequired: !!r.isRequired,
+            }));
+
             const productData = {
                 ...req.body,
                 price_of: Number(req.body.price_of),
@@ -39,7 +49,7 @@ class CreateProductController {
                 descriptions: safeParse(req.body.productDescriptions),
                 variants: variants,
                 videoLinks: safeParse(req.body.videoLinks).filter((url: any) => typeof url === 'string'),
-                relations: safeParse(req.body.relations),
+                relations
             };
 
             const createProductService = new CreateProductService();

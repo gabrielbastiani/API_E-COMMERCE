@@ -47,7 +47,8 @@ interface ProductRequest {
         }[];
     }[];
     relations?: {
-        childProductId: string;
+        relationDirection: "child" | "parent";
+        relatedProductId: string;
         relationType: ProductRelationType;
         sortOrder?: number;
         isRequired?: boolean;
@@ -139,8 +140,12 @@ class CreateProductService {
             }
 
             // Relações
-            if (productData.relations) {
-                await this.processProductRelations(prisma, product.id, productData.relations);
+            if (productData.relations?.length) {
+                await this.processProductRelations(
+                    prisma,
+                    product.id,
+                    productData.relations
+                );
             }
 
             // Retorna produto completo incluindo vídeos
@@ -159,7 +164,9 @@ class CreateProductService {
                             productVariantVideo: true
                         }
                     },
-                    productRelations: true
+                    productRelations: true,
+                    childRelations: true,
+                    parentRelations: true
                 }
             });
         });
@@ -247,16 +254,38 @@ class CreateProductService {
         }
     }
 
-    private async processProductRelations(prisma: any, productId: string, relations: any[]) {
-        for (const relation of relations) {
+    private async processProductRelations(
+        prisma: any,
+        productId: string,
+        relations: ProductRequest["relations"]
+    ) {
+        const rels = relations ?? [];
+        for (const rel of rels) {
+            const isChild = rel.relationDirection === "child";
+
+            // 1) valida existência de ambos
+            const parentId = isChild ? productId : rel.relatedProductId;
+            const childId = isChild ? rel.relatedProductId : productId;
+
+            const [parentExists, childExists] = await Promise.all([
+                prisma.product.findUnique({ where: { id: parentId } }),
+                prisma.product.findUnique({ where: { id: childId } }),
+            ]);
+            if (!parentExists || !childExists) {
+                throw new Error(
+                    `Produto não encontrado para relação: parent=${parentId}, child=${childId}`
+                );
+            }
+
+            // 2) cria relação com connect
             await prisma.productRelation.create({
                 data: {
-                    parentProduct_id: productId,
-                    childProduct_id: relation.childProductId,
-                    relationType: relation.relationType,
-                    sortOrder: relation.sortOrder || 0,
-                    isRequired: relation.isRequired || false
-                }
+                    relationType: rel.relationType,
+                    sortOrder: rel.sortOrder ?? 0,
+                    isRequired: rel.isRequired ?? false,
+                    parentProduct: { connect: { id: parentId } },
+                    childProduct: { connect: { id: childId } },
+                },
             });
         }
     }
