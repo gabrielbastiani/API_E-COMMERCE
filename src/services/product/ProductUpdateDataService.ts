@@ -1,8 +1,8 @@
 import prismaClient from "../../prisma";
 import {
     ProductRelationType,
-    StatusProduct,
     StatusDescriptionProduct,
+    StatusProduct,
     StatusVariant,
 } from "@prisma/client";
 import fs from "fs";
@@ -30,13 +30,9 @@ interface ProductRequest {
     mainPromotion_id?: string | null;
     videoLinks?: string[];
     categories?: string[];
-    existingImages?: string[]; // IDs de imagens principais a manter
-    descriptions?: {
-        title: string;
-        description: string;
-        status?: StatusDescriptionProduct;
-    }[];
-    variants?: {
+    existingImages?: string[];
+    descriptions?: { title: string; description: string; status?: StatusDescriptionProduct }[];
+    variants?: Array<{
         id?: string;
         sku: string;
         price_of?: number;
@@ -47,288 +43,282 @@ interface ProductRequest {
         ean?: string;
         mainPromotion_id?: string | null;
         videoLinks?: string[];
-        existingImages?: string[]; // IDs de imagens da variante a manter
-        attributes: {
+        existingImages?: string[];
+        attributes: Array<{
             id?: string;
             key: string;
             value: string;
             status?: StatusVariant;
-            existingImages?: string[]; // IDs de imagens do atributo a manter
-        }[];
-    }[];
-    relations?: {
+            existingImages?: string[];
+        }>;
+    }>;
+    relations?: Array<{
         relationDirection: "child" | "parent";
         relatedProductId: string;
         relationType: ProductRelationType;
         sortOrder?: number;
         isRequired?: boolean;
-    }[];
+    }>;
 }
 
 export class ProductUpdateDataService {
-    async execute(productData: ProductRequest, files: any) {
-        const removerAcentos = (s: string) =>
-            s
-                .normalize("NFD")
+    async execute(
+        productData: ProductRequest,
+        files: {
+            images?: Express.Multer.File[];
+            variantImages: Record<string, Express.Multer.File[]>;
+            attributeImages: Record<string, Record<number, Express.Multer.File[]>>;
+        }
+    ) {
+        const slugify = (s: string) =>
+            s.normalize("NFD")
                 .replace(/[\u0300-\u036f]/g, "")
                 .toLowerCase()
                 .replace(/ +/g, "-")
                 .replace(/-{2,}/g, "-")
                 .replace(/\//g, "-");
 
-        return prismaClient.$transaction(async (prisma) => {
-            const { id, name, metaTitle, metaDescription, keywords, brand, ean,
-                description, skuMaster, price_of, price_per, weight, length, width,
-                height, stock, status, mainPromotion_id } = productData;
+        return await prismaClient.$transaction(async (prisma) => {
+            const {
+                id, name, metaTitle, metaDescription, keywords, brand,
+                ean, description, skuMaster, price_of, price_per,
+                weight, length, width, height, stock,
+                status, mainPromotion_id
+            } = productData;
 
-            // 1) Atualiza dados básicos
+            // ————————————
+            // 1) atualiza campos básicos…
             await prisma.product.update({
                 where: { id },
                 data: {
                     name,
-                    slug: name ? removerAcentos(name) : undefined,
-                    metaTitle, metaDescription, keywords, brand, ean,
-                    description, skuMaster, price_of, price_per,
-                    weight, length, width, height, stock, status,
-                    mainPromotion_id,
+                    slug: name ? slugify(name) : undefined,
+                    metaTitle, metaDescription, keywords, brand,
+                    ean, description, skuMaster, price_of, price_per,
+                    weight, length, width, height, stock,
+                    status, mainPromotion_id
                 },
             });
 
-            // 2) Vídeos
+            // ————————————
+            // 2) vídeos do produto…
             if (productData.videoLinks) {
                 await prisma.productVideo.deleteMany({ where: { product_id: id } });
-                const vids = productData.videoLinks.filter((u) => u.startsWith("http"));
+                const vids = productData.videoLinks.filter(u => u.startsWith("http"));
                 if (vids.length) {
                     await prisma.productVideo.createMany({
                         data: vids.map((url, i) => ({
                             product_id: id,
                             url,
-                            isPrimary: i === 0,
-                        })),
+                            isPrimary: i === 0
+                        }))
                     });
                 }
             }
 
-            // 3) Categorias
+            // ————————————
+            // 3) categorias…
             if (productData.categories) {
                 await prisma.productCategory.deleteMany({ where: { product_id: id } });
                 if (productData.categories.length) {
                     await prisma.productCategory.createMany({
-                        data: productData.categories.map((catId) => ({
+                        data: productData.categories.map(catId => ({
                             product_id: id,
-                            category_id: catId,
-                        })),
+                            category_id: catId
+                        }))
                     });
                 }
             }
 
-            // 4) Descrições
+            // ————————————
+            // 4) descrições…
             if (productData.descriptions) {
                 await prisma.productDescription.deleteMany({ where: { product_id: id } });
                 await prisma.productDescription.createMany({
-                    data: productData.descriptions.map((d) => ({
+                    data: productData.descriptions.map(d => ({
                         product_id: id,
                         title: d.title,
                         description: d.description,
-                        status: d.status ?? StatusDescriptionProduct.DISPONIVEL,
-                    })),
+                        status: d.status ?? StatusDescriptionProduct.DISPONIVEL
+                    }))
                 });
             }
 
-            // 5) Imagens principais (manter/delete/inserir)
+            // ————————————
+            // 5) imagens principais…
             {
-                // todas as imagens atuais
                 const allMain = await prisma.productImage.findMany({ where: { product_id: id } });
                 const keepMain = productData.existingImages ?? [];
+                const toDelete = allMain.filter(img => !keepMain.includes(img.id));
+                const deleteIds = toDelete.map(i => i.id);
 
-                // decide quais apagar
-                const toDeleteMain = allMain.filter((img) => !keepMain.includes(img.id));
-                const deleteMainIds = toDeleteMain.map((i) => i.id);
-
-                // deleta arquivos do disco
+                // fisicamente
                 const imagesDir = path.join(process.cwd(), "images");
-                for (const img of toDeleteMain) {
-                    const filePath = path.join(imagesDir, img.url);
-                    if (fs.existsSync(filePath)) {
-                        try {
-                            fs.unlinkSync(filePath);
-                        } catch (unlinkErr) {
-                            console.error(`Erro ao deletar arquivo ${filePath}:`, unlinkErr);
-                        }
-                    }
-                }
-                // deleta registro
-                if (deleteMainIds.length) {
-                    await prisma.productImage.deleteMany({ where: { id: { in: deleteMainIds } } });
+                toDelete.forEach(img => {
+                    const p = path.join(imagesDir, img.url);
+                    if (fs.existsSync(p)) fs.unlinkSync(p);
+                });
+
+                if (deleteIds.length) {
+                    await prisma.productImage.deleteMany({ where: { id: { in: deleteIds } } });
                 }
 
-                // insere novos uploads
-                const newMain = (files.images ?? []).map((f: any) => ({
+                // uploads novos
+                const newMain = (files.images ?? []).map(f => ({
                     product_id: id,
                     url: path.basename(f.path),
                     altText: f.originalname,
-                    isPrimary: false,
+                    isPrimary: false
                 }));
                 if (newMain.length) {
                     await prisma.productImage.createMany({ data: newMain });
                 }
             }
 
-            // 6) Variantes + imagens + atributos + imagens
+            // ————————————
+            // 6) variantes, imagens de variante e imagens de atributo
             if (productData.variants) {
-                // apaga variants removidas
-                const keepVarIds = productData.variants.filter((v) => v.id).map((v) => v.id!) as string[];
+                // remove as variantes que não vieram
+                const keepIds = productData.variants.filter(v => v.id).map(v => v.id!) as string[];
                 await prisma.productVariant.deleteMany({
-                    where: { product_id: id, id: { notIn: keepVarIds } }
+                    where: { product_id: id, id: { notIn: keepIds } }
                 });
 
-                for (const varData of productData.variants) {
-                    // cria ou atualiza variant
-                    let variantId = varData.id!;
-                    if (variantId) {
+                for (const vard of productData.variants) {
+                    // cria ou atualiza a variante
+                    let vid = vard.id!;
+                    if (vard.id) {
                         await prisma.productVariant.update({
-                            where: { id: variantId },
+                            where: { id: vid },
                             data: {
-                                sku: varData.sku,
-                                price_of: varData.price_of,
-                                price_per: varData.price_per,
-                                stock: varData.stock,
-                                allowBackorders: varData.allowBackorders,
-                                sortOrder: varData.sortOrder,
-                                ean: varData.ean,
-                                mainPromotion_id: varData.mainPromotion_id,
-                            },
+                                sku: vard.sku,
+                                price_of: vard.price_of,
+                                price_per: vard.price_per,
+                                stock: vard.stock,
+                                allowBackorders: vard.allowBackorders,
+                                sortOrder: vard.sortOrder,
+                                ean: vard.ean,
+                                mainPromotion_id: vard.mainPromotion_id
+                            }
                         });
                     } else {
                         const nv = await prisma.productVariant.create({
                             data: {
                                 product_id: id,
-                                sku: varData.sku,
-                                price_of: Number(varData.price_of),
-                                price_per: Number(varData.price_per),
-                                stock: varData.stock,
-                                allowBackorders: varData.allowBackorders ?? false,
-                                sortOrder: varData.sortOrder ?? 0,
-                                ean: varData.ean,
-                                mainPromotion_id: varData.mainPromotion_id ?? null,
-                            },
-                        });
-                        variantId = nv.id;
-                    }
-
-                    // Vídeos da variant
-                    await prisma.productVariantVideo.deleteMany({ where: { productVariant_id: variantId } });
-                    if (varData.videoLinks?.length) {
-                        await prisma.productVariantVideo.createMany({
-                            data: varData.videoLinks.map((url, i) => ({
-                                productVariant_id: variantId,
-                                url,
-                                isPrimary: i === 0,
-                            })),
-                        });
-                    }
-
-                    // Imagens da variant (manter/delete/inserir)
-                    {
-                        const allVarImgs = await prisma.productVariantImage.findMany({
-                            where: { productVariant_id: variantId }
-                        });
-                        const keepVarImgs = varData.existingImages ?? [];
-                        const toDel = allVarImgs.filter((i) => !keepVarImgs.includes(i.id));
-                        const delIds = toDel.map((i) => i.id);
-                        const imagesDir = path.join(process.cwd(), "images");
-                        for (const img of toDel) {
-                            const filePath = path.join(imagesDir, img.url);
-                            if (fs.existsSync(filePath)) {
-                                try {
-                                    fs.unlinkSync(filePath);
-                                } catch (unlinkErr) {
-                                    console.error(`Erro ao deletar arquivo variante ${filePath}:`, unlinkErr);
-                                }
+                                sku: vard.sku,
+                                price_of: Number(vard.price_of),
+                                price_per: Number(vard.price_per),
+                                stock: vard.stock,
+                                allowBackorders: vard.allowBackorders ?? false,
+                                sortOrder: vard.sortOrder ?? 0,
+                                ean: vard.ean,
+                                mainPromotion_id: vard.mainPromotion_id ?? null
                             }
-                        }
+                        });
+                        vid = nv.id;
+                    }
+
+                    // — imagens de variante —
+                    {
+                        const all = await prisma.productVariantImage.findMany({
+                            where: { productVariant_id: vid }
+                        });
+                        const keep = vard.existingImages ?? [];
+                        const toDel = all.filter(i => !keep.includes(i.id));
+                        const delIds = toDel.map(i => i.id);
+
+                        // delete arquivo
+                        const imgDir = path.join(process.cwd(), "images");
+                        toDel.forEach(i => {
+                            const p = path.join(imgDir, i.url);
+                            if (fs.existsSync(p)) fs.unlinkSync(p);
+                        });
+
                         if (delIds.length) {
-                            await prisma.productVariantImage.deleteMany({ where: { id: { in: delIds } } });
+                            await prisma.productVariantImage.deleteMany({
+                                where: { id: { in: delIds } }
+                            });
                         }
-                        const newVarImgs = (files.variantImages ?? [])
-                            .filter((f: any) => varData.existingImages?.indexOf(f.originalname) === -1)
-                            .map((f: any) => ({
-                                productVariant_id: variantId,
-                                url: path.basename(f.path),
-                                altText: f.originalname,
-                                isPrimary: false,
-                            }));
-                        if (newVarImgs.length) {
-                            await prisma.productVariantImage.createMany({ data: newVarImgs });
+
+                        // agora insere só os arquivos que chegaram para esta variante
+                        const incoming = files.variantImages[vid] || [];
+                        const toCreate = incoming.map(f => ({
+                            productVariant_id: vid,
+                            url: path.basename(f.path),
+                            altText: f.originalname,
+                            isPrimary: false
+                        }));
+                        if (toCreate.length) {
+                            await prisma.productVariantImage.createMany({ data: toCreate });
                         }
                     }
 
-                    // Atributos e imagens de atributo
+                    // — atributos e imagens de atributo —
                     {
                         // apaga atributos removidos
-                        const keepAttrIds = varData.attributes.filter((a) => a.id).map((a) => a.id!) as string[];
+                        const keepAttrIds = vard.attributes.filter(a => a.id).map(a => a.id!) as string[];
                         await prisma.variantAttribute.deleteMany({
-                            where: { variant_id: variantId, id: { notIn: keepAttrIds } }
+                            where: { variant_id: vid, id: { notIn: keepAttrIds } }
                         });
 
-                        for (const attr of varData.attributes) {
-                            // cria ou atualiza attribute
-                            let attrId = attr.id!;
-                            if (attrId) {
+                        for (let ai = 0; ai < vard.attributes.length; ai++) {
+                            const a = vard.attributes[ai];
+                            let aid = a.id!;
+                            if (a.id) {
                                 await prisma.variantAttribute.update({
-                                    where: { id: attrId },
-                                    data: { key: attr.key, value: attr.value, status: attr.status },
+                                    where: { id: aid },
+                                    data: { key: a.key, value: a.value, status: a.status }
                                 });
                             } else {
                                 const na = await prisma.variantAttribute.create({
                                     data: {
-                                        variant_id: variantId,
-                                        key: attr.key,
-                                        value: attr.value,
-                                        status: attr.status ?? StatusVariant.DISPONIVEL,
-                                    },
+                                        variant_id: vid,
+                                        key: a.key,
+                                        value: a.value,
+                                        status: a.status ?? StatusVariant.DISPONIVEL
+                                    }
                                 });
-                                attrId = na.id;
+                                aid = na.id;
                             }
 
-                            // imagens de atributo (manter/delete/inserir)
-                            const allAttrImgs = await prisma.variantAttributeImage.findMany({
-                                where: { variantAttribute_id: attrId }
+                            // imagens do atributo
+                            const allAi = await prisma.variantAttributeImage.findMany({
+                                where: { variantAttribute_id: aid }
                             });
-                            const keepAttrImgs = attr.existingImages ?? [];
-                            const toDelAttr = allAttrImgs.filter((i) => !keepAttrImgs.includes(i.id));
-                            const delAttrIds = toDelAttr.map((i) => i.id);
-                            const imagesDir = path.join(process.cwd(), "images");
-                            for (const img of toDelAttr) {
-                                const filePath = path.join(imagesDir, img.url);
-                                if (fs.existsSync(filePath)) {
-                                    try {
-                                        fs.unlinkSync(filePath);
-                                    } catch (unlinkErr) {
-                                        console.error(`Erro ao deletar arquivo atributo ${filePath}:`, unlinkErr);
-                                    }
-                                }
+                            const keepAi = a.existingImages ?? [];
+                            const toDelAi = allAi.filter(i => !keepAi.includes(i.id));
+                            const delAiIds = toDelAi.map(i => i.id);
+
+                            const imgDir = path.join(process.cwd(), "images");
+                            toDelAi.forEach(i => {
+                                const p = path.join(imgDir, i.url);
+                                if (fs.existsSync(p)) fs.unlinkSync(p);
+                            });
+
+                            if (delAiIds.length) {
+                                await prisma.variantAttributeImage.deleteMany({
+                                    where: { id: { in: delAiIds } }
+                                });
                             }
-                            if (delAttrIds.length) {
-                                await prisma.variantAttributeImage.deleteMany({ where: { id: { in: delAttrIds } } });
-                            }
-                            const newAttrImgs = (files.attributeImages ?? [])
-                                .filter((f: any) => attr.existingImages?.indexOf(f.originalname) === -1)
-                                .map((f: any) => ({
-                                    variantAttribute_id: attrId,
-                                    url: path.basename(f.path),
-                                    altText: f.originalname,
-                                    isPrimary: false,
-                                }));
-                            if (newAttrImgs.length) {
-                                await prisma.variantAttributeImage.createMany({ data: newAttrImgs });
+
+                            // insere só os novos desta variante+atributo
+                            const incomingAi = (files.attributeImages[vid] || {})[ai] || [];
+                            const createAi = incomingAi.map(f => ({
+                                variantAttribute_id: aid,
+                                url: path.basename(f.path),
+                                altText: f.originalname,
+                                isPrimary: false
+                            }));
+                            if (createAi.length) {
+                                await prisma.variantAttributeImage.createMany({ data: createAi });
                             }
                         }
                     }
                 }
             }
 
-            // 7) Relações
+            // ————————————
+            // 7) relações…
             if (productData.relations) {
                 await prisma.productRelation.deleteMany({
                     where: {
@@ -338,23 +328,21 @@ export class ProductUpdateDataService {
                         ]
                     }
                 });
-                for (const rel of productData.relations) {
-                    const isChild = rel.relationDirection === "child";
-                    const parentId = isChild ? id : rel.relatedProductId;
-                    const childId = isChild ? rel.relatedProductId : id;
+                for (const r of productData.relations) {
+                    const isChild = r.relationDirection === "child";
                     await prisma.productRelation.create({
                         data: {
-                            relationType: rel.relationType,
-                            sortOrder: rel.sortOrder ?? 0,
-                            isRequired: rel.isRequired ?? false,
-                            parentProduct: { connect: { id: parentId } },
-                            childProduct: { connect: { id: childId } },
-                        },
+                            relationType: r.relationType,
+                            sortOrder: r.sortOrder ?? 0,
+                            isRequired: r.isRequired ?? false,
+                            parentProduct: { connect: { id: isChild ? id : r.relatedProductId } },
+                            childProduct: { connect: { id: isChild ? r.relatedProductId : id } }
+                        }
                     });
                 }
             }
 
-            // 8) Retorna produto completo
+            // 8) retorna tudo…
             return prisma.product.findUnique({
                 where: { id },
                 include: {
@@ -364,14 +352,17 @@ export class ProductUpdateDataService {
                     videos: true,
                     variants: {
                         include: {
-                            variantAttribute: { include: { variantAttributeImage: true } },
                             productVariantVideo: true,
-                        },
+                            productVariantImage: true,
+                            variantAttribute: {
+                                include: { variantAttributeImage: true }
+                            }
+                        }
                     },
                     productRelations: true,
                     childRelations: true,
-                    parentRelations: true,
-                },
+                    parentRelations: true
+                }
             });
         });
     }

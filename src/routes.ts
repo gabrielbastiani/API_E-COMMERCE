@@ -280,7 +280,7 @@ router.put('/category/delete_image', isAuthenticatedEcommerce, checkRole(['ADMIN
 router.post("/product/create", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), upload_image.fields(fields), new CreateProductController().handle);
 router.get('/get/products', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new AllProductsController().handle);
 router.get('/product/cms/get', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new CmsGetProductController().handle);
-router.put("/product/update", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), upload_image.fields(fields), new ProductUpdateDataController().handle);
+router.put("/product/update", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), upload_image.any(), new ProductUpdateDataController().handle);
 
 // --- PROMOTION --- //
 router.get('/promotions/get', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new AllPromotionsController().handle);
