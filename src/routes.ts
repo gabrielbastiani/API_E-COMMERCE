@@ -5,6 +5,8 @@ import { checkRole } from "./middlewares/checkRole";
 import { isAuthenticatedEcommerce } from "./middlewares/isAuthenticatedEcommerce";
 import { isAuthenticatedCustomer } from "./middlewares/isAuthenticatedCustomer";
 import { body } from "express-validator/lib/middlewares/validation-chain-builders";
+import { ProductUpdateDataController } from "./controllers/product/ProductUpdateDataController"; 
+const productUpdateController = new ProductUpdateDataController();
 
 // --- USUARIOS E-COMMERCE --- //
 import { UserCreateController } from "./controllers/users/users_ecommerce/UserCreateController";
@@ -125,7 +127,6 @@ import { AllProductsController } from "./controllers/product/AllProductsControll
 // --- PROMOTION --- //
 import { PromotionController } from "./controllers/promotion/PromotionController";
 import { AllPromotionsController } from "./controllers/promotion/AllPromotionsController";
-import { ProductUpdateDataController } from "./controllers/product/ProductUpdateDataController";
 import { CmsGetProductController } from "./controllers/product/CmsGetProductController";
 const promoCtrl = new PromotionController();
 
@@ -280,7 +281,7 @@ router.put('/category/delete_image', isAuthenticatedEcommerce, checkRole(['ADMIN
 router.post("/product/create", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), upload_image.fields(fields), new CreateProductController().handle);
 router.get('/get/products', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new AllProductsController().handle);
 router.get('/product/cms/get', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new CmsGetProductController().handle);
-router.put("/product/update", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), upload_image.any(), new ProductUpdateDataController().handle);
+router.put("/product/update", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), upload_image.any(), productUpdateController.handle.bind(productUpdateController));
 
 // --- PROMOTION --- //
 router.get('/promotions/get', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new AllPromotionsController().handle);
