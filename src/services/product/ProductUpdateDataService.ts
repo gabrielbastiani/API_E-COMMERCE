@@ -48,7 +48,6 @@ interface ProductRequest {
         sortOrder?: number
         ean?: string
         mainPromotion_id?: string | null
-        // Pode vir como videoLinks (antigo) ou videos (frontend atual)
         videoLinks?: string[]
         videos?: string[]
         existingImages?: string[]
@@ -61,6 +60,7 @@ interface ProductRequest {
         }>
     }>
     relations?: Array<{
+        id?: string
         relationDirection: "child" | "parent"
         relatedProductId: string
         relationType: ProductRelationType
@@ -109,32 +109,47 @@ export class ProductUpdateDataService {
                 mainPromotion_id
             } = productData
 
+            //
             // 1) Atualiza dados básicos do produto
+            //
+            const dataToUpdate: Record<string, any> = {
+                name,
+                slug: name ? slugify(name) : undefined,
+                metaTitle,
+                metaDescription,
+                keywords,
+                brand,
+                ean,
+                description,
+                skuMaster,
+                price_of,
+                price_per,
+                weight,
+                length,
+                width,
+                height,
+                stock,
+                status
+            }
+
+            // ——— Ajuste: inclui mainPromotion_id só se for UUID ou null ———
+            if (mainPromotion_id === null) {
+                dataToUpdate.mainPromotion_id = null
+            } else if (
+                typeof mainPromotion_id === "string" &&
+                mainPromotion_id.trim() !== ""
+            ) {
+                dataToUpdate.mainPromotion_id = mainPromotion_id.trim()
+            }
+
             await prisma.product.update({
                 where: { id },
-                data: {
-                    name,
-                    slug: name ? slugify(name) : undefined,
-                    metaTitle,
-                    metaDescription,
-                    keywords,
-                    brand,
-                    ean,
-                    description,
-                    skuMaster,
-                    price_of,
-                    price_per,
-                    weight,
-                    length,
-                    width,
-                    height,
-                    stock,
-                    status,
-                    mainPromotion_id
-                }
+                data: dataToUpdate
             })
 
+            //
             // 2) Vídeos de PRODUTO (remove todos e recria)
+            //
             if (productData.videoLinks) {
                 await prisma.productVideo.deleteMany({ where: { product_id: id } })
                 const vids = productData.videoLinks.filter((u) => u.startsWith("http"))
@@ -149,7 +164,9 @@ export class ProductUpdateDataService {
                 }
             }
 
+            //
             // 3) Categorias de PRODUTO (remove todas e recria)
+            //
             if (productData.categories) {
                 await prisma.productCategory.deleteMany({ where: { product_id: id } })
                 if (productData.categories.length) {
@@ -162,7 +179,9 @@ export class ProductUpdateDataService {
                 }
             }
 
+            //
             // 4) Descrições de PRODUTO (remove e recria)
+            //
             if (productData.descriptions) {
                 await prisma.productDescription.deleteMany({ where: { product_id: id } })
                 await prisma.productDescription.createMany({
@@ -175,7 +194,9 @@ export class ProductUpdateDataService {
                 })
             }
 
-            // 5) IMAGENS PRINCIPAIS (apaga as removidas e insere as novas)
+            //
+            // 5) IMAGENS PRINCIPAIS (apaga as removidas e insere novas)
+            //
             {
                 const allMain = await prisma.productImage.findMany({
                     where: { product_id: id }
@@ -212,123 +233,77 @@ export class ProductUpdateDataService {
             }
 
             // 6) VARIANTES + IMAGENS DE VARIANTE + ATRIBUTOS E IMAGENS DE ATRIBUTO
+
             if (productData.variants) {
-                //
-                // 6.1) Identifica variantes removidas:
-                //
-                const keepVarIds = productData.variants
-                    .filter((v) => v.id)
-                    .map((v) => v.id!) as string[]
-
-                // Busca todas as variantes deste produto no banco
-                const allVariants = await prisma.productVariant.findMany({
-                    where: { product_id: id },
-                    select: { id: true }
-                })
-                const allVariantIds = allVariants.map((v) => v.id)
-
-                // Quais IDs não vieram no payload → devem ser apagados
-                const idsToRemoveVariants = allVariantIds.filter(
-                    (vidNum) => !keepVarIds.includes(vidNum)
-                )
-
-                // ————— Para cada variante excluída, apaga em cascata —————
-                for (const vidRemove of idsToRemoveVariants) {
-                    // a) Vídeos de variante
-                    await prisma.productVariantVideo.deleteMany({
-                        where: { productVariant_id: vidRemove }
-                    })
-                    // b) Imagens de variante (arquivo + registro)
-                    const varImgs = await prisma.productVariantImage.findMany({
-                        where: { productVariant_id: vidRemove }
-                    })
-                    const imagesDir = path.join(process.cwd(), "images")
-                    varImgs.forEach((imgRec) => {
-                        const filePath = path.join(imagesDir, imgRec.url)
-                        if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
-                    })
-                    await prisma.productVariantImage.deleteMany({
-                        where: { productVariant_id: vidRemove }
-                    })
-
-                    // c) Atributos e suas imagens
-                    const attrsToRemove = await prisma.variantAttribute.findMany({
-                        where: { variant_id: vidRemove },
-                        select: { id: true }
-                    })
-                    const attrIds = attrsToRemove.map((a) => a.id)
-                    if (attrIds.length) {
-                        const allAttrImgs = await prisma.variantAttributeImage.findMany({
-                            where: { variantAttribute_id: { in: attrIds } }
-                        })
-                        allAttrImgs.forEach((imgRec) => {
-                            const filePath = path.join(imagesDir, imgRec.url)
-                            if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
-                        })
-                        await prisma.variantAttributeImage.deleteMany({
-                            where: { variantAttribute_id: { in: attrIds } }
-                        })
-                        await prisma.variantAttribute.deleteMany({
-                            where: { id: { in: attrIds } }
-                        })
-                    }
-
-                    // d) Remove a própria variante
-                    await prisma.productVariant.delete({ where: { id: vidRemove } })
-                }
 
                 //
                 // 6.2) Agora, cria/atualiza cada variante do payload
                 //
                 for (const vard of productData.variants) {
-                    // O frontend sempre envia vard.id (UUID gerado). Precisamos descobrir:
-                    // se esse id existe no BD → update; caso contrário → create.
                     let vid = vard.id!
 
                     const existingVariant = await prisma.productVariant.findUnique({
                         where: { id: vid }
                     })
 
+                    let promoIdToUse: string | null | undefined
+                    if (typeof vard.mainPromotion_id === "string") {
+                        const trimmed = vard.mainPromotion_id.trim()
+                        promoIdToUse = trimmed === "" ? null : trimmed
+                    } else {
+                        // se vier undefined, deixamos undefined para não alterar o campo
+                        promoIdToUse = undefined
+                    }
+
                     if (existingVariant) {
-                        // Variante existente → update
                         await prisma.productVariant.update({
                             where: { id: vid },
                             data: {
                                 sku: vard.sku,
                                 price_of: vard.price_of,
-                                price_per: vard.price_per,
+                                price_per: vard.price_per!,
                                 stock: vard.stock,
-                                allowBackorders: vard.allowBackorders,
-                                sortOrder: vard.sortOrder,
+                                allowBackorders: vard.allowBackorders ?? false,
+                                sortOrder: vard.sortOrder ?? 0,
                                 ean: vard.ean,
-                                mainPromotion_id: vard.mainPromotion_id
+                                ...(promoIdToUse === null
+                                    ? { mainPromotion_id: null }
+                                    : typeof promoIdToUse === "string"
+                                        ? { mainPromotion_id: promoIdToUse }
+                                        : {}),
                             }
                         })
+
                     } else {
-                        // Variante nova → create
+
                         const nv = await prisma.productVariant.create({
                             data: {
                                 product_id: id,
                                 sku: vard.sku,
                                 price_of: Number(vard.price_of),
-                                price_per: Number(vard.price_per),
+                                price_per: Number(vard.price_per!),
                                 stock: vard.stock,
                                 allowBackorders: vard.allowBackorders ?? false,
                                 sortOrder: vard.sortOrder ?? 0,
                                 ean: vard.ean,
-                                mainPromotion_id: vard.mainPromotion_id ?? null
+                                ...(promoIdToUse === null
+                                    ? { mainPromotion_id: null }
+                                    : typeof promoIdToUse === "string"
+                                        ? { mainPromotion_id: promoIdToUse }
+                                        : {}),
                             }
                         })
-                        // “vid” deve agora ser o id gerado pelo Prisma, não mais o UUID do front
+
+                        // Ajustamos “vid” para usar o ID gerado pelo Prisma
                         const oldVid = vard.id!
                         vid = nv.id
 
-                        // Transfere arquivos de imagem (que estavam em files.variantImages[oldVid])
+                        // Se havia arquivos de imagem em files.variantImages[oldVid], transferimos para files.variantImages[vid]
                         if (files.variantImages[oldVid]) {
                             files.variantImages[vid] = files.variantImages[oldVid]
                             delete files.variantImages[oldVid]
                         }
-                        // Mesma lógica para imagens de atributo (files.attributeImages)
+                        // Mesmo para attributeImages:
                         if (files.attributeImages[oldVid]) {
                             files.attributeImages[vid] = files.attributeImages[oldVid]
                             delete files.attributeImages[oldVid]
@@ -338,19 +313,16 @@ export class ProductUpdateDataService {
                     //
                     // 6.3) VÍDEOS de VARIANTE (remove antigos e recria)
                     //
-                    // Primeiro, monta o array correto de URLs de vídeo: pode vir em vard.videoLinks ou em vard.videos
                     const variantVideosArray: string[] = Array.isArray(vard.videoLinks)
                         ? vard.videoLinks!
                         : Array.isArray((vard as any).videos)
                             ? (vard as any).videos
                             : []
 
-                    // Apaga todos os vídeos que já existiam para essa variante
                     await prisma.productVariantVideo.deleteMany({
                         where: { productVariant_id: vid }
                     })
 
-                    // Insere cada URL como um novo registro
                     if (variantVideosArray.length) {
                         await prisma.productVariantVideo.createMany({
                             data: variantVideosArray.map((url, i) => ({
@@ -387,7 +359,6 @@ export class ProductUpdateDataService {
                         })
                     }
 
-                    // Insere as novas imagens de variante (arquivos que vieram em files.variantImages[vid])
                     const incomingVarImgs = files.variantImages[vid] || []
                     const toCreateVarImgs = incomingVarImgs.map((f) => ({
                         productVariant_id: vid,
@@ -402,7 +373,6 @@ export class ProductUpdateDataService {
                     //
                     // 6.5) ATRIBUTOS de VARIANTE + IMAGENS de ATRIBUTO
                     //
-                    // 6.5.a) Remove atributos que não vieram no payload
                     const allAttrsCurrent = await prisma.variantAttribute.findMany({
                         where: { variant_id: vid }
                     })
@@ -415,7 +385,6 @@ export class ProductUpdateDataService {
                         .filter((idA) => !keepAttrIds.includes(idA))
 
                     if (idsToRemoveAttrs.length) {
-                        // Apaga imagens de atributo em disco e no banco
                         const imgsToRemove = await prisma.variantAttributeImage.findMany({
                             where: { variantAttribute_id: { in: idsToRemoveAttrs } }
                         })
@@ -426,19 +395,17 @@ export class ProductUpdateDataService {
                         await prisma.variantAttributeImage.deleteMany({
                             where: { variantAttribute_id: { in: idsToRemoveAttrs } }
                         })
-                        // Apaga os próprios atributos
                         await prisma.variantAttribute.deleteMany({
                             where: { id: { in: idsToRemoveAttrs } }
                         })
                     }
 
-                    // 6.5.b) Atualiza ou cria cada atributo restante ou novo
                     for (let ai = 0; ai < vard.attributes.length; ai++) {
                         const a = vard.attributes[ai]
                         let aid: string
 
                         if (a.id) {
-                            // Attrib existente → update
+                            // Atributo existente → update
                             aid = a.id
                             await prisma.variantAttribute.update({
                                 where: { id: aid },
@@ -449,7 +416,7 @@ export class ProductUpdateDataService {
                                 }
                             })
                         } else {
-                            // Attrib novo → create
+                            // Atributo novo → create
                             const na = await prisma.variantAttribute.create({
                                 data: {
                                     variant_id: vid,
@@ -486,7 +453,6 @@ export class ProductUpdateDataService {
                             })
                         }
 
-                        // Insere novas imagens de atributo (arquivos que vieram em files.attributeImages[vid][ai])
                         const incomingAttrImgs = files.attributeImages[vid]?.[ai] || []
                         const toCreateAttrImgs = incomingAttrImgs.map((f) => ({
                             variantAttribute_id: aid,
@@ -502,33 +468,83 @@ export class ProductUpdateDataService {
                     }
                 }
             }
-
-            // 7) RELAÇÕES (remove todas e recria)
+            //
+            // 7) RELAÇÕES (UPDATE ⇄ DELETE ⇄ CREATE)
+            //
             if (productData.relations) {
-                await prisma.productRelation.deleteMany({
+                // 7.1) Pegamos todos os IDs de relações já existentes no banco:
+                const existingRelsInDb = await prisma.productRelation.findMany({
                     where: {
-                        OR: [{ parentProduct_id: id }, { childProduct_id: id }]
-                    }
+                        OR: [
+                            { parentProduct_id: id },
+                            { childProduct_id: id }
+                        ]
+                    },
+                    select: { id: true }
                 })
-                for (const r of productData.relations) {
-                    const isChild = r.relationDirection === "child"
-                    await prisma.productRelation.create({
-                        data: {
-                            relationType: r.relationType,
-                            sortOrder: r.sortOrder ?? 0,
-                            isRequired: r.isRequired ?? false,
-                            parentProduct: {
-                                connect: { id: isChild ? id : r.relatedProductId }
-                            },
-                            childProduct: {
-                                connect: { id: isChild ? r.relatedProductId : id }
-                            }
-                        }
+                const existingIdsInDb = existingRelsInDb.map(r => r.id)
+
+                // 7.2) Dos objetos que vieram no payload, filtramos apenas os que têm id válido
+                const incomingIds = productData.relations
+                    .filter(r => typeof r.id === "string" && r.id.trim() !== "")
+                    .map(r => r.id!) as string[]
+
+                // 7.3) Identificamos quais IDs devem ser EXCLUÍDOS (existem no BD, mas não vieram no payload)
+                const idsToDelete = existingIdsInDb.filter(dbId => !incomingIds.includes(dbId))
+                if (idsToDelete.length) {
+                    await prisma.productRelation.deleteMany({
+                        where: { id: { in: idsToDelete } }
                     })
+                }
+
+                // 7.4) Agora, para cada relação do payload, ou atualizamos (se já existia) ou criamos
+                for (const r of productData.relations) {
+                    // Se o usuário deixou relatedProductId em branco, não recriamos/atualizamos
+                    if (!r.relatedProductId || r.relatedProductId.trim() === "") {
+                        continue
+                    }
+
+                    const isExisting =
+                        typeof r.id === "string" && existingIdsInDb.includes(r.id!)
+                    const isChild = r.relationDirection === "child"
+
+                    if (isExisting) {
+                        // Atualiza um registro existente:
+                        await prisma.productRelation.update({
+                            where: { id: r.id! },
+                            data: {
+                                relationType: r.relationType,
+                                sortOrder: r.sortOrder ?? 0,
+                                isRequired: r.isRequired ?? false,
+
+                                // Se for “child” → relatedProductId é PAI
+                                parentProduct_id: isChild ? r.relatedProductId : id,
+                                childProduct_id: isChild ? id : r.relatedProductId
+                            }
+                        })
+                    } else {
+                        // Cria um registro novo:
+                        await prisma.productRelation.create({
+                            data: {
+                                relationType: r.relationType,
+                                sortOrder: r.sortOrder ?? 0,
+                                isRequired: r.isRequired ?? false,
+
+                                parentProduct: {
+                                    connect: { id: isChild ? r.relatedProductId : id }
+                                },
+                                childProduct: {
+                                    connect: { id: isChild ? id : r.relatedProductId }
+                                }
+                            }
+                        })
+                    }
                 }
             }
 
+            //
             // 8) Retorna o produto completo com todas as relações aninhadas
+            //
             return prisma.product.findUnique({
                 where: { id },
                 include: {

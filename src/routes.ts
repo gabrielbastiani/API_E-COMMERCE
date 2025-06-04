@@ -123,11 +123,12 @@ import { CategoryDeleteImageController } from "./controllers/category/CategoryDe
 // --- PRODUCT --- //
 import { CreateProductController } from "./controllers/product/CreateProductController";
 import { AllProductsController } from "./controllers/product/AllProductsController";
+import { CmsGetProductController } from "./controllers/product/CmsGetProductController";
+import { ProductDeleteController } from "./controllers/product/ProductDeleteController";
 
 // --- PROMOTION --- //
 import { PromotionController } from "./controllers/promotion/PromotionController";
 import { AllPromotionsController } from "./controllers/promotion/AllPromotionsController";
-import { CmsGetProductController } from "./controllers/product/CmsGetProductController";
 const promoCtrl = new PromotionController();
 
 
@@ -282,6 +283,7 @@ router.post("/product/create", isAuthenticatedEcommerce, checkRole(["ADMIN", "SU
 router.get('/get/products', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new AllProductsController().handle);
 router.get('/product/cms/get', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new CmsGetProductController().handle);
 router.put("/product/update", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), upload_image.any(), productUpdateController.handle.bind(productUpdateController));
+router.delete("/products/delete", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), async (req, res) => { await new ProductDeleteController().handle(req, res); });
 
 // --- PROMOTION --- //
 router.get('/promotions/get', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new AllPromotionsController().handle);
