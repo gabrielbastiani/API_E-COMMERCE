@@ -129,6 +129,7 @@ import { ProductDeleteController } from "./controllers/product/ProductDeleteCont
 // --- PROMOTION --- //
 import { PromotionController } from "./controllers/promotion/PromotionController";
 import { AllPromotionsController } from "./controllers/promotion/AllPromotionsController";
+import { StatusProductController } from "./controllers/product/StatusProductController";
 const promoCtrl = new PromotionController();
 
 
@@ -284,6 +285,7 @@ router.get('/get/products', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER
 router.get('/product/cms/get', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new CmsGetProductController().handle);
 router.put("/product/update", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), upload_image.any(), productUpdateController.handle.bind(productUpdateController));
 router.delete("/products/delete", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), async (req, res) => { await new ProductDeleteController().handle(req, res); });
+router.put('/product/status', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new StatusProductController().handle);
 
 // --- PROMOTION --- //
 router.get('/promotions/get', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new AllPromotionsController().handle);

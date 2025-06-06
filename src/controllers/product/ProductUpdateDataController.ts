@@ -1,13 +1,12 @@
-// src/controllers/ProductUpdateDataController.ts
-
 import { Request, Response } from "express";
 import { ProductUpdateDataService } from "../../services/product/ProductUpdateDataService";
-import { ProductRelationType, StatusProduct, StatusVariant } from "@prisma/client";
+import { StatusProduct } from "@prisma/client";
 
 export class ProductUpdateDataController {
     // Agora explicitamente Promise<void>
     async handle(req: Request, res: Response): Promise<void> {
         try {
+            // Espera receber um único campo “payload” contendo o JSON como string
             const rawPayload = req.body.payload as string | undefined;
             if (!rawPayload) {
                 res.status(400).json({ error: "Campo 'payload' ausente." });
@@ -22,12 +21,14 @@ export class ProductUpdateDataController {
                 return;
             }
 
+            // ID do produto é obrigatório
             const idStr = parsed.id as string | undefined;
             if (!idStr || idStr.trim() === "") {
                 res.status(400).json({ error: "O campo `id` do produto é obrigatório." });
                 return;
             }
 
+            // Monta o objeto productData conforme a interface atualizada
             const productData = {
                 id: idStr,
                 name: parsed.name as string | undefined,
@@ -49,6 +50,11 @@ export class ProductUpdateDataController {
                 status: parsed.status as StatusProduct,
                 mainPromotion_id:
                     parsed.mainPromotion_id != null ? String(parsed.mainPromotion_id) : null,
+
+                // Novos campos para principal do produto
+                primaryMainImageId: parsed.primaryMainImageId as string | undefined,
+                primaryMainImageName: parsed.primaryMainImageName as string | undefined,
+
                 videoLinks: Array.isArray(parsed.videoLinks) ? parsed.videoLinks : [],
                 categories: Array.isArray(parsed.categories) ? parsed.categories : [],
                 existingImages: Array.isArray(parsed.existingImages) ? parsed.existingImages : [],
@@ -70,13 +76,18 @@ export class ProductUpdateDataController {
 
             for (const f of allFiles) {
                 const parts = f.fieldname.split("_");
+                // Supondo convenção de nomes: “productImage_…” para imagens de produto
                 if (parts[0] === "productImage") {
                     files.images.push(f);
-                } else if (parts[0] === "variantImage" && parts[1]) {
+                }
+                // “variantImage_<variantId>” para imagens de variante
+                else if (parts[0] === "variantImage" && parts[1]) {
                     const variantId = parts[1];
                     if (!files.variantImages[variantId]) files.variantImages[variantId] = [];
                     files.variantImages[variantId].push(f);
-                } else if (
+                }
+                // “attributeImage_<variantId>_<attrIndex>” para imagens de atributo
+                else if (
                     parts[0] === "attributeImage" &&
                     parts[1] &&
                     typeof parts[2] !== "undefined"

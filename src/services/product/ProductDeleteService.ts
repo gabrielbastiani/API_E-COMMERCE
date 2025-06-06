@@ -166,7 +166,7 @@ export class ProductDeleteService {
                     all_user_ids.map((userEcommerce_id) => ({
                         userEcommerce_id,
                         message: `Produtos(s) ${product.name} foi deletada(s) pelo usuário ${name}.`,
-                        type: NotificationType.CATEGORY
+                        type: NotificationType.PRODUCT
                     }))
                 )
             });
