@@ -54,7 +54,11 @@ class AllProductsService {
                         parentProduct: true,
                         product: {
                             include: {
-                                images: true
+                                images: {
+                                    orderBy: {
+                                        isPrimary: "asc"
+                                    }
+                                }
                             }
                         }
                     }

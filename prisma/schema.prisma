@@ -208,6 +208,66 @@ enum StatusCategory {
   INDISPONIVEL
 }
 
+enum ConditionType {
+  FIRST_ORDER
+  CART_ITEM_COUNT
+  UNIQUE_VARIANT_COUNT
+  ZIP_CODE
+  PRODUCT_CODE
+  VARIANT_CODE
+  STATE
+  CATEGORY
+  CATEGORY_ITEM_COUNT
+  CATEGORY_VALUE
+  BRAND_VALUE
+  VARIANT_ITEM_COUNT
+  PRODUCT_ITEM_COUNT
+  PERSON_TYPE
+  USER
+  SUBTOTAL_VALUE
+  TOTAL_VALUE
+}
+
+enum Operator {
+  EQUAL
+  NOT_EQUAL
+  GREATER
+  GREATER_EQUAL
+  LESS
+  LESS_EQUAL
+  CONTAINS
+  NOT_CONTAINS
+  EVERY
+}
+
+enum ActionType {
+  FIXED_VARIANT_DISCOUNT
+  FIXED_PRODUCT_DISCOUNT
+  FREE_VARIANT_ITEM
+  FREE_PRODUCT_ITEM
+  PERCENT_CATEGORY
+  PERCENT_VARIANT
+  PERCENT_PRODUCT
+  PERCENT_BRAND_ITEMS
+  PERCENT_ITEM_COUNT
+  PERCENT_EXTREME_ITEM
+  PERCENT_SHIPPING
+  PERCENT_SUBTOTAL
+  PERCENT_TOTAL_NO_SHIPPING
+  PERCENT_TOTAL_PER_PRODUCT
+  FIXED_BRAND_ITEMS
+  FIXED_SHIPPING
+  FIXED_SUBTOTAL
+  FIXED_TOTAL_NO_SHIPPING
+  FIXED_TOTAL_PER_PRODUCT
+  MAX_SHIPPING_DISCOUNT
+}
+
+enum DisplayType {
+  SPOT
+  PRODUCT_PAGE
+}
+
 model EcommerceData {
   id                     String  @id @default(uuid())
   name                   String
@@ -526,34 +586,99 @@ model ProductVideo {
 }
 
 model Promotion {
-  id                String           @id @default(uuid())
-  code              String?          @unique
-  name              String
-  description       String?
-  discountType      DiscountType
-  discountValue     Float
-  maxDiscountAmount Decimal?         @db.Decimal(10, 2)
-  startDate         DateTime
-  endDate           DateTime
-  usageLimit        Int?
-  userUsageLimit    Int?             @default(1)
-  minOrderAmount    Decimal?         @db.Decimal(10, 2)
-  status            PromotionStatus  @default(SCHEDULED)
-  stackable         Boolean          @default(false)
-  products          Product[]        @relation("ProductPromotions")
-  variantPromotions ProductVariant[] @relation("variantPromotions")
-  // Promoção principal inversa: produtos que têm esta promoção como destaque
-  featuredProducts  Product[]        @relation("FeaturedPromotion")
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  startDate   DateTime
+  endDate     DateTime
+
+  hasCoupon          Boolean @default(true)
+  multipleCoupons    Boolean @default(false)
+  reuseSameCoupon    Boolean @default(false)
+  perUserCouponLimit Int?
+  totalCouponCount   Int?
+
+  active     Boolean @default(false)
+  cumulative Boolean @default(false)
+  priority   Int     @default(0)
+
+  coupons           Coupon[]
+  conditions        PromotionCondition[]
+  actions           PromotionAction[]
+  displays          PromotionDisplay[]
+  badges            PromotionBadge[]
+  products          Product[]            @relation("ProductPromotions")
+  variantPromotions ProductVariant[]     @relation("variantPromotions")
+  featuredProducts  Product[]            @relation("FeaturedPromotion")
   categories        Category[]
   orders            Order[]
-  mainVariants      ProductVariant[] @relation("variantMainPromotion")
-  rules             PromotionRule[]
-  usageHistory      PromotionUsage[]
+  mainVariants      ProductVariant[]     @relation("variantMainPromotion")
+  promotionUsage    PromotionUsage[]
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
 
-  @@index([code])
   @@map("promotions")
+}
+
+model Coupon {
+  id           String    @id @default(uuid())
+  code         String    @unique
+  promotion    Promotion @relation(fields: [promotion_id], references: [id])
+  promotion_id String
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+
+  @@map("promotion_coupons")
+}
+
+model PromotionCondition {
+  id           String        @id @default(uuid())
+  promotion    Promotion     @relation(fields: [promotion_id], references: [id])
+  promotion_id String
+  type         ConditionType
+  operator     Operator
+  value        Json
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+
+  @@map("promotion_conditions")
+}
+
+model PromotionAction {
+  id           String     @id @default(uuid())
+  promotion    Promotion  @relation(fields: [promotion_id], references: [id])
+  promotion_id String
+  type         ActionType
+  params       Json
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+
+  @@map("promotion_actions")
+}
+
+model PromotionDisplay {
+  id           String      @id @default(uuid())
+  promotion    Promotion   @relation(fields: [promotion_id], references: [id])
+  promotion_id String
+  title        String
+  type         DisplayType
+  content      String
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+
+  @@map("promotion_displays")
+}
+
+model PromotionBadge {
+  id           String    @id @default(uuid())
+  promotion    Promotion @relation(fields: [promotion_id], references: [id])
+  promotion_id String
+  title        String
+  imageUrl     String
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+
+  @@map("promotion_badges")
 }
 
 model ProductView {
@@ -566,20 +691,6 @@ model ProductView {
 
   @@unique([product_id, ipAddress])
   @@map("productsViews")
-}
-
-model PromotionRule {
-  id           String         @id @default(uuid())
-  promotion    Promotion      @relation(fields: [promotion_id], references: [id])
-  promotion_id String
-  scope        PromotionScope
-  targetIds    String[] // IDs de produtos, variantes ou categorias
-  quantity     Int? // Quantidade necessária para aplicar
-  applyTo      String? // "cheapest", "most_expensive", "all"
-
-  created_at DateTime @default(now()) @db.Timestamptz(3)
-
-  @@map("promotionRules")
 }
 
 model PromotionUsage {

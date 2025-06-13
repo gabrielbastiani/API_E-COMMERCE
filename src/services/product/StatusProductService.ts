@@ -2,20 +2,18 @@ import { StatusProduct } from "@prisma/client";
 import prismaClient from "../../prisma";
 
 interface ProductStatusRequest {
-    id: string;
+    product_id: string;
     status: string;
 }
 
 class StatusProductService {
-    async execute({ id, status }: ProductStatusRequest) {
+    async execute({ product_id, status }: ProductStatusRequest) {
         const product = await prismaClient.product.update({
-            where: { id: id },
+            where: { id: product_id },
             data: {
                 status: status as StatusProduct
             }
         });
-
-        console.log(product)
 
         return product;
 

@@ -3,11 +3,11 @@ import { StatusProductService } from "../../services/product/StatusProductServic
 
 class StatusProductController {
     async handle(req: Request, res: Response) {
-        const { id, status } = req.body;
+        const { product_id, status } = req.body;
 
         const statusProduct = new StatusProductService();
 
-        const product = await statusProduct.execute({id, status});
+        const product = await statusProduct.execute({product_id, status});
 
         res.json(product);
     }

@@ -5,7 +5,7 @@ import { checkRole } from "./middlewares/checkRole";
 import { isAuthenticatedEcommerce } from "./middlewares/isAuthenticatedEcommerce";
 import { isAuthenticatedCustomer } from "./middlewares/isAuthenticatedCustomer";
 import { body } from "express-validator/lib/middlewares/validation-chain-builders";
-import { ProductUpdateDataController } from "./controllers/product/ProductUpdateDataController"; 
+import { ProductUpdateDataController } from "./controllers/product/ProductUpdateDataController";
 const productUpdateController = new ProductUpdateDataController();
 
 // --- USUARIOS E-COMMERCE --- //
@@ -128,9 +128,9 @@ import { ProductDeleteController } from "./controllers/product/ProductDeleteCont
 
 // --- PROMOTION --- //
 import { PromotionController } from "./controllers/promotion/PromotionController";
-import { AllPromotionsController } from "./controllers/promotion/AllPromotionsController";
 import { StatusProductController } from "./controllers/product/StatusProductController";
-const promoCtrl = new PromotionController();
+import { GetVariationsController } from "./controllers/product/variation/GetVariationsController";
+const ctrl = new PromotionController()
 
 
 
@@ -287,13 +287,11 @@ router.put("/product/update", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUP
 router.delete("/products/delete", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), async (req, res) => { await new ProductDeleteController().handle(req, res); });
 router.put('/product/status', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new StatusProductController().handle);
 
+// --- VARIANT --- //
+router.get('/variant/get', new GetVariationsController().handle);
+
 // --- PROMOTION --- //
-router.get('/promotions/get', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new AllPromotionsController().handle);
-router.post('/promotions', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), promoCtrl.create);
-router.get('/promotions', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), promoCtrl.list);
-router.get('/promotions/:id', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), promoCtrl.getById);
-router.put('/promotions/:id', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), promoCtrl.update);
-router.delete('/promotions/:id', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), promoCtrl.delete);
+router.post('/promotions',isAuthenticatedEcommerce, checkRole(['ADMIN','SUPER_ADMIN']), upload_image.any(), ctrl.create.bind(ctrl))
 
 
 export { router };

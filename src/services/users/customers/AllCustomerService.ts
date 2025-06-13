@@ -44,7 +44,12 @@ class AllCustomerService {
             where: whereClause,
         });
 
+        // ----- CLIENTES DISPONIVEIS ----- //
+
+        const all_customers = await prismaClient.customer.findMany();
+
         return {
+            all_customers: all_customers,
             usersBlog: all_users,
             currentPage: page,
             totalPages: Math.ceil(total_users / limit),

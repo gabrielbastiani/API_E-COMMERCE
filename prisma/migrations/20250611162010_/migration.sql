@@ -82,6 +82,18 @@ CREATE TYPE "StatusCustomer" AS ENUM ('DISPONIVEL', 'INDISPONIVEL');
 -- CreateEnum
 CREATE TYPE "StatusCategory" AS ENUM ('DISPONIVEL', 'INDISPONIVEL');
 
+-- CreateEnum
+CREATE TYPE "ConditionType" AS ENUM ('FIRST_ORDER', 'CART_ITEM_COUNT', 'UNIQUE_VARIANT_COUNT', 'CATEGORY', 'ZIP_CODE', 'PRODUCT_CODE', 'VARIANT_CODE', 'STATE', 'CATEGORY_ITEM_COUNT', 'CATEGORY_VARIANT_COUNT', 'CATEGORY_VALUE', 'BRAND_VALUE', 'VARIANT_ITEM_COUNT', 'PRODUCT_ITEM_COUNT', 'PERSON_TYPE', 'USER', 'SUBTOTAL_VALUE', 'TOTAL_VALUE');
+
+-- CreateEnum
+CREATE TYPE "Operator" AS ENUM ('EQUAL', 'GREATER', 'GREATER_EQUAL', 'LESS', 'LESS_EQUAL');
+
+-- CreateEnum
+CREATE TYPE "ActionType" AS ENUM ('PRICE_TABLE_ADJUST', 'FIXED_DISCOUNT_BY_QTY', 'FIXED_DISCOUNT_VARIANT', 'FIXED_DISCOUNT_PRODUCT', 'FREE_VARIANT_ITEM', 'FREE_PRODUCT_ITEM', 'PERCENT_DISCOUNT_RECURR', 'PERCENT_DISCOUNT_CATEGORY', 'PERCENT_DISCOUNT_VARIANT', 'PERCENT_DISCOUNT_PRODUCT', 'PERCENT_DISCOUNT_BRAND', 'PERCENT_DISCOUNT_QTY_PRODUCT', 'PERCENT_DISCOUNT_EXTREME', 'PERCENT_DISCOUNT_SHIPPING', 'PERCENT_DISCOUNT_SUBTOTAL', 'PERCENT_DISCOUNT_TOTAL_BEFORE', 'PERCENT_DISCOUNT_PER_PRODUCT', 'FIXED_DISCOUNT_BRAND', 'FIXED_DISCOUNT_SHIPPING', 'FIXED_DISCOUNT_SUBTOTAL', 'FIXED_DISCOUNT_TOTAL_BEFORE', 'FIXED_DISCOUNT_PER_PRODUCT', 'MAX_SHIPPING_DISCOUNT');
+
+-- CreateEnum
+CREATE TYPE "DisplayType" AS ENUM ('SPOT', 'PRODUCT_PAGE');
+
 -- CreateTable
 CREATE TABLE "ecommerceDatas" (
     "id" TEXT NOT NULL,
@@ -271,6 +283,7 @@ CREATE TABLE "productsVariantImages" (
     "productVariant_id" UUID NOT NULL,
     "url" TEXT NOT NULL,
     "altText" TEXT,
+    "isPrimary" BOOLEAN NOT NULL DEFAULT false,
     "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "productsVariantImages_pkey" PRIMARY KEY ("id")
@@ -355,22 +368,67 @@ CREATE TABLE "productsVideos" (
 -- CreateTable
 CREATE TABLE "promotions" (
     "id" TEXT NOT NULL,
-    "code" TEXT,
     "name" TEXT NOT NULL,
     "description" TEXT,
-    "discountType" "DiscountType" NOT NULL,
-    "discountValue" DOUBLE PRECISION NOT NULL,
-    "maxDiscountAmount" DECIMAL(10,2),
     "startDate" TIMESTAMP(3) NOT NULL,
     "endDate" TIMESTAMP(3) NOT NULL,
-    "usageLimit" INTEGER,
-    "userUsageLimit" INTEGER DEFAULT 1,
-    "minOrderAmount" DECIMAL(10,2),
-    "status" "PromotionStatus" NOT NULL DEFAULT 'SCHEDULED',
-    "stackable" BOOLEAN NOT NULL DEFAULT false,
+    "hasCoupon" BOOLEAN NOT NULL DEFAULT true,
+    "multipleCoupons" BOOLEAN NOT NULL DEFAULT false,
+    "reuseSameCoupon" BOOLEAN NOT NULL DEFAULT false,
+    "perUserCouponLimit" INTEGER,
+    "totalCouponCount" INTEGER,
+    "active" BOOLEAN NOT NULL DEFAULT false,
+    "cumulative" BOOLEAN NOT NULL DEFAULT false,
+    "priority" INTEGER NOT NULL DEFAULT 0,
     "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "promotions_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "coupons" (
+    "id" TEXT NOT NULL,
+    "code" TEXT NOT NULL,
+    "promotion_id" TEXT NOT NULL,
+    "usedCount" INTEGER NOT NULL DEFAULT 0,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "coupons_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "promotion_conditions" (
+    "id" TEXT NOT NULL,
+    "promotion_id" TEXT NOT NULL,
+    "type" "ConditionType" NOT NULL,
+    "operator" "Operator" NOT NULL,
+    "value" JSONB NOT NULL,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "promotion_conditions_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "promotion_actions" (
+    "id" TEXT NOT NULL,
+    "promotion_id" TEXT NOT NULL,
+    "type" "ActionType" NOT NULL,
+    "params" JSONB NOT NULL,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "promotion_actions_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "promotion_displays" (
+    "id" TEXT NOT NULL,
+    "promotion_id" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "type" "DisplayType" NOT NULL,
+    "content" TEXT NOT NULL,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "promotion_displays_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -869,10 +927,7 @@ CREATE UNIQUE INDEX "productsVariants_sku_key" ON "productsVariants"("sku");
 CREATE UNIQUE INDEX "productsRelations_parentProduct_id_childProduct_id_relation_key" ON "productsRelations"("parentProduct_id", "childProduct_id", "relationType");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "promotions_code_key" ON "promotions"("code");
-
--- CreateIndex
-CREATE INDEX "promotions_code_idx" ON "promotions"("code");
+CREATE UNIQUE INDEX "coupons_code_key" ON "coupons"("code");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "productsViews_product_id_ipAddress_key" ON "productsViews"("product_id", "ipAddress");
@@ -948,6 +1003,18 @@ ALTER TABLE "productsImages" ADD CONSTRAINT "productsImages_product_id_fkey" FOR
 
 -- AddForeignKey
 ALTER TABLE "productsVideos" ADD CONSTRAINT "productsVideos_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "products"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "coupons" ADD CONSTRAINT "coupons_promotion_id_fkey" FOREIGN KEY ("promotion_id") REFERENCES "promotions"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "promotion_conditions" ADD CONSTRAINT "promotion_conditions_promotion_id_fkey" FOREIGN KEY ("promotion_id") REFERENCES "promotions"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "promotion_actions" ADD CONSTRAINT "promotion_actions_promotion_id_fkey" FOREIGN KEY ("promotion_id") REFERENCES "promotions"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "promotion_displays" ADD CONSTRAINT "promotion_displays_promotion_id_fkey" FOREIGN KEY ("promotion_id") REFERENCES "promotions"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "productsViews" ADD CONSTRAINT "productsViews_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "products"("id") ON DELETE SET NULL ON UPDATE CASCADE;
