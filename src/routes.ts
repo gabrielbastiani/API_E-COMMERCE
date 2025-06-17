@@ -130,6 +130,7 @@ import { ProductDeleteController } from "./controllers/product/ProductDeleteCont
 import { PromotionController } from "./controllers/promotion/PromotionController";
 import { StatusProductController } from "./controllers/product/StatusProductController";
 import { GetVariationsController } from "./controllers/product/variation/GetVariationsController";
+import { AllPromotionsController } from "./controllers/promotion/AllPromotionsController";
 const ctrl = new PromotionController()
 
 
@@ -292,6 +293,7 @@ router.get('/variant/get', new GetVariationsController().handle);
 
 // --- PROMOTION --- //
 router.post('/promotions',isAuthenticatedEcommerce, checkRole(['ADMIN','SUPER_ADMIN']), upload_image.any(), ctrl.create.bind(ctrl))
+router.get('/promotions/get', isAuthenticatedEcommerce, checkRole(['ADMIN','SUPER_ADMIN']), new AllPromotionsController().handle);
 
 
 export { router };

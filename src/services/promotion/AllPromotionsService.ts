@@ -51,7 +51,16 @@ class AllPromotionsService {
             where: whereClause,
         });
 
+        // ---------- PROMOTIONS DOSPONIVEL ---------------- //
+
+        const promotions = await prismaClient.promotion.findMany({
+            where: {
+                active: true
+            }
+        });
+
         return {
+            allow_promotions: promotions,
             promotions: all_promotions,
             currentPage: page,
             totalPages: Math.ceil(total_promotion / limit),
