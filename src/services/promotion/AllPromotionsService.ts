@@ -43,7 +43,14 @@ class AllPromotionsService {
                 featuredProducts: true,
                 mainVariants: true,
                 products: true,
-                variantPromotions: true
+                variantPromotions: true,
+                actions: true,
+                badges: true,
+                conditions: true,
+                coupons: true,
+                displays: true,
+                orders: true,
+                promotionUsage: true
             }
         });
 
@@ -56,6 +63,20 @@ class AllPromotionsService {
         const promotions = await prismaClient.promotion.findMany({
             where: {
                 active: true
+            },
+            include: {
+                categories: true,
+                featuredProducts: true,
+                mainVariants: true,
+                products: true,
+                variantPromotions: true,
+                actions: true,
+                badges: true,
+                conditions: true,
+                coupons: true,
+                displays: true,
+                orders: true,
+                promotionUsage: true
             }
         });
 

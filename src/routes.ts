@@ -131,7 +131,11 @@ import { PromotionController } from "./controllers/promotion/PromotionController
 import { StatusProductController } from "./controllers/product/StatusProductController";
 import { GetVariationsController } from "./controllers/product/variation/GetVariationsController";
 import { AllPromotionsController } from "./controllers/promotion/AllPromotionsController";
+import { StatusPromotionController } from "./controllers/promotion/StatusPromotionController";
+import { UpdatePromotionController } from "./controllers/promotion/UpdatePromotionController";
+import { GetUniquePromotionController } from "./controllers/promotion/GetUniquePromotionController";
 const ctrl = new PromotionController()
+const update = new UpdatePromotionController()
 
 
 
@@ -294,6 +298,8 @@ router.get('/variant/get', new GetVariationsController().handle);
 // --- PROMOTION --- //
 router.post('/promotions',isAuthenticatedEcommerce, checkRole(['ADMIN','SUPER_ADMIN']), upload_image.any(), ctrl.create.bind(ctrl))
 router.get('/promotions/get', isAuthenticatedEcommerce, checkRole(['ADMIN','SUPER_ADMIN']), new AllPromotionsController().handle);
-
+router.put('/promotion/active', isAuthenticatedEcommerce, checkRole(['ADMIN','SUPER_ADMIN']), new StatusPromotionController().handle);
+router.put('/promotions/:promotion_id', isAuthenticatedEcommerce, checkRole(['ADMIN','SUPER_ADMIN']), upload_image.any(), update.update.bind(update))
+router.get('/promotions/unique_promotion', isAuthenticatedEcommerce, checkRole(['ADMIN','SUPER_ADMIN']), new GetUniquePromotionController().handle);
 
 export { router };
