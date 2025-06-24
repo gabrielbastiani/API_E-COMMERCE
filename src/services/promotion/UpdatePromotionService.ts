@@ -84,6 +84,7 @@ export class UpdatePromotionService {
                     await tx.coupon.create({ data: { code: c.code, promotion_id: id } })
                 }
             }
+
             if (data.conditions) {
                 await tx.promotionCondition.deleteMany({ where: { promotion_id: id } })
                 for (const c of data.conditions) {
