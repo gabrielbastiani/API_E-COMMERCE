@@ -75,6 +75,18 @@ class AllCategoriesService {
                             }
                         }
                     }
+                },
+                products: {
+                    include: {
+                        product: {
+                            include: {
+                                images: true,
+                                variants:true,
+                                productRelations: true,
+                                parentRelations: true
+                            }
+                        }
+                    }
                 }
             }
         });

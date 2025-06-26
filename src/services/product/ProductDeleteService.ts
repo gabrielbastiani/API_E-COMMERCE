@@ -4,11 +4,6 @@ import fs from "fs";
 import path from "path";
 
 export class ProductDeleteService {
-    /**
-     * Exclui em lote um ou mais produtos, incluindo todos os
-     * dados relacionados (imagens, descrições, categorias, vídeos,
-     * variantes, atributos e relações).
-     */
     async execute(id_delete: string[], name?: string): Promise<void> {
         // Se não vierem IDs, nada a fazer
         if (!Array.isArray(id_delete) || id_delete.length === 0) {

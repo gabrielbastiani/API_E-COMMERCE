@@ -134,6 +134,8 @@ import { AllPromotionsController } from "./controllers/promotion/AllPromotionsCo
 import { StatusPromotionController } from "./controllers/promotion/StatusPromotionController";
 import { UpdatePromotionController } from "./controllers/promotion/UpdatePromotionController";
 import { GetUniquePromotionController } from "./controllers/promotion/GetUniquePromotionController";
+import { AllProductsCategoryController } from "./controllers/category/AllProductsCategoryController";
+import { PromotionDeleteController } from "./controllers/promotion/PromotionDeleteController";
 const ctrl = new PromotionController()
 const update = new UpdatePromotionController()
 
@@ -283,6 +285,7 @@ router.get('/category/cms/all_categories', isAuthenticatedEcommerce, new AllCate
 router.put('/category/update', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), upload_image.single('file'), new CategoryUpdateDataController().handle);
 router.delete('/category/delete_category', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new CategoryDeleteController().handle);
 router.put('/category/delete_image', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new CategoryDeleteImageController().handle);
+router.get('/category/products', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new AllProductsCategoryController().handle);
 
 // --- PRODUCT --- //
 router.post("/product/create", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), upload_image.fields(fields), new CreateProductController().handle);
@@ -301,5 +304,7 @@ router.get('/promotions/get', isAuthenticatedEcommerce, checkRole(['ADMIN','SUPE
 router.put('/promotion/active', isAuthenticatedEcommerce, checkRole(['ADMIN','SUPER_ADMIN']), new StatusPromotionController().handle);
 router.put('/promotions/:promotion_id', isAuthenticatedEcommerce, checkRole(['ADMIN','SUPER_ADMIN']), upload_image.fields([{ name: 'badgeFiles', maxCount: 10 }]), update.update.bind(update))
 router.get('/promotions/unique_promotion', isAuthenticatedEcommerce, checkRole(['ADMIN','SUPER_ADMIN']), new GetUniquePromotionController().handle);
+router.delete('/promotions/delete', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), async (req, res) => { return new PromotionDeleteController().handle(req, res); });
+
 
 export { router };
