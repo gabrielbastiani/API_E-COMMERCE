@@ -136,6 +136,7 @@ import { UpdatePromotionController } from "./controllers/promotion/UpdatePromoti
 import { GetUniquePromotionController } from "./controllers/promotion/GetUniquePromotionController";
 import { AllProductsCategoryController } from "./controllers/category/AllProductsCategoryController";
 import { PromotionDeleteController } from "./controllers/promotion/PromotionDeleteController";
+import { BuyTogetherController } from "./controllers/buyTogether/BuyTogetherController";
 const ctrl = new PromotionController()
 const update = new UpdatePromotionController()
 
@@ -299,12 +300,15 @@ router.put('/product/status', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUP
 router.get('/variant/get', new GetVariationsController().handle);
 
 // --- PROMOTION --- //
-router.post('/promotions',isAuthenticatedEcommerce, checkRole(['ADMIN','SUPER_ADMIN']), upload_image.any(), ctrl.create.bind(ctrl))
+router.post('/promotions', isAuthenticatedEcommerce, checkRole(['ADMIN','SUPER_ADMIN']), upload_image.any(), ctrl.create.bind(ctrl))
 router.get('/promotions/get', isAuthenticatedEcommerce, checkRole(['ADMIN','SUPER_ADMIN']), new AllPromotionsController().handle);
 router.put('/promotion/active', isAuthenticatedEcommerce, checkRole(['ADMIN','SUPER_ADMIN']), new StatusPromotionController().handle);
 router.put('/promotions/:promotion_id', isAuthenticatedEcommerce, checkRole(['ADMIN','SUPER_ADMIN']), upload_image.fields([{ name: 'badgeFiles', maxCount: 10 }]), update.update.bind(update))
 router.get('/promotions/unique_promotion', isAuthenticatedEcommerce, checkRole(['ADMIN','SUPER_ADMIN']), new GetUniquePromotionController().handle);
 router.delete('/promotions/delete', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), async (req, res) => { return new PromotionDeleteController().handle(req, res); });
+
+// --- BUY TOGETHER --- //
+router.get('/buy_together/get', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new BuyTogetherController().handle);
 
 
 export { router };
