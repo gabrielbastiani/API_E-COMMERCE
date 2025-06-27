@@ -119,6 +119,7 @@ import { AllCategoriesController } from "./controllers/category/AllCategoriesCon
 import { CategoryUpdateDataController } from "./controllers/category/CategoryUpdateDataController";
 import { CategoryDeleteController } from "./controllers/category/CategoryDeleteController";
 import { CategoryDeleteImageController } from "./controllers/category/CategoryDeleteImageController";
+import { AllProductsCategoryController } from "./controllers/category/AllProductsCategoryController";
 
 // --- PRODUCT --- //
 import { CreateProductController } from "./controllers/product/CreateProductController";
@@ -134,11 +135,17 @@ import { AllPromotionsController } from "./controllers/promotion/AllPromotionsCo
 import { StatusPromotionController } from "./controllers/promotion/StatusPromotionController";
 import { UpdatePromotionController } from "./controllers/promotion/UpdatePromotionController";
 import { GetUniquePromotionController } from "./controllers/promotion/GetUniquePromotionController";
-import { AllProductsCategoryController } from "./controllers/category/AllProductsCategoryController";
 import { PromotionDeleteController } from "./controllers/promotion/PromotionDeleteController";
-import { BuyTogetherController } from "./controllers/buyTogether/BuyTogetherController";
 const ctrl = new PromotionController()
 const update = new UpdatePromotionController()
+
+// --- BUY TOGETHER --- //
+import { GetBuyTogetherController } from "./controllers/buyTogether/GetBuyTogetherController";
+import { CreateBuyTogetherController } from "./controllers/buyTogether/CreateBuyTogetherController";
+import { ListBuyTogetherController } from "./controllers/buyTogether/ListBuyTogetherController";
+import { UpdateBuyTogetherController } from "./controllers/buyTogether/UpdateBuyTogetherController";
+import { StatusBuyTogetherController } from "./controllers/buyTogether/StatusBuyTogetherController";
+
 
 
 
@@ -300,15 +307,19 @@ router.put('/product/status', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUP
 router.get('/variant/get', new GetVariationsController().handle);
 
 // --- PROMOTION --- //
-router.post('/promotions', isAuthenticatedEcommerce, checkRole(['ADMIN','SUPER_ADMIN']), upload_image.any(), ctrl.create.bind(ctrl))
-router.get('/promotions/get', isAuthenticatedEcommerce, checkRole(['ADMIN','SUPER_ADMIN']), new AllPromotionsController().handle);
-router.put('/promotion/active', isAuthenticatedEcommerce, checkRole(['ADMIN','SUPER_ADMIN']), new StatusPromotionController().handle);
-router.put('/promotions/:promotion_id', isAuthenticatedEcommerce, checkRole(['ADMIN','SUPER_ADMIN']), upload_image.fields([{ name: 'badgeFiles', maxCount: 10 }]), update.update.bind(update))
-router.get('/promotions/unique_promotion', isAuthenticatedEcommerce, checkRole(['ADMIN','SUPER_ADMIN']), new GetUniquePromotionController().handle);
+router.post('/promotions', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), upload_image.any(), ctrl.create.bind(ctrl))
+router.get('/promotions/get', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new AllPromotionsController().handle);
+router.put('/promotion/active', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new StatusPromotionController().handle);
+router.put('/promotions/:promotion_id', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), upload_image.fields([{ name: 'badgeFiles', maxCount: 10 }]), update.update.bind(update))
+router.get('/promotions/unique_promotion', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new GetUniquePromotionController().handle);
 router.delete('/promotions/delete', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), async (req, res) => { return new PromotionDeleteController().handle(req, res); });
 
 // --- BUY TOGETHER --- //
-router.get('/buy_together/get', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new BuyTogetherController().handle);
+router.get('/buy_together/get', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new GetBuyTogetherController().handle);
+router.post('/buy_together/create', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new CreateBuyTogetherController().handle);
+router.get("/buy_together", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new ListBuyTogetherController().handle);
+router.put("/buy_together/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new UpdateBuyTogetherController().handle);
+router.put('/buyTogether/status', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new StatusBuyTogetherController().handle);
 
 
 export { router };

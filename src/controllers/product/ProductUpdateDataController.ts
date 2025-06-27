@@ -50,7 +50,8 @@ export class ProductUpdateDataController {
                 status: parsed.status as StatusProduct,
                 mainPromotion_id:
                     parsed.mainPromotion_id != null ? String(parsed.mainPromotion_id) : null,
-
+                buyTogether_id:
+                    parsed.buyTogether_id != null ? String(parsed.buyTogether_id) : null,
                 // Novos campos para principal do produto
                 primaryMainImageId: parsed.primaryMainImageId as string | undefined,
                 primaryMainImageName: parsed.primaryMainImageName as string | undefined,

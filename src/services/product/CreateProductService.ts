@@ -60,6 +60,7 @@ interface ProductRequest {
     }[];
     // Nova propriedade para indicar imagem principal do produto:
     primaryMainImageName?: string;
+    buyTogether_id?: string;
 }
 
 class CreateProductService {
@@ -94,7 +95,8 @@ class CreateProductService {
                     height: productData.height,
                     stock: productData.stock || 0,
                     status: productData.status || StatusProduct.DISPONIVEL,
-                    mainPromotion_id: productData.mainPromotion_id || null
+                    mainPromotion_id: productData.mainPromotion_id || null,
+                    buyTogether_id: productData.buyTogether_id || null,
                 }
             });
 

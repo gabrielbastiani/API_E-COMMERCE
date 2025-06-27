@@ -48,6 +48,8 @@ class CreateProductController {
                 isRequired: !!r.isRequired,
             }));
 
+            const buyTogether_id = req.body.buyTogether_id || null;
+
             // Montagem do objeto productData
             const productData = {
                 name: req.body.name,
@@ -75,7 +77,8 @@ class CreateProductController {
                 variants: variants,
                 relations: relations,
                 // Nova propriedade: nome da imagem principal do produto
-                primaryMainImageName: req.body.primaryMainImageName
+                primaryMainImageName: req.body.primaryMainImageName,
+                buyTogether_id,
             };
 
             const createProductService = new CreateProductService();

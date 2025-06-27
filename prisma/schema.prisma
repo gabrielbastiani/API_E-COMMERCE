@@ -424,6 +424,8 @@ model Product {
   view                 Int?                 @default(0)
   mainPromotion        Promotion?           @relation("FeaturedPromotion", fields: [mainPromotion_id], references: [id])
   mainPromotion_id     String?
+  buyTogether          BuyTogether?         @relation(fields: [buyTogether_id], references: [id])
+  buyTogether_id       String?
   status               StatusProduct        @default(DISPONIVEL)
   categories           ProductCategory[]
   images               ProductImage[]
@@ -439,7 +441,6 @@ model Product {
   parentRelations      ProductRelation[]    @relation("parentRelation")
   childRelations       ProductRelation[]    @relation("childRelation")
   promotions           Promotion[]          @relation("ProductPromotions")
-  buyTogether          BuyTogether[]
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
   updated_at DateTime @updatedAt
@@ -764,10 +765,10 @@ model Review {
 
 model BuyTogether {
   id         String            @id @default(uuid())
-  product    Product?          @relation(fields: [product_id], references: [id])
-  product_id String?           @db.Uuid
-  name       String?
+  name_group String?
+  products   Json?
   status     StatusBuyTogether @default(SIM)
+  product    Product[]
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
 

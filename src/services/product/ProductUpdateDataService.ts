@@ -28,6 +28,7 @@ interface ProductRequest {
     stock?: number
     status?: StatusProduct
     mainPromotion_id?: string | null
+    buyTogether_id?: string | null
 
     // Novos campos para indicar qual imagem principal do produto
     primaryMainImageId?: string
@@ -123,7 +124,7 @@ export class ProductUpdateDataService {
                 stock,
                 status,
                 mainPromotion_id,
-
+                buyTogether_id,
                 primaryMainImageId,
                 primaryMainImageName,
 
@@ -158,7 +159,6 @@ export class ProductUpdateDataService {
                 status
             }
 
-            // ——— Ajuste: inclui mainPromotion_id só se for UUID ou null ———
             if (mainPromotion_id === null) {
                 dataToUpdate.mainPromotion_id = null
             } else if (
@@ -167,6 +167,10 @@ export class ProductUpdateDataService {
             ) {
                 dataToUpdate.mainPromotion_id = mainPromotion_id.trim()
             }
+
+            if (buyTogether_id === null) dataToUpdate.buyTogether_id = null
+            else if (typeof buyTogether_id === "string" && buyTogether_id.trim() !== "")
+                dataToUpdate.buyTogether_id = buyTogether_id.trim()
 
             await prisma.product.update({
                 where: { id },

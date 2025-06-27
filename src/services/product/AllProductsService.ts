@@ -92,7 +92,8 @@ class AllProductsService {
                     include: {
                         category: true
                     }
-                }
+                },
+                images: true
             }
         });
 
