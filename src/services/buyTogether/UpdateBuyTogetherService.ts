@@ -2,12 +2,12 @@ import prismaClient from "../../prisma";
 
 interface UpdateBuyTogetherProps {
     id: string;
-    name_group?: string;
+    name?: string;
     products?: string[];
 }
 
 class UpdateBuyTogetherService {
-    async execute({ id, name_group, products }: UpdateBuyTogetherProps) {
+    async execute({ id, name, products }: UpdateBuyTogetherProps) {
         // Desvincula produtos antigos
         if (products) {
             const old = await prismaClient.buyTogether.findUnique({ where: { id } });
@@ -24,7 +24,7 @@ class UpdateBuyTogetherService {
         return prismaClient.buyTogether.update({
             where: { id },
             data: {
-                name_group,
+                name,
                 products,
             },
         });

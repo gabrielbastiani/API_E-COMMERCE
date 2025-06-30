@@ -764,11 +764,11 @@ model Review {
 }
 
 model BuyTogether {
-  id         String            @id @default(uuid())
-  name_group String?
-  products   Json?
-  status     StatusBuyTogether @default(SIM)
-  product    Product[]
+  id       String            @id @default(uuid())
+  name     String?
+  products Json?
+  status   StatusBuyTogether @default(SIM)
+  product  Product[]
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
 

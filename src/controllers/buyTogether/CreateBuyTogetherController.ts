@@ -3,9 +3,9 @@ import { CreateBuyTogetherService } from "../../services/buyTogether/CreateBuyTo
 
 class CreateBuyTogetherController {
     async handle(req: Request, res: Response) {
-        const { name_group, products } = req.body;
+        const { name, products } = req.body;
         const service = new CreateBuyTogetherService();
-        const group = await service.execute({ name_group, products });
+        const group = await service.execute({ name, products });
         res.status(201).json(group);
     }
 }

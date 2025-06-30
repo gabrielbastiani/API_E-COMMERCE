@@ -145,6 +145,7 @@ import { CreateBuyTogetherController } from "./controllers/buyTogether/CreateBuy
 import { ListBuyTogetherController } from "./controllers/buyTogether/ListBuyTogetherController";
 import { UpdateBuyTogetherController } from "./controllers/buyTogether/UpdateBuyTogetherController";
 import { StatusBuyTogetherController } from "./controllers/buyTogether/StatusBuyTogetherController";
+import { DeleteBuyTogetherController } from "./controllers/buyTogether/DeleteBuyTogetherController";
 
 
 
@@ -320,6 +321,7 @@ router.post('/buy_together/create', isAuthenticatedEcommerce, checkRole(["ADMIN"
 router.get("/buy_together", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new ListBuyTogetherController().handle);
 router.put("/buy_together/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new UpdateBuyTogetherController().handle);
 router.put('/buyTogether/status', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new StatusBuyTogetherController().handle);
+router.delete('/buyTogether/delete', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new DeleteBuyTogetherController().handle);
 
 
 export { router };

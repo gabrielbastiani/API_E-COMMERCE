@@ -83,13 +83,13 @@ CREATE TYPE "StatusCustomer" AS ENUM ('DISPONIVEL', 'INDISPONIVEL');
 CREATE TYPE "StatusCategory" AS ENUM ('DISPONIVEL', 'INDISPONIVEL');
 
 -- CreateEnum
-CREATE TYPE "ConditionType" AS ENUM ('FIRST_ORDER', 'CART_ITEM_COUNT', 'UNIQUE_VARIANT_COUNT', 'CATEGORY', 'ZIP_CODE', 'PRODUCT_CODE', 'VARIANT_CODE', 'STATE', 'CATEGORY_ITEM_COUNT', 'CATEGORY_VARIANT_COUNT', 'CATEGORY_VALUE', 'BRAND_VALUE', 'VARIANT_ITEM_COUNT', 'PRODUCT_ITEM_COUNT', 'PERSON_TYPE', 'USER', 'SUBTOTAL_VALUE', 'TOTAL_VALUE');
+CREATE TYPE "ConditionType" AS ENUM ('FIRST_ORDER', 'CART_ITEM_COUNT', 'UNIQUE_VARIANT_COUNT', 'ZIP_CODE', 'PRODUCT_CODE', 'VARIANT_CODE', 'STATE', 'CATEGORY', 'CATEGORY_ITEM_COUNT', 'CATEGORY_VALUE', 'BRAND_VALUE', 'VARIANT_ITEM_COUNT', 'PRODUCT_ITEM_COUNT', 'PERSON_TYPE', 'USER', 'SUBTOTAL_VALUE', 'TOTAL_VALUE');
 
 -- CreateEnum
-CREATE TYPE "Operator" AS ENUM ('EQUAL', 'GREATER', 'GREATER_EQUAL', 'LESS', 'LESS_EQUAL');
+CREATE TYPE "Operator" AS ENUM ('EQUAL', 'NOT_EQUAL', 'GREATER', 'GREATER_EQUAL', 'LESS', 'LESS_EQUAL', 'CONTAINS', 'NOT_CONTAINS', 'EVERY');
 
 -- CreateEnum
-CREATE TYPE "ActionType" AS ENUM ('PRICE_TABLE_ADJUST', 'FIXED_DISCOUNT_BY_QTY', 'FIXED_DISCOUNT_VARIANT', 'FIXED_DISCOUNT_PRODUCT', 'FREE_VARIANT_ITEM', 'FREE_PRODUCT_ITEM', 'PERCENT_DISCOUNT_RECURR', 'PERCENT_DISCOUNT_CATEGORY', 'PERCENT_DISCOUNT_VARIANT', 'PERCENT_DISCOUNT_PRODUCT', 'PERCENT_DISCOUNT_BRAND', 'PERCENT_DISCOUNT_QTY_PRODUCT', 'PERCENT_DISCOUNT_EXTREME', 'PERCENT_DISCOUNT_SHIPPING', 'PERCENT_DISCOUNT_SUBTOTAL', 'PERCENT_DISCOUNT_TOTAL_BEFORE', 'PERCENT_DISCOUNT_PER_PRODUCT', 'FIXED_DISCOUNT_BRAND', 'FIXED_DISCOUNT_SHIPPING', 'FIXED_DISCOUNT_SUBTOTAL', 'FIXED_DISCOUNT_TOTAL_BEFORE', 'FIXED_DISCOUNT_PER_PRODUCT', 'MAX_SHIPPING_DISCOUNT');
+CREATE TYPE "ActionType" AS ENUM ('FIXED_VARIANT_DISCOUNT', 'FIXED_PRODUCT_DISCOUNT', 'FREE_VARIANT_ITEM', 'FREE_PRODUCT_ITEM', 'PERCENT_CATEGORY', 'PERCENT_VARIANT', 'PERCENT_PRODUCT', 'PERCENT_BRAND_ITEMS', 'PERCENT_ITEM_COUNT', 'PERCENT_EXTREME_ITEM', 'PERCENT_SHIPPING', 'PERCENT_SUBTOTAL', 'PERCENT_TOTAL_NO_SHIPPING', 'PERCENT_TOTAL_PER_PRODUCT', 'FIXED_BRAND_ITEMS', 'FIXED_SHIPPING', 'FIXED_SUBTOTAL', 'FIXED_TOTAL_NO_SHIPPING', 'FIXED_TOTAL_PER_PRODUCT', 'MAX_SHIPPING_DISCOUNT');
 
 -- CreateEnum
 CREATE TYPE "DisplayType" AS ENUM ('SPOT', 'PRODUCT_PAGE');
@@ -240,6 +240,7 @@ CREATE TABLE "products" (
     "stock" INTEGER NOT NULL DEFAULT 0,
     "view" INTEGER DEFAULT 0,
     "mainPromotion_id" TEXT,
+    "buyTogether_id" TEXT,
     "status" "StatusProduct" NOT NULL DEFAULT 'DISPONIVEL',
     "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
@@ -386,14 +387,13 @@ CREATE TABLE "promotions" (
 );
 
 -- CreateTable
-CREATE TABLE "coupons" (
+CREATE TABLE "promotion_coupons" (
     "id" TEXT NOT NULL,
     "code" TEXT NOT NULL,
     "promotion_id" TEXT NOT NULL,
-    "usedCount" INTEGER NOT NULL DEFAULT 0,
     "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "coupons_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "promotion_coupons_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -432,6 +432,17 @@ CREATE TABLE "promotion_displays" (
 );
 
 -- CreateTable
+CREATE TABLE "promotion_badges" (
+    "id" TEXT NOT NULL,
+    "promotion_id" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "imageUrl" TEXT NOT NULL,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "promotion_badges_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "productsViews" (
     "id" UUID NOT NULL,
     "product_id" UUID,
@@ -439,19 +450,6 @@ CREATE TABLE "productsViews" (
     "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "productsViews_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "promotionRules" (
-    "id" TEXT NOT NULL,
-    "promotion_id" TEXT NOT NULL,
-    "scope" "PromotionScope" NOT NULL,
-    "targetIds" TEXT[],
-    "quantity" INTEGER,
-    "applyTo" TEXT,
-    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT "promotionRules_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -511,8 +509,8 @@ CREATE TABLE "reviews" (
 -- CreateTable
 CREATE TABLE "buysTogethers" (
     "id" TEXT NOT NULL,
-    "product_id" UUID,
     "name" TEXT,
+    "products" JSONB,
     "status" "StatusBuyTogether" NOT NULL DEFAULT 'SIM',
     "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -927,7 +925,7 @@ CREATE UNIQUE INDEX "productsVariants_sku_key" ON "productsVariants"("sku");
 CREATE UNIQUE INDEX "productsRelations_parentProduct_id_childProduct_id_relation_key" ON "productsRelations"("parentProduct_id", "childProduct_id", "relationType");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "coupons_code_key" ON "coupons"("code");
+CREATE UNIQUE INDEX "promotion_coupons_code_key" ON "promotion_coupons"("code");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "productsViews_product_id_ipAddress_key" ON "productsViews"("product_id", "ipAddress");
@@ -969,6 +967,9 @@ CREATE INDEX "_DirectCategoryFilters_B_index" ON "_DirectCategoryFilters"("B");
 ALTER TABLE "products" ADD CONSTRAINT "products_mainPromotion_id_fkey" FOREIGN KEY ("mainPromotion_id") REFERENCES "promotions"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "products" ADD CONSTRAINT "products_buyTogether_id_fkey" FOREIGN KEY ("buyTogether_id") REFERENCES "buysTogethers"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "productsVariants" ADD CONSTRAINT "productsVariants_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "products"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -1005,7 +1006,7 @@ ALTER TABLE "productsImages" ADD CONSTRAINT "productsImages_product_id_fkey" FOR
 ALTER TABLE "productsVideos" ADD CONSTRAINT "productsVideos_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "products"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "coupons" ADD CONSTRAINT "coupons_promotion_id_fkey" FOREIGN KEY ("promotion_id") REFERENCES "promotions"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "promotion_coupons" ADD CONSTRAINT "promotion_coupons_promotion_id_fkey" FOREIGN KEY ("promotion_id") REFERENCES "promotions"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "promotion_conditions" ADD CONSTRAINT "promotion_conditions_promotion_id_fkey" FOREIGN KEY ("promotion_id") REFERENCES "promotions"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -1017,10 +1018,10 @@ ALTER TABLE "promotion_actions" ADD CONSTRAINT "promotion_actions_promotion_id_f
 ALTER TABLE "promotion_displays" ADD CONSTRAINT "promotion_displays_promotion_id_fkey" FOREIGN KEY ("promotion_id") REFERENCES "promotions"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "productsViews" ADD CONSTRAINT "productsViews_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "products"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "promotion_badges" ADD CONSTRAINT "promotion_badges_promotion_id_fkey" FOREIGN KEY ("promotion_id") REFERENCES "promotions"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "promotionRules" ADD CONSTRAINT "promotionRules_promotion_id_fkey" FOREIGN KEY ("promotion_id") REFERENCES "promotions"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "productsViews" ADD CONSTRAINT "productsViews_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "products"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "promotionUsages" ADD CONSTRAINT "promotionUsages_promotion_id_fkey" FOREIGN KEY ("promotion_id") REFERENCES "promotions"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -1051,9 +1052,6 @@ ALTER TABLE "reviews" ADD CONSTRAINT "reviews_product_id_fkey" FOREIGN KEY ("pro
 
 -- AddForeignKey
 ALTER TABLE "reviews" ADD CONSTRAINT "reviews_customer_id_fkey" FOREIGN KEY ("customer_id") REFERENCES "customers"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "buysTogethers" ADD CONSTRAINT "buysTogethers_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "products"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "orders" ADD CONSTRAINT "orders_customer_id_fkey" FOREIGN KEY ("customer_id") REFERENCES "customers"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

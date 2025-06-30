@@ -4,9 +4,9 @@ import { UpdateBuyTogetherService } from "../../services/buyTogether/UpdateBuyTo
 class UpdateBuyTogetherController {
     async handle(req: Request, res: Response) {
         const { id } = req.params;
-        const { name_group, products } = req.body;
+        const { name, products } = req.body;
         const service = new UpdateBuyTogetherService();
-        const updated = await service.execute({ id, name_group, products });
+        const updated = await service.execute({ id, name, products });
         res.json(updated);
     }
 }

@@ -14,12 +14,11 @@ class GetBuyTogetherService {
     ) {
         const skip = (page - 1) * limit;
 
-        // Construção da cláusula 'where' com filtro de texto e data
         const whereClause: Prisma.BuyTogetherWhereInput = {
             ...(
                 search ? {
                     OR: [
-                        { name_group: { contains: search, mode: Prisma.QueryMode.insensitive } },
+                        { name: { contains: search, mode: Prisma.QueryMode.insensitive } },
                     ]
                 } : {}
             ),

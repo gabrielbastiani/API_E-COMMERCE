@@ -1,16 +1,16 @@
 import prismaClient from "../../prisma";
 
 interface CreateBuyTogetherProps {
-    name_group: string;
+    name: string;
     products: string[];
 }
 
 class CreateBuyTogetherService {
-    async execute({ name_group, products }: CreateBuyTogetherProps) {
+    async execute({ name, products }: CreateBuyTogetherProps) {
         // 1) Cria o grupo
         const group = await prismaClient.buyTogether.create({
             data: {
-                name_group,
+                name,
                 products: products, // salva JSON
             },
         });
