@@ -3,8 +3,6 @@ import { StatusBuyTogetherService } from "../../services/buyTogether/StatusBuyTo
 
 class StatusBuyTogetherController {
     async handle(req: Request, res: Response) {
-
-        console.log(req.body)
         
         const { id, status } = req.body;
 

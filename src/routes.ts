@@ -146,6 +146,7 @@ import { ListBuyTogetherController } from "./controllers/buyTogether/ListBuyToge
 import { UpdateBuyTogetherController } from "./controllers/buyTogether/UpdateBuyTogetherController";
 import { StatusBuyTogetherController } from "./controllers/buyTogether/StatusBuyTogetherController";
 import { DeleteBuyTogetherController } from "./controllers/buyTogether/DeleteBuyTogetherController";
+import { FindUniqueBuyTogetherController } from "./controllers/buyTogether/FindUniqueBuyTogetherController";
 
 
 
@@ -322,6 +323,7 @@ router.get("/buy_together", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER
 router.put("/buy_together/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new UpdateBuyTogetherController().handle);
 router.put('/buyTogether/status', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new StatusBuyTogetherController().handle);
 router.delete('/buyTogether/delete', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new DeleteBuyTogetherController().handle);
+router.get('/buy_together/:id', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new FindUniqueBuyTogetherController().handle);
 
 
 export { router };

@@ -8,8 +8,6 @@ interface BuyTogetherProps {
 
 class StatusBuyTogetherService {
     async execute({ id, status }: BuyTogetherProps) {
-
-        console.log(id, status)
         
         const buy = await prismaClient.buyTogether.update({
             where: {
