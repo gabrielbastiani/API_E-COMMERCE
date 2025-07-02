@@ -10,6 +10,7 @@ import {
 export class PromotionController {
     private service = new PromotionService()
     update: any
+    handleGetAll: any
 
     public async create(req: Request, res: Response) {
         try {

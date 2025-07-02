@@ -149,7 +149,15 @@ import { DeleteBuyTogetherController } from "./controllers/buyTogether/DeleteBuy
 import { FindUniqueBuyTogetherController } from "./controllers/buyTogether/FindUniqueBuyTogetherController";
 
 
-
+// --- FILTERS --- //
+import { FilterController } from "./controllers/filter/FilterController";
+import { FilterOptionController } from "./controllers/filter/FilterOptionController";
+import { FilterGroupController } from "./controllers/filter/FilterGroupController";
+import { CategoryFilterController } from "./controllers/filter/CategoryFilterController";
+const controllerFilter = new FilterController();
+const ctrlFilterOption = new FilterOptionController();
+const ctrlFilterGroup = new FilterGroupController();
+const ctrlFilterCategory = new CategoryFilterController();
 
 
 
@@ -324,6 +332,31 @@ router.put("/buy_together/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "S
 router.put('/buyTogether/status', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new StatusBuyTogetherController().handle);
 router.delete('/buyTogether/delete', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new DeleteBuyTogetherController().handle);
 router.get('/buy_together/:id', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new FindUniqueBuyTogetherController().handle);
+
+// --- FILTERS --- //
+router.post("/", controllerFilter.handleCreate.bind(controllerFilter));
+router.get("/", controllerFilter.handleGetAll.bind(controllerFilter));
+router.get("/:id", controllerFilter.handleGetOne.bind(controllerFilter));
+router.put("/:id", controllerFilter.handleUpdate.bind(controllerFilter));
+router.delete("/:id", controllerFilter.handleDelete.bind(controllerFilter));
+
+router.post("/", ctrlFilterOption.handleCreate.bind(ctrlFilterOption));
+router.get("/", ctrlFilterOption.handleGetAll.bind(ctrlFilterOption));
+router.get("/:id", ctrlFilterOption.handleGetOne.bind(ctrlFilterOption));
+router.put("/:id", ctrlFilterOption.handleUpdate.bind(ctrlFilterOption));
+router.delete("/:id", ctrlFilterOption.handleDelete.bind(ctrlFilterOption));
+
+router.post("/", ctrlFilterGroup.handleCreate.bind(ctrlFilterGroup));
+router.get("/", ctrlFilterGroup.handleGetAll.bind(ctrlFilterGroup));
+router.get("/:id", ctrlFilterGroup.handleGetOne.bind(ctrlFilterGroup));
+router.put("/:id", ctrlFilterGroup.handleUpdate.bind(ctrlFilterGroup));
+router.delete("/:id", ctrlFilterGroup.handleDelete.bind(ctrlFilterGroup));
+
+router.post("/", ctrlFilterCategory.handleCreate.bind(ctrlFilterCategory));
+router.get("/", ctrlFilterCategory.handleGetAll.bind(ctrlFilterCategory));
+router.get("/:id", ctrlFilterCategory.handleGetOne.bind(ctrlFilterCategory));
+router.put("/:id", ctrlFilterCategory.handleUpdate.bind(ctrlFilterCategory));
+router.delete("/:id", ctrlFilterCategory.handleDelete.bind(ctrlFilterCategory));
 
 
 export { router };
