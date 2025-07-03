@@ -18,6 +18,7 @@ interface CreateFilterDTO {
     maxValue?: number | null;
     groupId?: string | null;
     options?: {
+        id?: string;
         label: string;
         value: string;
         order?: number;
@@ -27,21 +28,8 @@ interface CreateFilterDTO {
     }[];
 }
 
-interface UpdateFilterDTO {
+interface UpdateFilterDTO extends Partial<CreateFilterDTO> {
     id: string;
-    name?: string;
-    fieldName?: string;
-    type?: FilterType;
-    dataType?: FilterDataType;
-    displayStyle?: FilterDisplayStyle;
-    isActive?: boolean;
-    order?: number;
-    autoPopulate?: boolean;
-    minValue?: number | null;
-    maxValue?: number | null;
-    groupId?: string | null;
-    // NOTE: não incluímos `options` aqui—essas alterações ficam
-    // no CRUD separado de filter-options
 }
 
 class FilterService {
@@ -82,7 +70,10 @@ class FilterService {
         return prismaClient.filter.findMany({
             include: {
                 group: true,
-                options: true
+                options: true,
+                category: true,
+                categoryFilter: true,
+                directCategories: true
             },
             orderBy: { order: "asc" }
         });
@@ -93,7 +84,10 @@ class FilterService {
             where: { id },
             include: {
                 group: true,
-                options: true
+                options: true,
+                category: true,
+                categoryFilter: true,
+                directCategories: true
             }
         });
     }
@@ -102,33 +96,76 @@ class FilterService {
         const {
             id,
             groupId,
-            // não pegamos `options` aqui
+            options = [],
             ...dataFields
         } = dto;
 
-        return prismaClient.filter.update({
-            where: { id },
-            data: {
-                ...dataFields,
-                // trata alteração de grupo:
-                ...(groupId === undefined
-                    ? {} // não mexe no relacionamento
-                    : groupId
-                        ? { group: { connect: { id: groupId } } }
-                        : { group: { disconnect: true } }
-                )
-            },
-            include: {
-                group: true,
-                options: true
+        return prismaClient.$transaction(async (prisma) => {
+            // 1) Atualiza dados básicos e relação de grupo
+            await prisma.filter.update({
+                where: { id },
+                data: {
+                    ...dataFields,
+                    ...(groupId === undefined
+                        ? {}
+                        : groupId
+                            ? { group: { connect: { id: groupId } } }
+                            : { group: { disconnect: true } })
+                }
+            });
+
+            // 2) Lista de IDs enviados no payload
+            const incomingIds = options.filter(o => o.id).map(o => o.id!) as string[];
+
+            // 3) Deleta opções que não existem mais
+            await prisma.filterOption.deleteMany({
+                where: {
+                    filter_id: id,
+                    id: { notIn: incomingIds }
+                }
+            });
+
+            // 4) Para cada option do payload, upsert
+            for (const opt of options) {
+                if (opt.id) {
+                    // update existente
+                    await prisma.filterOption.update({
+                        where: { id: opt.id },
+                        data: {
+                            label: opt.label,
+                            value: opt.value,
+                            order: opt.order ?? 0,
+                            iconUrl: opt.iconUrl ?? null,
+                            colorCode: opt.colorCode ?? null,
+                            isDefault: opt.isDefault ?? false
+                        }
+                    });
+                } else {
+                    // create novo
+                    await prisma.filterOption.create({
+                        data: {
+                            filter: { connect: { id } },
+                            label: opt.label,
+                            value: opt.value,
+                            order: opt.order ?? 0,
+                            iconUrl: opt.iconUrl ?? null,
+                            colorCode: opt.colorCode ?? null,
+                            isDefault: opt.isDefault ?? false
+                        }
+                    });
+                }
             }
+
+            // 5) Retorna o filtro atualizado com opções
+            return prisma.filter.findUnique({
+                where: { id },
+                include: { options: true, group: true }
+            });
         });
     }
 
     async delete(id: string) {
-        return prismaClient.filter.delete({
-            where: { id }
-        });
+        return prismaClient.filter.delete({ where: { id } });
     }
 }
 

@@ -35,7 +35,7 @@ class FilterController {
         try {
             const updated = await this.service.update({
                 id,
-                ...req.body
+                ...req.body,
             });
             res.json(updated);
         } catch (err: any) {

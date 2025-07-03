@@ -153,10 +153,15 @@ import { FilterController } from "./controllers/filter/FilterController";
 import { FilterOptionController } from "./controllers/filter/FilterOptionController";
 import { FilterGroupController } from "./controllers/filter/FilterGroupController";
 import { CategoryFilterController } from "./controllers/filter/CategoryFilterController";
+import { FilterCmsController } from "./controllers/filter/FilterCmsController";
+import { FilterDeleteController } from "./controllers/filter/FilterDeleteController";
+import { StatusFilterController } from "./controllers/filter/StatusFilterController";
+import { GetFilterCategoriesController } from "./controllers/filter/GetFilterCategoriesController";
 const controllerFilter = new FilterController();
 const ctrlFilterOption = new FilterOptionController();
 const ctrlFilterGroup = new FilterGroupController();
 const ctrlFilterCategory = new CategoryFilterController();
+const filterDeleteCtrl = new FilterDeleteController();
 
 
 
@@ -335,27 +340,32 @@ router.get('/buy_together/:id', isAuthenticatedEcommerce, checkRole(["ADMIN", "S
 // --- FILTERS --- //
 router.post("/filters/create", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), controllerFilter.handleCreate.bind(controllerFilter));
 router.get("/filters/getAll", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), controllerFilter.handleGetAll.bind(controllerFilter));
-router.get("/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), controllerFilter.handleGetOne.bind(controllerFilter));
-router.put("/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), controllerFilter.handleUpdate.bind(controllerFilter));
-router.delete("/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), controllerFilter.handleDelete.bind(controllerFilter));
+router.get("/filters/get/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), controllerFilter.handleGetOne.bind(controllerFilter));
+router.put("/filter/update/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), controllerFilter.handleUpdate.bind(controllerFilter));
+router.delete("/filter/delete/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), controllerFilter.handleDelete.bind(controllerFilter));
 
-router.post("/filter-options/create", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), ctrlFilterOption.handleCreate.bind(ctrlFilterOption));
-router.get("/filter-options/getAll", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), ctrlFilterOption.handleGetAll.bind(ctrlFilterOption));
-router.get("/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), ctrlFilterOption.handleGetOne.bind(ctrlFilterOption));
-router.put("/filter-options/update/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), ctrlFilterOption.handleUpdate.bind(ctrlFilterOption));
-router.delete("/filter-options/deleteOption/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), ctrlFilterOption.handleDelete.bind(ctrlFilterOption));
+router.post("/filterOptions/create", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), ctrlFilterOption.handleCreate.bind(ctrlFilterOption));
+router.get("/filterOptions/getAll", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), ctrlFilterOption.handleGetAll.bind(ctrlFilterOption));
+router.get("/filterOptions/get/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), ctrlFilterOption.handleGetOne.bind(ctrlFilterOption));
+router.put("/filterOptions/update/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), ctrlFilterOption.handleUpdate.bind(ctrlFilterOption));
+router.delete("/filterOptions/deleteOption/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), ctrlFilterOption.handleDelete.bind(ctrlFilterOption));
 
-router.post("/filter-groups/create", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), ctrlFilterGroup.handleCreate.bind(ctrlFilterGroup));
-router.get("/filter-groups/getAll", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), ctrlFilterGroup.handleGetAll.bind(ctrlFilterGroup));
-router.get("/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), ctrlFilterGroup.handleGetOne.bind(ctrlFilterGroup));
-router.put("/filter-groups/update/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), ctrlFilterGroup.handleUpdate.bind(ctrlFilterGroup));
-router.delete("/filter-groups/deleteGroup/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), ctrlFilterGroup.handleDelete.bind(ctrlFilterGroup));
+router.post("/filterGroups/create", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), ctrlFilterGroup.handleCreate.bind(ctrlFilterGroup));
+router.get("/filterGroups/getAll", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), ctrlFilterGroup.handleGetAll.bind(ctrlFilterGroup));
+router.get("/filterGroups/group/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), ctrlFilterGroup.handleGetOne.bind(ctrlFilterGroup));
+router.put("/filterGroups/update/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), ctrlFilterGroup.handleUpdate.bind(ctrlFilterGroup));
+router.delete("/filterGroups/deleteGroup/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), ctrlFilterGroup.handleDelete.bind(ctrlFilterGroup));
 
-router.post("/category-filters/create", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), ctrlFilterCategory.handleCreate.bind(ctrlFilterCategory));
-router.get("/", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), ctrlFilterCategory.handleGetAll.bind(ctrlFilterCategory));
-router.get("/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), ctrlFilterCategory.handleGetOne.bind(ctrlFilterCategory));
-router.put("/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), ctrlFilterCategory.handleUpdate.bind(ctrlFilterCategory));
-router.delete("/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), ctrlFilterCategory.handleDelete.bind(ctrlFilterCategory));
+router.post("/categoryFilters/create", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), ctrlFilterCategory.handleCreate.bind(ctrlFilterCategory));
+router.get("/categoryFilters/getAll", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), ctrlFilterCategory.handleGetAll.bind(ctrlFilterCategory));
+router.get("/categoryFilters/get/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), ctrlFilterCategory.handleGetOne.bind(ctrlFilterCategory));
+router.put("/categoryFilters/update/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), ctrlFilterCategory.handleUpdate.bind(ctrlFilterCategory));
+router.delete("/categoryFilters/delete/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), ctrlFilterCategory.handleDelete.bind(ctrlFilterCategory));
+router.get('/filter/categories', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new GetFilterCategoriesController().handle);
+
+router.get('/filters/cms', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new FilterCmsController().handle);
+router.delete('/filterData/delete', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), (req, res) => filterDeleteCtrl.handle(req, res));
+router.put('/filter/status', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new StatusFilterController().handle);
 
 
 export { router };
