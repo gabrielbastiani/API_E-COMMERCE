@@ -163,6 +163,18 @@ const ctrlFilterGroup = new FilterGroupController();
 const ctrlFilterCategory = new CategoryFilterController();
 const filterDeleteCtrl = new FilterDeleteController();
 
+// --- MENUS --- //
+import { CreateMenuController } from "./controllers/menus/CreateMenuController";
+import { ListMenusController } from "./controllers/menus/ListMenusController";
+import { UpdateMenuController } from "./controllers/menus/UpdateMenuController";
+import { DeleteMenuController } from "./controllers/menus/DeleteMenuController";
+import { CreateMenuItemController } from "./controllers/menus/menuItems/CreateMenuItemController";
+import { ListMenuItemsController } from "./controllers/menus/menuItems/ListMenuItemsController";
+import { UpdateMenuItemController } from "./controllers/menus/menuItems/UpdateMenuItemController";
+import { DeleteMenuItemController } from "./controllers/menus/menuItems/DeleteMenuItemController";
+import { StatusMenuController } from "./controllers/menus/StatusMenuController";
+import { MenuCmsController } from "./controllers/menus/MenuCmsController";
+import { GetUniqueMenuController } from "./controllers/menus/GetUniqueMenuController";
 
 
 
@@ -366,6 +378,24 @@ router.get('/filter/categories', isAuthenticatedEcommerce, checkRole(["ADMIN", "
 router.get('/filters/cms', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new FilterCmsController().handle);
 router.delete('/filterData/delete', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), (req, res) => filterDeleteCtrl.handle(req, res));
 router.put('/filter/status', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new StatusFilterController().handle);
+
+// --- MENUS --- //
+router.post("/menu/create", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new CreateMenuController().handle);
+router.get("/menu/get", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new ListMenusController().handle);
+router.put("/menu/getUnique/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new UpdateMenuController().handle);
+router.delete("/menu/get/delete/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new DeleteMenuController().handle);
+
+router.post("/menuItem/create", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), upload_image.single("icon"),
+    (req, res, next) => new CreateMenuItemController().handle(req, res).catch(next)
+);
+router.get("/menuItem/get", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new ListMenuItemsController().handle);
+router.put("/menuItem/getUnique/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), upload_image.single("icon"),
+    (req, res, next) => new UpdateMenuItemController().handle(req, res).catch(next)
+);
+router.delete("/menuItem/get/delete/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new DeleteMenuItemController().handle);
+router.put('/menu/status', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new StatusMenuController().handle);
+router.get('/menu/cms', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new MenuCmsController().handle);
+router.get('/menus/get/data', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new GetUniqueMenuController().handle);
 
 
 export { router };

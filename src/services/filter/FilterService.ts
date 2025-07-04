@@ -114,21 +114,25 @@ class FilterService {
                 }
             });
 
-            // 2) Lista de IDs enviados no payload
-            const incomingIds = options.filter(o => o.id).map(o => o.id!) as string[];
+            // 2) Busca IDs reais existentes
+            const existing = await prisma.filterOption.findMany({
+                where: { filter_id: id },
+                select: { id: true }
+            });
+            const existingIds = existing.map(x => x.id);
 
-            // 3) Deleta opções que não existem mais
+            // 3) Deleta quaisquer opções que NÃO vieram no payload **com** IDs reais
             await prisma.filterOption.deleteMany({
                 where: {
                     filter_id: id,
-                    id: { notIn: incomingIds }
+                    id: { notIn: existingIds.filter(eid => options.some(o => o.id === eid)) }
                 }
             });
 
-            // 4) Para cada option do payload, upsert
+            // 4) Upsert: para cada opção:
             for (const opt of options) {
-                if (opt.id) {
-                    // update existente
+                if (opt.id && existingIds.includes(opt.id)) {
+                    // update
                     await prisma.filterOption.update({
                         where: { id: opt.id },
                         data: {
@@ -141,7 +145,7 @@ class FilterService {
                         }
                     });
                 } else {
-                    // create novo
+                    // create
                     await prisma.filterOption.create({
                         data: {
                             filter: { connect: { id } },
