@@ -6,7 +6,7 @@ interface CreateMenuItemDTO {
   type: "INTERNAL_LINK" | "EXTERNAL_LINK" | "CATEGORY" | "PRODUCT" | "CUSTOM_PAGE";
   url?: string;
   category_id?: string;
-  productId?: string;
+  product_id?: string;
   customPageSlug?: string;
   icon?: string;
   isActive?: boolean;
@@ -22,7 +22,7 @@ export class CreateMenuItemService {
       type,
       url,
       category_id,
-      productId,
+      product_id,
       customPageSlug,
       icon,
       isActive = true,
@@ -31,30 +31,19 @@ export class CreateMenuItemService {
       parentId,
     } = data;
 
-    const createData: Prisma.MenuItemCreateInput = {
+    // Monta dinamicamente, incluindo somente campos preenchidos
+    const createData: Prisma.MenuItemUncheckedCreateInput = {
       label,
       type,
       isActive,
       order,
-      ...(url && { url }),
-      // relações
-      ...(category_id && {
-        category: { connect: { id: category_id } },
-      }),
-      ...(productId && {
-        product: { connect: { id: productId } },
-      }),
-      ...(customPageSlug && {
-        customPage: { connect: { slug: customPageSlug } },
-      }),
-      ...(menu_id && {
-        menu: { connect: { id: menu_id } },
-      }),
-      ...(parentId && {
-        parent: { connect: { id: parentId } },
-      }),
-      // ícone: só o caminho/nome do arquivo, supondo que multer já salvou em diskStorage
-      ...(icon && { icon }),
+      ...(url ? { url } : {}),
+      ...(category_id ? { category_id } : {}),
+      ...(product_id ? { product_id } : {}),
+      ...(customPageSlug ? { customPageSlug } : {}),
+      ...(menu_id ? { menu_id } : {}),
+      ...(parentId ? { parentId } : {}),
+      ...(icon ? { icon } : {}),
     };
 
     const item = await prismaClient.menuItem.create({

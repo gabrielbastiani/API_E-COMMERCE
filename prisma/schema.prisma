@@ -725,8 +725,8 @@ model Category {
   promotion_id  String?
   directFilters Filter[]          @relation("DirectCategoryFilters")
   filters       CategoryFilter[]
-  Filter        Filter?           @relation(fields: [filterId], references: [id])
-  filterId      String?
+  Filter        Filter?           @relation(fields: [filter_id], references: [id])
+  filter_id     String?
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
   updated_at DateTime @updatedAt
@@ -863,7 +863,7 @@ model AbandonedCart {
   cart_id        String          @unique
   customer       Customer        @relation(fields: [customer_id], references: [id])
   customer_id    String          @db.Uuid
-  items          Json // Ex: [{ productId: "123", quantity: 2, price: 99.90 }]
+  items          Json // Ex: [{ product_id: "123", quantity: 2, price: 99.90 }]
   total          Float
   abandonedAt    DateTime        @default(now())
   reminderSentAt DateTime? // Último lembrete enviado
@@ -1161,6 +1161,7 @@ model Menu {
   name     String // Nome do menu (ex.: "Header Menu", "Footer Menu")
   isActive Boolean    @default(true)
   order    Int        @default(0) // Caso queira ter vários menus e precise de ordenação
+  icon     String?
   items    MenuItem[] // Relação com itens de menu
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
@@ -1176,7 +1177,7 @@ model MenuItem {
   url            String? // Ex.: "/minha-pagina" ou "https://google.com"
   // Caso o item referencie uma categoria ou produto, podemos ter campos de referência (opcionais):
   category_id    String? // Se type = CATEGORY
-  productId      String? // Se type = PRODUCT
+  product_id     String? // Se type = PRODUCT
   // Caso use páginas customizadas, você pode ter algo como:
   customPageSlug String? // Se type = CUSTOM_PAGE
   icon           String? // Ícone (se quiser exibir um ícone ao lado do label)

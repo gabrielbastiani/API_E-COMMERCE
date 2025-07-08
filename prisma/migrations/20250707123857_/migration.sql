@@ -853,6 +853,7 @@ CREATE TABLE "menus" (
     "name" TEXT NOT NULL,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "order" INTEGER NOT NULL DEFAULT 0,
+    "icon" TEXT,
     "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
@@ -866,7 +867,7 @@ CREATE TABLE "menuItems" (
     "type" "MenuItemType" NOT NULL,
     "url" TEXT,
     "category_id" TEXT,
-    "productId" TEXT,
+    "product_id" TEXT,
     "customPageSlug" TEXT,
     "icon" TEXT,
     "isActive" BOOLEAN NOT NULL DEFAULT true,

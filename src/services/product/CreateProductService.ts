@@ -195,13 +195,13 @@ class CreateProductService {
     /**
      * Processa as imagens principais do produto, marcando isPrimary com base no nome informado.
      * @param prisma - instância do Prisma dentro da transação
-     * @param productId - ID do produto recém-criado
+     * @param product_id - ID do produto recém-criado
      * @param images - array de arquivos recebidos pelo multer
      * @param primaryImageName - nome (originalname) da imagem que deve ser marcada como principal
      */
     private async processMainImages(
         prisma: any,
-        productId: string,
+        product_id: string,
         images: any[],
         primaryImageName?: string
     ) {
@@ -220,7 +220,7 @@ class CreateProductService {
             }
 
             return {
-                product_id: productId,
+                product_id: product_id,
                 url: path.basename(image.path),
                 altText: image.originalname,
                 isPrimary: isPrimaryFlag
@@ -235,7 +235,7 @@ class CreateProductService {
      */
     private async processVariant(
         prisma: any,
-        productId: string,
+        product_id: string,
         variant: any,
         files: any
     ) {
@@ -247,7 +247,7 @@ class CreateProductService {
         // Cria a variant no banco
         const newVariant = await prisma.productVariant.create({
             data: {
-                product_id: productId,
+                product_id: product_id,
                 sku: variant.sku,
                 price_of: variant.price_of,
                 price_per: variant.price_per,
@@ -338,15 +338,15 @@ class CreateProductService {
     // Processa relações entre produtos (sem alterações aqui)
     private async processProductRelations(
         prisma: any,
-        productId: string,
+        product_id: string,
         relations: ProductRequest["relations"]
     ) {
         const rels = relations ?? [];
         for (const rel of rels) {
             const isChild = rel.relationDirection === "child";
 
-            const parentId = isChild ? productId : rel.relatedProductId;
-            const childId = isChild ? rel.relatedProductId : productId;
+            const parentId = isChild ? product_id : rel.relatedProductId;
+            const childId = isChild ? rel.relatedProductId : product_id;
 
             const [parentExists, childExists] = await Promise.all([
                 prisma.product.findUnique({ where: { id: parentId } }),

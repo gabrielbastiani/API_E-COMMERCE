@@ -7,11 +7,11 @@ interface UpdateMenuItemDTO {
     id: string;
     label?: string;
     type?: "INTERNAL_LINK" | "EXTERNAL_LINK" | "CATEGORY" | "PRODUCT" | "CUSTOM_PAGE";
-    url?: string;
-    category_id?: string | null;    // null para desconectar
-    productId?: string | null;
+    url?: string | null;
+    category_id?: string | null;
+    product_id?: string | null;
     customPageSlug?: string | null;
-    iconFileName?: string;           // novo nome de arquivo, recebido do multer
+    iconFileName?: string; // filename novo
     isActive?: boolean;
     order?: number;
     menu_id?: string | null;
@@ -26,7 +26,7 @@ export class UpdateMenuItemService {
             type,
             url,
             category_id,
-            productId,
+            product_id,
             customPageSlug,
             iconFileName,
             isActive,
@@ -35,62 +35,32 @@ export class UpdateMenuItemService {
             parentId,
         } = data;
 
-        // 1) Buscamos o item existente, para podermos limpar o ícone antigo
-        const existing = await prismaClient.menuItem.findUnique({
-            where: { id },
-        });
-        if (!existing) {
-            throw new Error("MenuItem não encontrado");
-        }
+        // 1) busca existente p/ limpar ícone antigo
+        const existing = await prismaClient.menuItem.findUnique({ where: { id } });
+        if (!existing) throw new Error("MenuItem não encontrado");
 
-        // 2) Se veio um novo ícone e havia um antigo, removemos o arquivo antigo do disco
+        // 2) remove ícone antigo se há um novo upload
         if (iconFileName && existing.icon) {
-            const oldPath = path.resolve("uploads/icons", existing.icon);
-            fs.unlink(oldPath, (err) => {
-                // só logamos o erro, não interrompemos a execução
-                if (err) console.warn("Falha ao remover ícone antigo:", err);
-            });
+            const oldPath = path.resolve("images", existing.icon);
+            fs.unlink(oldPath, err => err && console.warn("falha ao remover ícone antigo:", err));
         }
 
-        // 3) Montamos o objeto de update usando nested connect / disconnect
-        const updateData: Prisma.MenuItemUpdateInput = {
-            // campos escalares
+        // 3) monta unchecked update input (campos escalares diretamente)
+        const updateData: Prisma.MenuItemUncheckedUpdateInput = {
             ...(label !== undefined && { label }),
             ...(type !== undefined && { type }),
             ...(url !== undefined && { url }),
-            icon: iconFileName !== undefined ? iconFileName : undefined,
+            ...(category_id !== undefined && { category_id }),
+            ...(product_id !== undefined && { product_id }),
+            ...(customPageSlug !== undefined && { customPageSlug }),
             ...(isActive !== undefined && { isActive }),
             ...(order !== undefined && { order }),
-
-            // relações – connect, ou disconnect se veio null explicitamente
-            ...(category_id !== undefined && {
-                category: category_id
-                    ? { connect: { id: category_id } }
-                    : { disconnect: true },
-            }),
-            ...(productId !== undefined && {
-                product: productId
-                    ? { connect: { id: productId } }
-                    : { disconnect: true },
-            }),
-            ...(customPageSlug !== undefined && {
-                customPage: customPageSlug
-                    ? { connect: { slug: customPageSlug } }
-                    : { disconnect: true },
-            }),
-            ...(menu_id !== undefined && {
-                menu: menu_id
-                    ? { connect: { id: menu_id } }
-                    : { disconnect: true },
-            }),
-            ...(parentId !== undefined && {
-                parent: parentId
-                    ? { connect: { id: parentId } }
-                    : { disconnect: true },
-            }),
+            ...(menu_id !== undefined && { menu_id }),
+            ...(parentId !== undefined && { parentId }),
+            ...(iconFileName !== undefined && { icon: iconFileName }),
         };
 
-        // 4) Efetua o update
+        // 4) executa update
         const updated = await prismaClient.menuItem.update({
             where: { id },
             data: updateData,

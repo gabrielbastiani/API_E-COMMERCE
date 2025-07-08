@@ -43,7 +43,7 @@ class MenuCmsService {
                     include: {
                         children: true,
                         parent: true,
-                        menu: true
+                        menu: true,
                     }
                 }
             }
