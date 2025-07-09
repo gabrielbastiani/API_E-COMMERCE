@@ -383,7 +383,7 @@ router.put('/filter/status', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPE
 router.post("/menu/create", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), upload_image.single('file'), new CreateMenuController().handle);
 router.get("/menu/get", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new ListMenusController().handle);
 router.put("/menu/getUnique/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), upload_image.single('file'), new UpdateMenuController().handle);
-router.delete("/menu/get/delete/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new DeleteMenuController().handle);
+router.delete("/menu/delete", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new DeleteMenuController().handle);
 
 router.post("/menuItem/create", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), upload_image.single("file"),
     (req, res, next) => new CreateMenuItemController().handle(req, res).catch(next)
