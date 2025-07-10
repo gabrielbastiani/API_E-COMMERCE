@@ -74,6 +74,7 @@ import { DeleteIntervalBannerController } from "./controllers/marketing_publicat
 import { CreateMarketingPublicationController } from "./controllers/marketing_publication/CreateMarketingPublicationController";
 import { BulkDeleteMarketingPublicationController } from "./controllers/marketing_publication/BulkDeleteMarketingPublicationController";
 import { AllMarketingPublicationController } from "./controllers/marketing_publication/AllMarketingPublicationController";
+import { ExistingSidebarBannerPageController } from "./controllers/marketing_publication/ExistingSidebarBannerPageController";
 
 // --- NEWSLETTER --- //
 import { NewsletterCreateController } from "./controllers/newsletter/NewsletterCreateController";
@@ -126,6 +127,7 @@ import { CreateProductController } from "./controllers/product/CreateProductCont
 import { AllProductsController } from "./controllers/product/AllProductsController";
 import { CmsGetProductController } from "./controllers/product/CmsGetProductController";
 import { ProductDeleteController } from "./controllers/product/ProductDeleteController";
+import { NavBarSearchProductStoreController } from "./controllers/product/NavBarSearchProductStoreController";
 
 // --- PROMOTION --- //
 import { PromotionController } from "./controllers/promotion/PromotionController";
@@ -175,6 +177,7 @@ import { DeleteMenuItemController } from "./controllers/menus/menuItems/DeleteMe
 import { StatusMenuController } from "./controllers/menus/StatusMenuController";
 import { MenuCmsController } from "./controllers/menus/MenuCmsController";
 import { GetUniqueMenuController } from "./controllers/menus/GetUniqueMenuController";
+
 
 
 
@@ -396,6 +399,15 @@ router.delete("/menuItem/get/delete/:id", isAuthenticatedEcommerce, checkRole(["
 router.put('/menu/status', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new StatusMenuController().handle);
 router.get('/menu/cms', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new MenuCmsController().handle);
 router.get('/menus/get/data', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new GetUniqueMenuController().handle);
+
+
+
+// ----------------------------- ROUTES STORE ----------------------------- //
+// --- MARKETING PUBLICAÇÔES --- //
+router.get('/marketing_publication/existing_sidebar', new ExistingSidebarBannerPageController().handle);
+
+// --- PRODUCT --- //
+router.get('/product/store/search_nav_bar', new NavBarSearchProductStoreController().handle);
 
 
 export { router };
