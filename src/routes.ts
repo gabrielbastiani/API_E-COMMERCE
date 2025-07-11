@@ -47,6 +47,7 @@ import { ColorsController } from "./controllers/configuration_ecommerce/colors_s
 // --- CONFIGURAÇÔES DO ECOMMERCE --- //
 import { CreateConfigurationController } from "./controllers/configuration_ecommerce/CreateConfigurationController";
 import { DeleteFilesExcelController } from "./controllers/configuration_ecommerce/DeleteFilesExcelController";
+import { GetSeoBlogPageController } from "./controllers/configuration_ecommerce/seo/GetSeoEcommercePageController";
 
 // --- TEMPLATES DE EMAILS
 import { TemplatesEmailsController } from "./controllers/templates_emails/TemplatesEmailsController";
@@ -75,6 +76,8 @@ import { CreateMarketingPublicationController } from "./controllers/marketing_pu
 import { BulkDeleteMarketingPublicationController } from "./controllers/marketing_publication/BulkDeleteMarketingPublicationController";
 import { AllMarketingPublicationController } from "./controllers/marketing_publication/AllMarketingPublicationController";
 import { ExistingSidebarBannerPageController } from "./controllers/marketing_publication/ExistingSidebarBannerPageController";
+import { PopupStoreMarketingPublicationController } from "./controllers/marketing_publication/PopupStoreMarketingPublicationController";
+import { SlideStoreMarketingPublicationController } from "./controllers/marketing_publication/SlideStoreMarketingPublicationController";
 
 // --- NEWSLETTER --- //
 import { NewsletterCreateController } from "./controllers/newsletter/NewsletterCreateController";
@@ -262,7 +265,7 @@ router.put('/template_email/metadata', isAuthenticatedEcommerce, checkRole(['ADM
 router.post('/template_email/render', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new RenderTemplateController().handle)
 router.delete('/email-templates/delete', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new DeleteTemplateController().handle);
 
-// --- MARKETING PUBLICAÇÔES --- //
+// --- MARKETING PUBLICAÇÕES --- //
 router.post('/marketing_publication/create', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), upload_image.single('file'), new CreateMarketingPublicationController().handle);
 router.patch('/marketing_publication/:marketingPublication_id/clicks', new UpdateViewsPuplicationsController().handle);
 router.get('/marketing_publication/store_publications/slides', new MarketingPublicationController().handle);
@@ -271,7 +274,6 @@ router.delete('/marketing_publication/delete_publications', isAuthenticatedEcomm
 router.put('/marketing_publication/delete_publications/delete_image', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new MarketingDeleteImageController().handle);
 router.put('/marketing_publication/interval_banner/update_data', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new IntervalUpdateDataController().handle);
 router.post('/marketing_publication/interval_banner', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new IntervalBannerController().handle);
-router.get('/marketing_publication/interval_banner/page_banner', new IntervalBannerPageController().handle);
 router.get('/marketing_publication/download_excel_delete_marketing', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new GenerateExcelDeletePublicationController().handle);
 router.get('/marketing_publication/existing_publication', new ExistingPublicationPageController().handle);
 router.get('/marketing_publication/interval_banner/existing_interval', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new ExistingIntervalBannerController().handle);
@@ -300,7 +302,7 @@ router.post('/seo/og-images', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUP
 router.delete('/seo/og-image', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new DeleteOgImageController().handle);
 router.post('/seo/twitter-images', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), upload_image.array('images'), new AddTwitterImagesController().handle);
 router.delete('/seo/twitter-image', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new DeleteTwitterImageController().handle);
-router.get('/seo/get_page', new CreateSeoEcommerceController().handle);
+router.get('/seo/get_page', new GetSeoBlogPageController().handle);
 router.get('/seo/all_seos', new AllSeoEcommercePageController().handle);
 
 // --- MEDIA SOCIAL --- //
@@ -405,6 +407,9 @@ router.get('/menus/get/data', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUP
 // ----------------------------- ROUTES STORE ----------------------------- //
 // --- MARKETING PUBLICAÇÔES --- //
 router.get('/marketing_publication/existing_sidebar', new ExistingSidebarBannerPageController().handle);
+router.get('/marketing_publication/blog_publications/slides', new SlideStoreMarketingPublicationController().handle);
+router.get('/marketing_publication/store_publications/popup', new PopupStoreMarketingPublicationController().handle);
+router.get('/marketing_publication/interval_banner/page_banner', new IntervalBannerPageController().handle);
 
 // --- PRODUCT --- //
 router.get('/product/store/search_nav_bar', new NavBarSearchProductStoreController().handle);
