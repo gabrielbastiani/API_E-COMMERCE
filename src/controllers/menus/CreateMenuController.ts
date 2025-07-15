@@ -3,7 +3,8 @@ import { CreateMenuService } from "../../services/menus/CreateMenuService";
 
 export class CreateMenuController {
     async handle(req: Request, res: Response) {
-        const { name, icon } = req.body;
+
+        const { name, icon, position, identifier } = req.body;
 
         // 1) parsear isActive e order vindos como string
         const isActiveRaw = req.body.isActive;
@@ -34,6 +35,8 @@ export class CreateMenuController {
             isActive,
             order,
             icon: imageToUpdate,
+            position,
+            identifier
         });
 
         res.status(201).json(menu);

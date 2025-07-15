@@ -1157,12 +1157,14 @@ model CategoryFilter {
 }
 
 model Menu {
-  id       String     @id @default(uuid())
-  name     String // Nome do menu (ex.: "Header Menu", "Footer Menu")
-  isActive Boolean    @default(true)
-  order    Int        @default(0) // Caso queira ter vários menus e precise de ordenação
-  icon     String?
-  items    MenuItem[] // Relação com itens de menu
+  id         String     @id @default(uuid())
+  name       String // Nome do menu (ex.: "Header Menu", "Footer Menu")
+  position   String
+  identifier String?
+  isActive   Boolean    @default(true)
+  order      Int        @default(0) // Caso queira ter vários menus e precise de ordenação
+  icon       String?
+  items      MenuItem[] // Relação com itens de menu
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
   updated_at DateTime @updatedAt

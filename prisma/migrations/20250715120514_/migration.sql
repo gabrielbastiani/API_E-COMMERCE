@@ -475,7 +475,7 @@ CREATE TABLE "categories" (
     "parentId" TEXT,
     "status" "StatusCategory" NOT NULL DEFAULT 'DISPONIVEL',
     "promotion_id" TEXT,
-    "filterId" TEXT,
+    "filter_id" TEXT,
     "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
@@ -851,6 +851,8 @@ CREATE TABLE "categoryFilters" (
 CREATE TABLE "menus" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
+    "position" TEXT NOT NULL,
+    "identifier" TEXT,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "order" INTEGER NOT NULL DEFAULT 0,
     "icon" TEXT,
@@ -1040,7 +1042,7 @@ ALTER TABLE "categories" ADD CONSTRAINT "categories_parentId_fkey" FOREIGN KEY (
 ALTER TABLE "categories" ADD CONSTRAINT "categories_promotion_id_fkey" FOREIGN KEY ("promotion_id") REFERENCES "promotions"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "categories" ADD CONSTRAINT "categories_filterId_fkey" FOREIGN KEY ("filterId") REFERENCES "filters"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "categories" ADD CONSTRAINT "categories_filter_id_fkey" FOREIGN KEY ("filter_id") REFERENCES "filters"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "productCategories" ADD CONSTRAINT "productCategories_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "products"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

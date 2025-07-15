@@ -5,7 +5,7 @@ export class UpdateMenuController {
   async handle(req: Request, res: Response) {
     
     const { id } = req.params;
-    const { name, order: orderRaw, isActive: isActiveRaw } = req.body;
+    const { name, position, identifier, order: orderRaw, isActive: isActiveRaw } = req.body;
 
     // 1) converter tipos vindos de multipart/form-data (strings) para number/boolean
     const isActive = (() => {
@@ -38,6 +38,8 @@ export class UpdateMenuController {
         isActive,
         order: orderRaw !== undefined ? order : undefined,
         icon,
+        identifier,
+        position
       });
       res.json(menu);
     } catch (err: any) {

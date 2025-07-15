@@ -7,11 +7,13 @@ interface UpdateMenuDTO {
     name?: string;
     isActive?: boolean;
     order?: number;
-    icon?: string; // nome do arquivo novo ou existente
+    icon?: string;
+    position?: string;
+    identifier?: string;
 }
 
 export class UpdateMenuService {
-    async execute({ id, name, isActive, order, icon }: UpdateMenuDTO) {
+    async execute({ id, name, isActive, order, icon, position, identifier }: UpdateMenuDTO) {
         // 1) buscar menu existente
         const existing = await prismaClient.menu.findUnique({
             where: { id },
@@ -34,6 +36,8 @@ export class UpdateMenuService {
             ...(isActive !== undefined && { isActive }),
             ...(order !== undefined && { order }),
             ...(icon !== undefined && { icon }),
+            ...(position !== undefined && { position }),
+            ...(identifier !== undefined && { identifier })
         };
 
         // 4) executar update

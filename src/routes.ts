@@ -180,6 +180,13 @@ import { DeleteMenuItemController } from "./controllers/menus/menuItems/DeleteMe
 import { StatusMenuController } from "./controllers/menus/StatusMenuController";
 import { MenuCmsController } from "./controllers/menus/MenuCmsController";
 import { GetUniqueMenuController } from "./controllers/menus/GetUniqueMenuController";
+import { MenuHeaderController } from "./controllers/menus/MenuHeaderController";
+const ctrlMenu = new MenuHeaderController();
+
+// --- CART --- //
+import { CartController } from "./controllers/cart/CartController";
+const ctrlCart = new CartController();
+
 
 
 
@@ -413,6 +420,16 @@ router.get('/marketing_publication/interval_banner/page_banner', new IntervalBan
 
 // --- PRODUCT --- //
 router.get('/product/store/search_nav_bar', new NavBarSearchProductStoreController().handle);
+
+// --- CART --- //
+router.get("/", isAuthenticatedCustomer, ctrlCart.getCart.bind(ctrlCart));
+router.post("/items", isAuthenticatedCustomer, ctrlCart.addItem.bind(ctrlCart));
+router.put("/items/:itemId", isAuthenticatedCustomer, ctrlCart.updateItem.bind(ctrlCart));
+router.delete("/items/:itemId", isAuthenticatedCustomer, ctrlCart.removeItem.bind(ctrlCart));
+router.delete("/", isAuthenticatedCustomer, ctrlCart.clearCart.bind(ctrlCart));
+
+// --- MENU --- //
+router.get("/menu/top", ctrlMenu.getTop.bind(ctrlMenu));
 
 
 export { router };
