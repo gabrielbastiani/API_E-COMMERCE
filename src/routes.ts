@@ -130,7 +130,7 @@ import { CreateProductController } from "./controllers/product/CreateProductCont
 import { AllProductsController } from "./controllers/product/AllProductsController";
 import { CmsGetProductController } from "./controllers/product/CmsGetProductController";
 import { ProductDeleteController } from "./controllers/product/ProductDeleteController";
-import { NavBarSearchProductStoreController } from "./controllers/product/NavBarSearchProductStoreController";
+import { searchController } from "./controllers/product/NavBarSearchProductStoreController"; 
 
 // --- PROMOTION --- //
 import { PromotionController } from "./controllers/promotion/PromotionController";
@@ -180,8 +180,8 @@ import { DeleteMenuItemController } from "./controllers/menus/menuItems/DeleteMe
 import { StatusMenuController } from "./controllers/menus/StatusMenuController";
 import { MenuCmsController } from "./controllers/menus/MenuCmsController";
 import { GetUniqueMenuController } from "./controllers/menus/GetUniqueMenuController";
-import { MenuHeaderController } from "./controllers/menus/MenuHeaderController";
-const ctrlMenu = new MenuHeaderController();
+import { MenuGetForStoreController } from "./controllers/menus/MenuGetForStoreController";
+const ctrlMenu = new MenuGetForStoreController();
 
 // --- CART --- //
 import { CartController } from "./controllers/cart/CartController";
@@ -419,7 +419,7 @@ router.get('/marketing_publication/store_publications/popup', new PopupStoreMark
 router.get('/marketing_publication/interval_banner/page_banner', new IntervalBannerPageController().handle);
 
 // --- PRODUCT --- //
-router.get('/product/store/search_nav_bar', new NavBarSearchProductStoreController().handle);
+router.get("/products/search", searchController);
 
 // --- CART --- //
 router.get("/", isAuthenticatedCustomer, ctrlCart.getCart.bind(ctrlCart));
@@ -429,7 +429,7 @@ router.delete("/items/:itemId", isAuthenticatedCustomer, ctrlCart.removeItem.bin
 router.delete("/", isAuthenticatedCustomer, ctrlCart.clearCart.bind(ctrlCart));
 
 // --- MENU --- //
-router.get("/menu/top", ctrlMenu.getTop.bind(ctrlMenu));
+router.get("/menu/get/store", ctrlMenu.getMenu.bind(ctrlMenu));
 
 
 export { router };
