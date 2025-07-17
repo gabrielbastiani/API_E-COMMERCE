@@ -181,6 +181,8 @@ import { StatusMenuController } from "./controllers/menus/StatusMenuController";
 import { MenuCmsController } from "./controllers/menus/MenuCmsController";
 import { GetUniqueMenuController } from "./controllers/menus/GetUniqueMenuController";
 import { MenuGetForStoreController } from "./controllers/menus/MenuGetForStoreController";
+import { ItemMenuImageDeleteController } from "./controllers/menus/menuItems/ItemMenuImageDeleteController";
+import { MenuImageDeleteController } from "./controllers/menus/MenuImageDeleteController";
 const ctrlMenu = new MenuGetForStoreController();
 
 // --- CART --- //
@@ -396,10 +398,11 @@ router.post("/menu/create", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER
 router.get("/menu/get", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new ListMenusController().handle);
 router.put("/menu/getUnique/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), upload_image.single('file'), new UpdateMenuController().handle);
 router.delete("/menu/delete", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new DeleteMenuController().handle);
-
+router.delete('/menu/icon/delete', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new MenuImageDeleteController().handle);
 router.post("/menuItem/create", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), upload_image.single("file"),
     (req, res, next) => new CreateMenuItemController().handle(req, res).catch(next)
 );
+router.delete('/menuItem/icon/delete', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new ItemMenuImageDeleteController().handle);
 router.get("/menuItem/get", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new ListMenuItemsController().handle);
 router.put("/menuItem/getUnique/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), upload_image.single("file"),
     (req, res, next) => new UpdateMenuItemController().handle(req, res).catch(next)
