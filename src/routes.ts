@@ -130,7 +130,9 @@ import { CreateProductController } from "./controllers/product/CreateProductCont
 import { AllProductsController } from "./controllers/product/AllProductsController";
 import { CmsGetProductController } from "./controllers/product/CmsGetProductController";
 import { ProductDeleteController } from "./controllers/product/ProductDeleteController";
-import { searchController } from "./controllers/product/NavBarSearchProductStoreController"; 
+import { searchController } from "./controllers/product/NavBarSearchProductStoreController";
+import { OffersProductController } from "./controllers/product/OffersProductController";
+import { HighlightsProductsController } from "./controllers/product/HighlightsProductsController";
 
 // --- PROMOTION --- //
 import { PromotionController } from "./controllers/promotion/PromotionController";
@@ -187,6 +189,7 @@ const ctrlMenu = new MenuGetForStoreController();
 
 // --- CART --- //
 import { CartController } from "./controllers/cart/CartController";
+import { FindUniqueProductStoreController } from "./controllers/product/FindUniqueProductStoreController";
 const ctrlCart = new CartController();
 
 
@@ -423,6 +426,9 @@ router.get('/marketing_publication/interval_banner/page_banner', new IntervalBan
 
 // --- PRODUCT --- //
 router.get("/products/search", searchController);
+router.get('/products/offers', new OffersProductController().handle);
+router.get('/product/unique/data', new FindUniqueProductStoreController().handle);
+router.get('/products/highlights', new HighlightsProductsController().handle);
 
 // --- CART --- //
 router.get("/", isAuthenticatedCustomer, ctrlCart.getCart.bind(ctrlCart));
