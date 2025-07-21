@@ -194,6 +194,7 @@ import { ProductPageStoreDetailsController } from "./controllers/product/Product
 import { ProductsRecentlyViewsController } from "./controllers/product/ProductsRecentlyViewsController";
 import { CategoriesStoreHomeController } from "./controllers/category/CategoriesStoreHomeController";
 import { UpdateViewsController } from "./controllers/product/UpdateViewsController";
+import { ExistingMosaicController } from "./controllers/marketing_publication/ExistingMosaicController";
 const ctrlCart = new CartController();
 
 
@@ -427,6 +428,7 @@ router.get('/marketing_publication/existing_sidebar', new ExistingSidebarBannerP
 router.get('/marketing_publication/blog_publications/slides', new SlideStoreMarketingPublicationController().handle);
 router.get('/marketing_publication/store_publications/popup', new PopupStoreMarketingPublicationController().handle);
 router.get('/marketing_publication/interval_banner/page_banner', new IntervalBannerPageController().handle);
+router.get('/marketing_publication/existing_mosaic', new ExistingMosaicController().handle);
 
 // --- CATEGORY --- //
 router.get('/categories/store/grid', new CategoriesStoreHomeController().handle);
