@@ -190,6 +190,8 @@ const ctrlMenu = new MenuGetForStoreController();
 // --- CART --- //
 import { CartController } from "./controllers/cart/CartController";
 import { FindUniqueProductStoreController } from "./controllers/product/FindUniqueProductStoreController";
+import { ProductPageStoreDetailsController } from "./controllers/product/ProductPageStoreDetailsController";
+import { ProductsRecentlyViewsController } from "./controllers/product/ProductsRecentlyViewsController";
 const ctrlCart = new CartController();
 
 
@@ -429,6 +431,8 @@ router.get("/products/search", searchController);
 router.get('/products/offers', new OffersProductController().handle);
 router.get('/product/unique/data', new FindUniqueProductStoreController().handle);
 router.get('/products/highlights', new HighlightsProductsController().handle);
+router.get('/product/page', new ProductPageStoreDetailsController().handle);
+router.post('/product/recently/views', new ProductsRecentlyViewsController().handle);
 
 // --- CART --- //
 router.get("/", isAuthenticatedCustomer, ctrlCart.getCart.bind(ctrlCart));
