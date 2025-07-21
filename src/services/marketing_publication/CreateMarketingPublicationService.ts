@@ -9,7 +9,7 @@ interface CreateMarketingPublicationServiceProps {
     publish_at_start?: Date;
     publish_at_end?: Date;
     status?: "Disponivel" | "Indisponivel" | "Programado";
-    position: "SLIDER" | "TOP_BANNER" | "SIDEBAR" | "POPUP";
+    position: "SLIDER" | "TOP_BANNER" | "SIDEBAR" | "POPUP" | "MOSAICO";
     conditions?: string;
     text_publication?: string;
     local?: string;

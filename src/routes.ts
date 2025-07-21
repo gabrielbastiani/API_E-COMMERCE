@@ -192,6 +192,8 @@ import { CartController } from "./controllers/cart/CartController";
 import { FindUniqueProductStoreController } from "./controllers/product/FindUniqueProductStoreController";
 import { ProductPageStoreDetailsController } from "./controllers/product/ProductPageStoreDetailsController";
 import { ProductsRecentlyViewsController } from "./controllers/product/ProductsRecentlyViewsController";
+import { CategoriesStoreHomeController } from "./controllers/category/CategoriesStoreHomeController";
+import { UpdateViewsController } from "./controllers/product/UpdateViewsController";
 const ctrlCart = new CartController();
 
 
@@ -426,6 +428,9 @@ router.get('/marketing_publication/blog_publications/slides', new SlideStoreMark
 router.get('/marketing_publication/store_publications/popup', new PopupStoreMarketingPublicationController().handle);
 router.get('/marketing_publication/interval_banner/page_banner', new IntervalBannerPageController().handle);
 
+// --- CATEGORY --- //
+router.get('/categories/store/grid', new CategoriesStoreHomeController().handle);
+
 // --- PRODUCT --- //
 router.get("/products/search", searchController);
 router.get('/products/offers', new OffersProductController().handle);
@@ -433,6 +438,7 @@ router.get('/product/unique/data', new FindUniqueProductStoreController().handle
 router.get('/products/highlights', new HighlightsProductsController().handle);
 router.get('/product/page', new ProductPageStoreDetailsController().handle);
 router.post('/product/recently/views', new ProductsRecentlyViewsController().handle);
+router.patch("/product/:product_id/views", new UpdateViewsController().handle);
 
 // --- CART --- //
 router.get("/", isAuthenticatedCustomer, ctrlCart.getCart.bind(ctrlCart));
