@@ -275,6 +275,8 @@ model EcommerceData {
   email                  String
   phone                  String
   whatsapp               String?
+  cnpj                   String?
+  cpf                    String?
   street                 String
   city                   String
   state                  String

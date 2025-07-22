@@ -5,6 +5,8 @@ import path from 'path';
 interface ConfigEcommerce {
     ecommerceData_id: string;
     name?: string;
+    cnpj?: string;
+    cpf?: string;
     whatsapp?: string;
     logo?: string;
     favicon?: string;
@@ -35,6 +37,8 @@ class UpdateConfigurationEcommerceService {
         logo,
         favicon,
         phone,
+        cnpj,
+        cpf,
         email,
         city,
         state,
@@ -69,6 +73,14 @@ class UpdateConfigurationEcommerceService {
 
         if (number) {
             dataToUpdate.number = number;
+        }
+
+        if (cnpj) {
+            dataToUpdate.cnpj = cnpj;
+        }
+
+        if (cpf) {
+            dataToUpdate.cpf = cpf;
         }
 
         if (neighborhood) {
