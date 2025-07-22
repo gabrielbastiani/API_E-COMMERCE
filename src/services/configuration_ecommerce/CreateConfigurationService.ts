@@ -30,7 +30,7 @@ class CreateConfigurationService {
                 shipping_delivery_time: "Prazo de entregas",
                 faq: "Perguntas e respostas",
                 payment_methods: "Metodos de pagamentos",
-                technical_assistance: "Assistencia tecnica",
+                technical_assistance: null,
                 about_store: "Escreva uma descrição para o blog, do que se trata...",
                 privacy_policies: "Escrveva aqui seu texto das suas politicas de privacidades focado na lei LGPD"
             }
