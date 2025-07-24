@@ -7,7 +7,6 @@ class CustomerCreateController {
             name,
             email,
             password,
-            photo,
             newsletter,
             phone,
             type_user,
@@ -20,16 +19,10 @@ class CustomerCreateController {
 
         const createUser = new CustomerCreateService();
 
-        let imageToUpdate = photo;
-        if (!photo && req.file) {
-            imageToUpdate = req.file.filename;
-        }
-
         const users = await createUser.execute({
             name,
             email,
             password,
-            photo: imageToUpdate,
             newsletter,
             phone,
             type_user,

@@ -45,23 +45,25 @@ class RequestPasswordCustomerRecoveryService {
 
         const infos_ecommerce = await prismaClient.ecommerceData.findFirst();
 
-        await prismaClient.emailTemplate.create({
-            data: {
-                title: "Recuperação de senha",
-                subject: "Recuperação de senha",
-                templateName: "recuperar_senha_cliente.ejs",
-                isActive: true,
-                hoursAfter: 0
-            }
-        });
-
-        const requiredPath = path.join(__dirname, `../../../emails_templates/recuperar_senha_cliente.ejs`);
-
         const data_templates = await prismaClient.emailTemplate.findFirst({
             where: {
                 templateName: "recuperar_senha_cliente.ejs"
             }
         });
+
+        if (!data_templates) {
+            await prismaClient.emailTemplate.create({
+                data: {
+                    title: "Recuperação de senha",
+                    subject: "Recuperação de senha",
+                    templateName: "recuperar_senha_cliente.ejs",
+                    isActive: true,
+                    hoursAfter: 0
+                }
+            });
+        }
+
+        const requiredPath = path.join(__dirname, `../../../emails_templates/recuperar_senha_cliente.ejs`);
 
         const domain_site = process.env.URL_ECOMMERCE;
         const domain_api = process.env.URL_API;

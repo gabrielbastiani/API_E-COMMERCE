@@ -9,7 +9,6 @@ import path from "path";
 interface UserRequest {
     name: string;
     email: string;
-    photo?: string;
     password: string;
     newsletter?: string;
     phone: string;
@@ -25,7 +24,6 @@ class CustomerCreateService {
     async execute({
         name,
         email,
-        photo,
         password,
         newsletter,
         phone,
@@ -64,7 +62,6 @@ class CustomerCreateService {
             data: {
                 name: name,
                 email: email,
-                photo: photo,
                 password: passwordHash,
                 newsletter: newsletterBool,
                 phone: phone,
@@ -120,23 +117,25 @@ class CustomerCreateService {
 
         const infos_ecommerce = await prismaClient.ecommerceData.findFirst();
 
-        await prismaClient.emailTemplate.create({
-            data: {
-                title: "Novo cliente cadastrado",
-                subject: "Novo cliente cadastrado",
-                templateName: "cliente_cadastrado.ejs",
-                isActive: true,
-                hoursAfter: 0
-            }
-        });
-
-        const requiredPath = path.join(__dirname, `../../../emails_templates/cliente_cadastrado.ejs`);
-
         const data_templates = await prismaClient.emailTemplate.findFirst({
             where: {
                 templateName: "cliente_cadastrado.ejs"
             }
         });
+
+        if (!data_templates) {
+            await prismaClient.emailTemplate.create({
+                data: {
+                    title: "Novo cliente cadastrado",
+                    subject: "Novo cliente cadastrado",
+                    templateName: "cliente_cadastrado.ejs",
+                    isActive: true,
+                    hoursAfter: 0
+                }
+            });
+        }
+
+        const requiredPath = path.join(__dirname, `../../../emails_templates/cliente_cadastrado.ejs`);
 
         const domain_site = process.env.URL_ECOMMERCE;
         const domain_api = process.env.URL_API;

@@ -9,14 +9,6 @@ class CustomerDetailService {
         const user = await prismaClient.customer.findFirst({
             where: {
                 id: customer_id
-            },
-            select: {
-                created_at: true,
-                email: true,
-                id: true,
-                phone: true,
-                name: true,
-                status: true
             }
         });
 

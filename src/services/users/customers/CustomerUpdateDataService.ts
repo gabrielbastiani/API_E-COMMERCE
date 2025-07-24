@@ -77,12 +77,12 @@ class CustomerUpdateDataService {
             dataToUpdate.sexo = sexo;
         }
 
-        if (state_registration) {
+        if (state_registration !== undefined) {
             dataToUpdate.state_registration = state_registration;
         }
 
-        if (newsletter) {
-            dataToUpdate.newsletter = newsletter;
+        if (newsletter !== undefined) {
+            dataToUpdate.newsletter = newsletter === "true";
         }
 
         if (email) {
@@ -102,7 +102,7 @@ class CustomerUpdateDataService {
 
         if (photo) {
             if (customer.photo) {
-                const imagePath = path.resolve(__dirname + '/' + '..' + '/' + '..' + '/' + '..' + '/' + '..' + '/' + 'images' + '/' + customer.photo);
+                const imagePath = path.resolve(__dirname  + '/' + '..' + '/' + '..' + '/' + '..' + '/' + '..' + '/' + 'images' + '/' + customer.photo);
                 fs.unlink(imagePath, (err) => {
                     if (err) {
                         console.error(`Failed to delete old image: ${err.message}`);

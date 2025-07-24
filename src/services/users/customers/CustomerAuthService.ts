@@ -9,18 +9,18 @@ interface AuthRequest {
 
 class CustomerAuthService {
     async execute({ email, password }: AuthRequest) {
-        const user = await prismaClient.customer.findFirst({
+        const customer = await prismaClient.customer.findFirst({
             where: {
                 email: email,
                 status: "DISPONIVEL"
             }
         })
 
-        if (!user) {
+        if (!customer) {
             throw new Error("User/password incorrect")
         }
 
-        const passwordMatch = await compare(password, user.password)
+        const passwordMatch = await compare(password, customer.password)
 
         if (!passwordMatch) {
             throw new Error("User/password incorrect")
@@ -28,7 +28,7 @@ class CustomerAuthService {
 
         await prismaClient.customer.update({
             where: {
-                id: user.id
+                id: customer.id
             },
             data: {
                 last_access: new Date()
@@ -37,20 +37,30 @@ class CustomerAuthService {
 
         const token = sign(
             {
-                name: user.name,
-                email: user.email
+                name: customer.name,
+                email: customer.email
             },/* @ts-ignore */
             process.env?.JWT_SECRET,
             {
-                subject: user.id,
+                subject: customer.id,
                 expiresIn: '30d'
             }
         )
 
         return {
-            id: user.id,
-            name: user.name,
-            email: user.email,
+            id: customer.id,
+            name: customer.name,
+            email: customer.email,
+            phone: customer.phone,
+            type_user: customer.type_user,
+            cpf: customer.cpf,
+            cnpj: customer.cnpj,
+            date_of_birth: customer.date_of_birth,
+            sexo: customer.sexo,
+            state_registration: customer.state_registration,
+            photo: customer.photo,
+            newsletter: customer.newsletter,
+            asaas_customer_id: customer.asaas_customer_id,
             token: token
         }
     }

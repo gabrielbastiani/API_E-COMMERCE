@@ -78,6 +78,7 @@ import { AllMarketingPublicationController } from "./controllers/marketing_publi
 import { ExistingSidebarBannerPageController } from "./controllers/marketing_publication/ExistingSidebarBannerPageController";
 import { PopupStoreMarketingPublicationController } from "./controllers/marketing_publication/PopupStoreMarketingPublicationController";
 import { SlideStoreMarketingPublicationController } from "./controllers/marketing_publication/SlideStoreMarketingPublicationController";
+import { ExistingMosaicController } from "./controllers/marketing_publication/ExistingMosaicController";
 
 // --- NEWSLETTER --- //
 import { NewsletterCreateController } from "./controllers/newsletter/NewsletterCreateController";
@@ -124,6 +125,7 @@ import { CategoryUpdateDataController } from "./controllers/category/CategoryUpd
 import { CategoryDeleteController } from "./controllers/category/CategoryDeleteController";
 import { CategoryDeleteImageController } from "./controllers/category/CategoryDeleteImageController";
 import { AllProductsCategoryController } from "./controllers/category/AllProductsCategoryController";
+import { CategoriesStoreHomeController } from "./controllers/category/CategoriesStoreHomeController";
 
 // --- PRODUCT --- //
 import { CreateProductController } from "./controllers/product/CreateProductController";
@@ -133,6 +135,10 @@ import { ProductDeleteController } from "./controllers/product/ProductDeleteCont
 import { searchController } from "./controllers/product/NavBarSearchProductStoreController";
 import { OffersProductController } from "./controllers/product/OffersProductController";
 import { HighlightsProductsController } from "./controllers/product/HighlightsProductsController";
+import { FindUniqueProductStoreController } from "./controllers/product/FindUniqueProductStoreController";
+import { ProductPageStoreDetailsController } from "./controllers/product/ProductPageStoreDetailsController";
+import { ProductsRecentlyViewsController } from "./controllers/product/ProductsRecentlyViewsController";
+import { UpdateViewsController } from "./controllers/product/UpdateViewsController";
 
 // --- PROMOTION --- //
 import { PromotionController } from "./controllers/promotion/PromotionController";
@@ -189,13 +195,11 @@ const ctrlMenu = new MenuGetForStoreController();
 
 // --- CART --- //
 import { CartController } from "./controllers/cart/CartController";
-import { FindUniqueProductStoreController } from "./controllers/product/FindUniqueProductStoreController";
-import { ProductPageStoreDetailsController } from "./controllers/product/ProductPageStoreDetailsController";
-import { ProductsRecentlyViewsController } from "./controllers/product/ProductsRecentlyViewsController";
-import { CategoriesStoreHomeController } from "./controllers/category/CategoriesStoreHomeController";
-import { UpdateViewsController } from "./controllers/product/UpdateViewsController";
-import { ExistingMosaicController } from "./controllers/marketing_publication/ExistingMosaicController";
 const ctrlCart = new CartController();
+
+// --- ADDRESS --- //
+import { CreateAddressCustomerController } from "./controllers/users/customers/address/CreateAddressCustomerController";
+
 
 
 
@@ -233,7 +237,7 @@ router.get('/user/notifications/userEcommerce/central_notifications', isAuthenti
 router.delete('/user/notifications/userEcommerce/delete_notification', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new NotificationDeleteController().handle);
 
 // --- CUSTOMERS --- //
-router.post('/user/customer/create', upload_image.single('file'), new CustomerCreateController().handle);
+router.post('/user/customer/create', new CustomerCreateController().handle);
 router.post('/user/customer/session', new CustomerAuthController().handle);
 router.put('/user/customer/update', isAuthenticatedCustomer, upload_image.single('file'), new CustomerUpdateDataController().handle);
 router.put('/user/customer/delete_photo', isAuthenticatedCustomer, new CustomerPhotoDeleteController().handle);
@@ -451,6 +455,9 @@ router.delete("/", isAuthenticatedCustomer, ctrlCart.clearCart.bind(ctrlCart));
 
 // --- MENU --- //
 router.get("/menu/get/store", ctrlMenu.getMenu.bind(ctrlMenu));
+
+// --- ADDRESS --- //
+router.post('/address/customer/create', new CreateAddressCustomerController().handle);
 
 
 export { router };
