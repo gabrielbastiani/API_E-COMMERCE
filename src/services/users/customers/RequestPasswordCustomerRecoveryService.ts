@@ -65,7 +65,7 @@ class RequestPasswordCustomerRecoveryService {
 
         const requiredPath = path.join(__dirname, `../../../emails_templates/recuperar_senha_cliente.ejs`);
 
-        const domain_site = process.env.URL_ECOMMERCE;
+        const domain_site = process.env.URL_STORE;
         const domain_api = process.env.URL_API;
 
         const data = await ejs.renderFile(requiredPath, {

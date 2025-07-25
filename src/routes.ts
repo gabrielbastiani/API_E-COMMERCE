@@ -199,6 +199,11 @@ const ctrlCart = new CartController();
 
 // --- ADDRESS --- //
 import { CreateAddressCustomerController } from "./controllers/users/customers/address/CreateAddressCustomerController";
+import { ListAddressCustomerController } from "./controllers/users/customers/address/ListAddressCustomerController";
+import { DeleteAddressController } from "./controllers/users/customers/address/DeleteAddressController";
+
+// --- FRETE ---//
+import { calculateFreightHandler } from "./controllers/frete/FreteController";
 
 
 
@@ -438,7 +443,7 @@ router.get('/marketing_publication/existing_mosaic', new ExistingMosaicControlle
 router.get('/categories/store/grid', new CategoriesStoreHomeController().handle);
 
 // --- PRODUCT --- //
-router.get("/products/search", searchController);
+router.get("/products/busca", searchController);
 router.get('/products/offers', new OffersProductController().handle);
 router.get('/product/unique/data', new FindUniqueProductStoreController().handle);
 router.get('/products/highlights', new HighlightsProductsController().handle);
@@ -458,6 +463,11 @@ router.get("/menu/get/store", ctrlMenu.getMenu.bind(ctrlMenu));
 
 // --- ADDRESS --- //
 router.post('/address/customer/create', new CreateAddressCustomerController().handle);
+router.get('/customer/address/list', isAuthenticatedCustomer, new ListAddressCustomerController().handle);
+router.delete('/customer/address/delete', isAuthenticatedCustomer, new DeleteAddressController().handle);
+
+// --- FRETE --- //
+router.post('/shipment/calculate', calculateFreightHandler);
 
 
 export { router };
