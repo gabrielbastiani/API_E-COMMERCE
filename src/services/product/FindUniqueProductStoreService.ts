@@ -16,7 +16,8 @@ class FindUniqueProductStoreService {
                         category: true
                     }
                 },
-                images: true
+                images: true,
+                variants: true
             }
         })
 

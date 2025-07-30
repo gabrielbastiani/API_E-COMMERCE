@@ -57,6 +57,7 @@ export interface CreatePromotionDto {
 }
 
 export class PromotionService {
+  static applyPromotions: any
   async createFull(data: CreatePromotionDto) {
     if (data.endDate <= data.startDate) {
       throw new Error('Data de término deve ser após início')

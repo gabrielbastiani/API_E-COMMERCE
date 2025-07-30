@@ -44,21 +44,23 @@ export class PromotionController {
                 }
             }
 
+            const parseBool = (v: any) => (typeof v === 'string' ? v === 'true' : Boolean(v))
+
             const dto: CreatePromotionDto = {
                 name: String(b.name),
                 description: b.description ? String(b.description) : undefined,
                 startDate: new Date(b.startDate),
                 endDate: new Date(b.endDate),
 
-                hasCoupon: Boolean(b.hasCoupon),
-                multipleCoupons: Boolean(b.multipleCoupons),
-                reuseSameCoupon: Boolean(b.reuseSameCoupon),
+                hasCoupon: parseBool(b.hasCoupon),
+                multipleCoupons: parseBool(b.multipleCoupons),
+                reuseSameCoupon: parseBool(b.reuseSameCoupon),
                 perUserCouponLimit: b.perUserCouponLimit != null ? Number(b.perUserCouponLimit) : undefined,
                 totalCouponCount: b.totalCouponCount != null ? Number(b.totalCouponCount) : undefined,
                 coupons: Array.isArray(b.coupons) ? b.coupons.map(String) : [],
 
-                active: Boolean(b.active),
-                cumulative: Boolean(b.cumulative),
+                active: parseBool(b.active),
+                cumulative: parseBool(b.cumulative),
                 priority: Number(b.priority),
 
                 conditions: parseJsonArray<{ type: ConditionType; operator: Operator; value: any }>(b.conditions),

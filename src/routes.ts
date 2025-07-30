@@ -205,7 +205,9 @@ import { DeleteAddressController } from "./controllers/users/customers/address/D
 // --- FRETE ---//
 import { calculateFreightHandler } from "./controllers/frete/FreteController";
 
-
+// --- PROMOTION --- //
+import { ApplyPromotionController } from "./controllers/promotion/ApplyPromotionController";
+import { GetVariantUniqueController } from "./controllers/product/variation/GetVariantUniqueController";
 
 
 
@@ -451,6 +453,9 @@ router.get('/product/page', new ProductPageStoreDetailsController().handle);
 router.post('/product/recently/views', new ProductsRecentlyViewsController().handle);
 router.patch("/product/:product_id/views", new UpdateViewsController().handle);
 
+// --- VARIANT --- //
+router.get('/variant/get/unique', new GetVariantUniqueController().handle);
+
 // --- CART --- //
 router.get("/", isAuthenticatedCustomer, ctrlCart.getCart.bind(ctrlCart));
 router.post("/items", isAuthenticatedCustomer, ctrlCart.addItem.bind(ctrlCart));
@@ -468,6 +473,9 @@ router.delete('/customer/address/delete', isAuthenticatedCustomer, new DeleteAdd
 
 // --- FRETE --- //
 router.post('/shipment/calculate', calculateFreightHandler);
+
+// --- PROMOTION --- //
+router.post("/promotions/apply", ApplyPromotionController.apply);
 
 
 export { router };
