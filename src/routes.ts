@@ -208,6 +208,7 @@ import { calculateFreightHandler } from "./controllers/frete/FreteController";
 // --- PROMOTION --- //
 import { ApplyPromotionController } from "./controllers/promotion/ApplyPromotionController";
 import { GetVariantUniqueController } from "./controllers/product/variation/GetVariantUniqueController";
+import { ValidationCouponController } from "./controllers/promotion/ValidationCuponController";
 
 
 
@@ -476,6 +477,7 @@ router.post('/shipment/calculate', calculateFreightHandler);
 
 // --- PROMOTION --- //
 router.post("/promotions/apply", ApplyPromotionController.apply);
+router.post("/coupon/validate", ValidationCouponController.handle);
 
 
 export { router };

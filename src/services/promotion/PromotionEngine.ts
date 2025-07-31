@@ -9,6 +9,14 @@ import { CartContext } from "../../../@types";
 
 const prisma = new PrismaClient();
 
+export interface PromotionDetail {
+  id: string;
+  name: string;
+  description: string;
+  discount: number;       // valor total de desconto gerado por esta promoção
+  type: 'product' | 'shipping' | 'mixed';
+}
+
 export interface PromotionEngineResult {
   discountTotal: number;
   productDiscount: number;
@@ -16,6 +24,7 @@ export interface PromotionEngineResult {
   freeGifts: Array<{ variantId: string; quantity: number }>;
   badgeMap: Record<string, { title: string; imageUrl: string }>;
   descriptions: string[];
+  promotions: PromotionDetail[];
 }
 
 export class PromotionEngine {
@@ -40,30 +49,97 @@ export class PromotionEngine {
       orderBy: { priority: "desc" },
     });
 
-    // 2) Filtrar por cupom (ou promoções sem cupom)
-    const filtered = couponCode
-      ? allPromos.filter((p) =>
-        p.coupons.some((c) => c.code === couponCode)
+    // 2) separa promoções automáticas (sem cupom) das que exigem cupom
+    const autoPromos = allPromos.filter((p) => !p.hasCoupon);
+    const couponPromos = couponCode
+      ? allPromos.filter(
+        (p) =>
+          p.hasCoupon &&
+          p.coupons.some((c) => c.code === couponCode)
       )
-      : allPromos.filter((p) => !p.hasCoupon);
+      : [];
 
+    // 3) se houver cupom e a promoção não permitir multipleCoupons, pega só a de maior prioridade
+    let selectedCouponPromos: typeof allPromos = [];
+    if (couponPromos.length > 0) {
+      if (!couponPromos[0].multipleCoupons) {
+        selectedCouponPromos = [couponPromos[0]];
+      } else {
+        selectedCouponPromos = couponPromos;
+      }
+    }
+
+    // 4) concatena mantendo prioridade geral
+    const toApply = [...autoPromos, ...selectedCouponPromos].sort(
+      (a, b) => b.priority - a.priority
+    );
+
+    console.log(
+      "→ Promoções automáticas:",
+      autoPromos.map((p) => p.name)
+    );
+    console.log(
+      `→ Promoções de cupom (“${couponCode}”):`,
+      selectedCouponPromos.map((p) => p.name)
+    );
+
+    // 5) aplica cada promoção até que uma não seja cumulativa
     let productDiscount = 0;
     let shippingDiscount = 0;
     const freeGifts: Array<{ variantId: string; quantity: number }> = [];
     const badgeMap: Record<string, { title: string; imageUrl: string }> = {};
     const descriptions: string[] = [];
 
-    // 3) Iterar sobre as promoções filtradas
-    for (const promo of filtered) {
-      // 3.1) Checar condições
-      if (!this.evaluateConditions(promo.conditions, cart)) continue;
-      descriptions.push(promo.description || "");
+    const promotions: PromotionDetail[] = [];
 
-      // 3.2) Aplicar ações
+    for (const promo of toApply) {
+      // checa condições
+      if (!this.evaluateConditions(promo.conditions, cart)) continue;
+
+      let before = productDiscount + shippingDiscount;
+
+      // armazena descrição para retornar
+      descriptions.push(promo.description ?? "");
+
+      console.log(`→ [${promo.name}] aplicando ações:`);
+      // executa ações
       for (const act of promo.actions) {
         const p = act.params as any;
         switch (act.type) {
-          // ─── FIXED DISCOUNTS ───────────────────────────────
+          case ActionType.FIXED_SHIPPING:
+            shippingDiscount += p.amount;
+            console.log(`   FIXED_SHIPPING  -${p.amount}`);
+            break;
+          case ActionType.MAX_SHIPPING_DISCOUNT: {
+            const appl = Math.min(cart.shipping, p.amount);
+            shippingDiscount += appl;
+            console.log(`   MAX_SHIPPING_DISCOUNT  -${appl}`);
+            break;
+          }
+          case ActionType.PERCENT_SHIPPING: {
+            const pct = (cart.shipping * p.amount) / 100;
+            shippingDiscount += pct;
+            console.log(
+              `   PERCENT_SHIPPING ${p.amount}%  -${pct.toFixed(2)}`
+            );
+            break;
+          }
+          case ActionType.FREE_VARIANT_ITEM:
+            (p.variantIds as string[]).forEach((vid) =>
+              freeGifts.push({ variantId: vid, quantity: p.qty })
+            );
+            console.log(
+              `   FREE_VARIANT_ITEM  ${p.qty}× variantes ${p.variantIds}`
+            );
+            break;
+          case ActionType.FREE_PRODUCT_ITEM:
+            (p.productIds as string[]).forEach((pid) =>
+              freeGifts.push({ variantId: pid, quantity: p.qty })
+            );
+            console.log(
+              `   FREE_PRODUCT_ITEM  ${p.qty}× produtos ${p.productIds}`
+            );
+            break;
           case ActionType.FIXED_VARIANT_DISCOUNT:
             cart.items
               .filter((i) => (p.variantIds as string[]).includes(i.variantId))
@@ -71,60 +147,6 @@ export class PromotionEngine {
                 productDiscount += p.amount * i.quantity;
               });
             break;
-
-          case ActionType.FIXED_PRODUCT_DISCOUNT:
-            cart.items
-              .filter((i) => (p.productIds as string[]).includes(i.productId))
-              .forEach((i) => {
-                productDiscount += p.amount * i.quantity;
-              });
-            break;
-
-          case ActionType.FIXED_BRAND_ITEMS:
-            cart.items.forEach((i) => {
-              // TODO: substituir pelo brand real de i.productId
-              const brand = "";
-              if ((p.brandNames as string[]).includes(brand)) {
-                productDiscount += p.amount * i.quantity;
-              }
-            });
-            break;
-
-          case ActionType.FIXED_SUBTOTAL:
-            productDiscount += p.amount;
-            break;
-
-          case ActionType.FIXED_TOTAL_NO_SHIPPING:
-            productDiscount += p.amount;
-            break;
-
-          case ActionType.FIXED_TOTAL_PER_PRODUCT:
-            cart.items.forEach((i) => {
-              productDiscount += p.amount * i.quantity;
-            });
-            break;
-
-          // ─── PERCENT DISCOUNTS ─────────────────────────────
-          case ActionType.PERCENT_CATEGORY:
-            cart.items.forEach((i) => {
-              // TODO: verificar categoria de i.productId
-              const catId = "";
-              if ((p.categoryIds as string[]).includes(catId)) {
-                productDiscount +=
-                  (i.unitPrice * i.quantity * p.percent) / 100;
-              }
-            });
-            break;
-
-          case ActionType.PERCENT_VARIANT:
-            cart.items.forEach((i) => {
-              if ((p.variantIds as string[]).includes(i.variantId)) {
-                productDiscount +=
-                  (i.unitPrice * i.quantity * p.percent) / 100;
-              }
-            });
-            break;
-
           case ActionType.PERCENT_PRODUCT:
             cart.items.forEach((i) => {
               if ((p.productIds as string[]).includes(i.productId)) {
@@ -133,18 +155,6 @@ export class PromotionEngine {
               }
             });
             break;
-
-          case ActionType.PERCENT_BRAND_ITEMS:
-            cart.items.forEach((i) => {
-              // TODO: substituir pelo brand real de i.productId
-              const brand = "";
-              if ((p.brandNames as string[]).includes(brand)) {
-                productDiscount +=
-                  (i.unitPrice * i.quantity * p.percent) / 100;
-              }
-            });
-            break;
-
           case ActionType.PERCENT_ITEM_COUNT:
             cart.items.forEach((i) => {
               if (
@@ -156,7 +166,61 @@ export class PromotionEngine {
               }
             });
             break;
-
+          case ActionType.FIXED_PRODUCT_DISCOUNT:
+            cart.items
+              .filter((i) => (p.productIds as string[]).includes(i.productId))
+              .forEach((i) => {
+                productDiscount += p.amount * i.quantity;
+              });
+            break;
+          case ActionType.FIXED_BRAND_ITEMS:
+            cart.items.forEach((i) => {
+              // TODO: substituir pelo brand real de i.productId
+              const brand = "";
+              if ((p.brandNames as string[]).includes(brand)) {
+                productDiscount += p.amount * i.quantity;
+              }
+            });
+            break;
+          case ActionType.FIXED_SUBTOTAL:
+            productDiscount += p.amount;
+            break;
+          case ActionType.FIXED_TOTAL_NO_SHIPPING:
+            productDiscount += p.amount;
+            break;
+          case ActionType.FIXED_TOTAL_PER_PRODUCT:
+            cart.items.forEach((i) => {
+              productDiscount += p.amount * i.quantity;
+            });
+            break;
+          case ActionType.PERCENT_BRAND_ITEMS:
+            cart.items.forEach((i) => {
+              // TODO: substituir pelo brand real de i.productId
+              const brand = "";
+              if ((p.brandNames as string[]).includes(brand)) {
+                productDiscount +=
+                  (i.unitPrice * i.quantity * p.percent) / 100;
+              }
+            });
+            break;
+          case ActionType.PERCENT_CATEGORY:
+            cart.items.forEach((i) => {
+              // TODO: verificar categoria de i.productId
+              const catId = "";
+              if ((p.categoryIds as string[]).includes(catId)) {
+                productDiscount +=
+                  (i.unitPrice * i.quantity * p.percent) / 100;
+              }
+            });
+            break;
+          case ActionType.PERCENT_VARIANT:
+            cart.items.forEach((i) => {
+              if ((p.variantIds as string[]).includes(i.variantId)) {
+                productDiscount +=
+                  (i.unitPrice * i.quantity * p.percent) / 100;
+              }
+            });
+            break;
           case ActionType.PERCENT_EXTREME_ITEM: {
             const arr = cart.items.filter((i) =>
               (p.variantIds as string[]).includes(i.variantId)
@@ -175,15 +239,12 @@ export class PromotionEngine {
             }
             break;
           }
-
           case ActionType.PERCENT_SUBTOTAL:
             productDiscount += (cart.subtotal * p.amount) / 100;
             break;
-
           case ActionType.PERCENT_TOTAL_NO_SHIPPING:
             productDiscount += (cart.subtotal * p.amount) / 100;
             break;
-
           case ActionType.PERCENT_TOTAL_PER_PRODUCT: {
             // 1) Se houver uma lista de inclusão/exclusão nos params, respeitar:
             const includeIds: string[] = Array.isArray(p.productIds)
@@ -204,64 +265,67 @@ export class PromotionEngine {
             break;
           }
 
-
-
-          // ─── SHIPPING DISCOUNTS ────────────────────────────
-          case ActionType.FIXED_SHIPPING:
-            shippingDiscount += p.amount;
-            break;
-
-          case ActionType.MAX_SHIPPING_DISCOUNT:
-            shippingDiscount += Math.min(cart.shipping, p.amount);
-            break;
-
-          case ActionType.PERCENT_SHIPPING:
-            shippingDiscount += (cart.shipping * p.amount) / 100;
-            break;
-
-          // ─── FREE GIFTS ────────────────────────────────────
-          case ActionType.FREE_VARIANT_ITEM:
-            (p.variantIds as string[]).forEach((vid) =>
-              freeGifts.push({ variantId: vid, quantity: p.qty })
-            );
-            break;
-
-          case ActionType.FREE_PRODUCT_ITEM:
-            (p.productIds as string[]).forEach((pid) =>
-              freeGifts.push({ variantId: pid, quantity: p.qty })
-            );
-            break;
-
           default:
-            // nenhuma ação faltante
-            break;
+            console.log(`   Ação não tratada: ${act.type}`);
         }
       }
 
-      // 3.3) Aplicar selos
+      // aplica selos
       for (const badge of promo.badges) {
         if (promo.variantPromotions.length) {
           promo.variantPromotions.forEach((v) => {
-            badgeMap[v.id] = { title: badge.title, imageUrl: badge.imageUrl };
+            badgeMap[v.id] = {
+              title: badge.title,
+              imageUrl: badge.imageUrl,
+            };
           });
         } else {
           cart.items.forEach((i) => {
-            badgeMap[i.variantId] = { title: badge.title, imageUrl: badge.imageUrl };
+            badgeMap[i.variantId] = {
+              title: badge.title,
+              imageUrl: badge.imageUrl,
+            };
           });
         }
       }
 
+      let after = productDiscount + shippingDiscount;
+      const delta = Number((after - before).toFixed(2));
+
+      promotions.push({
+        id: promo.id,
+        name: promo.name,
+        description: promo.description ?? '',
+        discount: delta,
+        type:
+          delta === 0
+            ? 'mixed'
+            : shippingDiscount - (before - productDiscount) > 0
+              ? 'shipping'
+              : 'product',
+      });
+
       if (!promo.cumulative) break;
+
     }
 
     const discountTotal = productDiscount + shippingDiscount;
+    console.log(
+      `→ Desconto total: R$${discountTotal.toFixed(
+        2
+      )} (produto R$${productDiscount.toFixed(
+        2
+      )} + frete R$${shippingDiscount.toFixed(2)})`
+    );
+
     return {
       discountTotal,
       productDiscount,
       shippingDiscount,
       freeGifts,
       badgeMap,
-      descriptions
+      descriptions,
+      promotions,
     };
   }
 
@@ -270,7 +334,7 @@ export class PromotionEngine {
     cart: CartContext
   ): boolean {
     return conditions.every((cond) => {
-      const value = (cond.value as unknown) as Record<string, any>;
+      const value = cond.value as Record<string, any>;
       switch (cond.type) {
         case ConditionType.FIRST_ORDER:
           return this.compareBoolean(
@@ -279,67 +343,55 @@ export class PromotionEngine {
             Boolean(value.firstOrder)
           );
 
-        case ConditionType.CART_ITEM_COUNT:
-          const totalQty = cart.items.reduce((s, i) => s + i.quantity, 0);
-          return this.compareNumber(
-            totalQty,
-            cond.operator,
-            Number(value.qty) || 0
-          );
+        case ConditionType.CART_ITEM_COUNT: {
+          const totalQty = cart.items.reduce((sum, i) => sum + i.quantity, 0);
+          return this.compareNumber(totalQty, cond.operator, Number(value.qty) || 0);
+        }
 
         case ConditionType.CATEGORY_ITEM_COUNT: {
           const want = Number(value.qty) || 0;
-          const allowedCats: string[] = Array.isArray(value.categoryIds) ? value.categoryIds : [];
-
-          // Soma a quantidade de _itens_ (i.quantity) cujas categorias batem
+          const allowedCats: string[] = Array.isArray(value.categoryIds)
+            ? value.categoryIds
+            : [];
           const actualCount = cart.items
-            .filter(item =>
-              item.categoryIds.some(cat => allowedCats.includes(cat))
+            .filter((item) =>
+              item.categoryIds.some((cat) => allowedCats.includes(cat))
             )
             .reduce((sum, i) => sum + i.quantity, 0);
-
           return this.compareNumber(actualCount, cond.operator, want);
         }
 
         case ConditionType.CATEGORY_VALUE: {
-          // 1) Valor desejado vindo do CMS
           const want = Number(value.qtyOrValue) || 0;
-          // 2) IDs de categoria que ativam a condição
           const allowedCats: string[] = Array.isArray(value.categoryIds)
             ? value.categoryIds
             : [];
-          // 3) Soma do valor (unitPrice * quantity) apenas dos itens cujas categories batem
           const actualValue = cart.items
-            .filter(item =>
-              item.categoryIds.some(catId => allowedCats.includes(catId))
+            .filter((item) =>
+              item.categoryIds.some((c) => allowedCats.includes(c))
             )
-            .reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
-          // 4) Compara (EQUAL / GREATER / LESS etc)
+            .reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
           return this.compareNumber(actualValue, cond.operator, want);
         }
 
         case ConditionType.BRAND_VALUE: {
-          // valor configurado no CMS
           const want = Number(value.brandValue) || 0;
-          // lista de marcas permitidas
           const allowedBrands: string[] = Array.isArray(value.brandNames)
             ? value.brandNames
             : [];
-
-          // soma só dos itens cuja marca casa exatamente com alguma em allowedBrands
           const actualValue = cart.items
-            .filter(item => allowedBrands.includes(item.brand))
-            .reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
-
+            .filter((item) => allowedBrands.includes(item.brand))
+            .reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
           return this.compareNumber(actualValue, cond.operator, want);
         }
 
         case ConditionType.PRODUCT_ITEM_COUNT: {
           const want = Number(value.qty) || 0;
-          const targetIds = Array.isArray(value.productIds) ? value.productIds : [];
-          // soma as quantidades somente dos produtos configurados
+          const targets: string[] = Array.isArray(value.productIds)
+            ? value.productIds
+            : [];
           const actualCount = cart.items
-            .filter(i => targetIds.includes(i.productId))
+            .filter((i) => targets.includes(i.productId))
             .reduce((sum, i) => sum + i.quantity, 0);
           return this.compareNumber(actualCount, cond.operator, want);
         }
@@ -376,19 +428,13 @@ export class PromotionEngine {
           );
 
         case ConditionType.ZIP_CODE: {
-          // Normaliza: remove qualquer não dígito
           const userZip = (cart.cep ?? "").replace(/\D/g, "");
           const fromZip = String(value.zipFrom ?? "").replace(/\D/g, "");
           const toZip = String(value.zipTo ?? "").replace(/\D/g, "");
-          // Se não for CEP válido, falha a condição
-          if (!/^\d+$/.test(userZip) || !/^\d+$/.test(fromZip) || !/^\d+$/.test(toZip)) {
-            return false;
-          }
-          const z = parseInt(userZip, 10);
-          const f = parseInt(fromZip, 10);
-          const t = parseInt(toZip, 10);
+          if (!userZip || !fromZip || !toZip) return false;
+          const z = +userZip, f = +fromZip, t = +toZip;
           switch (cond.operator) {
-            case Operator.CONTAINS:     // interpretamos como “entre”
+            case Operator.CONTAINS:
               return z >= f && z <= t;
             case Operator.NOT_CONTAINS:
               return z < f || z > t;
@@ -401,10 +447,7 @@ export class PromotionEngine {
           }
         }
 
-
-
-
-        // … demais condições como STATE, BRAND_VALUE etc, seguindo o mesmo padrão …
+        // … (outros tipos de condição seguem o mesmo padrão) …
 
         default:
           return true;
@@ -439,27 +482,7 @@ export class PromotionEngine {
     operator: Operator,
     expected: boolean
   ): boolean {
-    return operator === Operator.EQUAL
-      ? actual === expected
-      : actual !== expected;
-  }
-
-  private static compareString(
-    actual: string,
-    operator: Operator,
-    [from, to]: [string, string]
-  ): boolean {
-    switch (operator) {
-      case Operator.CONTAINS:
-        return actual.includes(from);
-      case Operator.NOT_CONTAINS:
-        return !actual.includes(from);
-      case Operator.EQUAL:
-        return actual === from;
-      case Operator.NOT_EQUAL:
-        return actual !== from;
-    }
-    return false;
+    return operator === Operator.EQUAL ? actual === expected : actual !== expected;
   }
 
   private static compareArray(
@@ -482,6 +505,24 @@ export class PromotionEngine {
           actual.length === expected.length &&
           expected.every((v) => actual.includes(v))
         );
+    }
+    return false;
+  }
+
+  private static compareString(
+    actual: string,
+    operator: Operator,
+    [from, to]: [string, string]
+  ): boolean {
+    switch (operator) {
+      case Operator.CONTAINS:
+        return actual.includes(from);
+      case Operator.NOT_CONTAINS:
+        return !actual.includes(from);
+      case Operator.EQUAL:
+        return actual === from;
+      case Operator.NOT_EQUAL:
+        return actual !== from;
     }
     return false;
   }
