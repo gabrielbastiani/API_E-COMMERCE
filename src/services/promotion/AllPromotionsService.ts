@@ -62,7 +62,7 @@ class AllPromotionsService {
 
         const promotions = await prismaClient.promotion.findMany({
             where: {
-                active: true
+                status: "Disponivel"
             },
             include: {
                 categories: true,

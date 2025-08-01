@@ -1,4 +1,3 @@
-// services/promotion/UpdatePromotionService.ts
 import prisma from '../../prisma'
 import {
     ConditionType,
@@ -38,11 +37,11 @@ export interface UpdatePromotionDto {
     hasCoupon?: boolean
     multipleCoupons?: boolean
     reuseSameCoupon?: boolean
-    perUserCouponLimit?: number
-    totalCouponCount?: number
+    perUserCouponLimit?: number | null
+    totalCouponCount?: number | null
     coupons?: CouponUpdateInput[]
 
-    active?: boolean
+    status?: "Disponivel" | "Indisponivel" | "Programado";
     cumulative?: boolean
     priority?: number
 
@@ -63,19 +62,37 @@ export class UpdatePromotionService {
 
         // 2) Transactional update
         return prisma.$transaction(async tx => {
+            // 2.0) Lógica extra: se veio status, ajusta flags
+            const preFlat: any = {}
+            if (data.status !== undefined) {
+                // se programado, marca como não completada e sem e-mail enviado
+                if (data.status === 'Programado') {
+                    preFlat.is_completed = false
+                    preFlat.email_sent = false
+                }
+                // sempre atualiza o status
+                preFlat.status = data.status
+            }
+
             // 2.1) Campos simples
-            const flat: any = {}
+            const flat: any = { ...preFlat }
             for (const key of [
                 'name', 'description', 'startDate', 'endDate',
                 'hasCoupon', 'multipleCoupons', 'reuseSameCoupon',
                 'perUserCouponLimit', 'totalCouponCount',
-                'active', 'cumulative', 'priority'
+                // status já tratado em preFlat, então podemos pular aqui
+                'cumulative', 'priority'
             ] as const) {
                 if ((data as any)[key] !== undefined) {
                     flat[key] = (data as any)[key]
                 }
             }
-            await tx.promotion.update({ where: { id }, data: flat })
+
+            // 2.2) Executa o update
+            await tx.promotion.update({
+                where: { id },
+                data: flat
+            })
 
             // 2.2) Relacionamentos: se vierem no DTO, reseta e recria
             if (data.coupons) {

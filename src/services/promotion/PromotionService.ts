@@ -36,8 +36,8 @@ export interface BadgeInput {
 export interface CreatePromotionDto {
   name: string
   description?: string
-  startDate: Date
-  endDate: Date
+  startDate?: Date
+  endDate?: Date
 
   hasCoupon: boolean
   multipleCoupons: boolean
@@ -46,7 +46,7 @@ export interface CreatePromotionDto {
   totalCouponCount?: number
   coupons?: string[]
 
-  active: boolean
+  status?: "Disponivel" | "Indisponivel" | "Programado";
   cumulative: boolean
   priority: number
 
@@ -59,16 +59,13 @@ export interface CreatePromotionDto {
 export class PromotionService {
   static applyPromotions: any
   async createFull(data: CreatePromotionDto) {
-    if (data.endDate <= data.startDate) {
-      throw new Error('Data de término deve ser após início')
-    }
 
     return prisma.promotion.create({
       data: {
         name: data.name,
         description: data.description,
-        startDate: data.startDate,
-        endDate: data.endDate,
+        startDate: data.startDate ? data.startDate : null,
+        endDate: data.endDate ? data.endDate : null,
 
         hasCoupon: data.hasCoupon,
         multipleCoupons: data.multipleCoupons,
@@ -80,7 +77,7 @@ export class PromotionService {
           ? { create: data.coupons.map<CouponInput>(code => ({ code })) }
           : undefined,
 
-        active: data.active,
+        status: data.status,
         cumulative: data.cumulative,
         priority: data.priority,
 

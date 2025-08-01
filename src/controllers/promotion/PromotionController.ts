@@ -46,11 +46,17 @@ export class PromotionController {
 
             const parseBool = (v: any) => (typeof v === 'string' ? v === 'true' : Boolean(v))
 
+            const parseDate = (v: any): Date | undefined => {
+                if (!v) return undefined;
+                // v === "YYYY-MM-DDThh:mm" → Date interpretará como local
+                return new Date(v);
+            };
+
             const dto: CreatePromotionDto = {
                 name: String(b.name),
                 description: b.description ? String(b.description) : undefined,
-                startDate: new Date(b.startDate),
-                endDate: new Date(b.endDate),
+                startDate: parseDate(b.startDate),
+                endDate: parseDate(b.endDate),
 
                 hasCoupon: parseBool(b.hasCoupon),
                 multipleCoupons: parseBool(b.multipleCoupons),
@@ -59,7 +65,7 @@ export class PromotionController {
                 totalCouponCount: b.totalCouponCount != null ? Number(b.totalCouponCount) : undefined,
                 coupons: Array.isArray(b.coupons) ? b.coupons.map(String) : [],
 
-                active: parseBool(b.active),
+                status: b.status || "Indisponivel",
                 cumulative: parseBool(b.cumulative),
                 priority: Number(b.priority),
 

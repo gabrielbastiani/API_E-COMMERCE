@@ -71,6 +71,16 @@ export class UpdatePromotionController {
                 try { return JSON.parse(field) } catch { return undefined }
             }
 
+            const rawStatus = String(b.status || '').trim()
+            const validStatuses = ['Disponivel', 'Indisponivel', 'Programado'] as const
+
+            const parseNullableNumber = (v: any): number | null | undefined => {
+                if (v === undefined) return undefined
+                if (v === '') return null
+                const n = Number(v)
+                return isNaN(n) ? undefined : n
+            }
+
             const dto: UpdatePromotionDto = {
                 name: b.name ? String(b.name) : undefined,
                 description: b.description ? String(b.description) : undefined,
@@ -80,11 +90,11 @@ export class UpdatePromotionController {
                 hasCoupon: parseBool(b.hasCoupon),
                 multipleCoupons: parseBool(b.multipleCoupons),
                 reuseSameCoupon: parseBool(b.reuseSameCoupon),
-                perUserCouponLimit: parseNumber(b.perUserCouponLimit),
-                totalCouponCount: parseNumber(b.totalCouponCount),
+                perUserCouponLimit: parseNullableNumber(b.perUserCouponLimit),
+                totalCouponCount: parseNullableNumber(b.totalCouponCount),
                 ...(coupons !== undefined && { coupons }),
 
-                active: parseBool(b.active),
+                ...(validStatuses.includes(rawStatus as any) && { status: rawStatus as UpdatePromotionDto['status'] }),
                 cumulative: parseBool(b.cumulative),
                 priority: parseNumber(b.priority),
 

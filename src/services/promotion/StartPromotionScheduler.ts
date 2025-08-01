@@ -5,7 +5,7 @@ import ejs from "ejs";
 import moment from "moment";
 import { NotificationType, Role } from "@prisma/client";
 
-class StartMarketingPublicationScheduler {
+class StartPromotionScheduler {
     private transporter;
 
     constructor() {
@@ -27,20 +27,19 @@ class StartMarketingPublicationScheduler {
         try {
             const now = new Date();
 
-            // Busca publicações que precisam ser iniciadas e não estão em processamento
-            const publications = await prismaClient.marketingPublication.findMany({
+            const promotions = await prismaClient.promotion.findMany({
                 where: {
                     status: "Programado",
-                    publish_at_start: { lte: now },
+                    startDate: { lte: now },
                     is_processing: false,
-                    is_completed: false, // Não processar se já finalizado
-                    email_sent: false, // Apenas publicações sem email enviado
+                    is_completed: false,
+                    email_sent: false,
                 },
             });
 
-            for (const pub of publications) {
+            for (const pub of promotions) {
                 // Atualiza status para evitar concorrência
-                await prismaClient.marketingPublication.update({
+                await prismaClient.promotion.update({
                     where: { id: pub.id },
                     data: {
                         is_processing: true,
@@ -49,17 +48,17 @@ class StartMarketingPublicationScheduler {
                 });
 
                 try {
-                    const start = moment(pub.publish_at_start).format('DD/MM/YYYY HH:mm');
-                    const end = moment(pub.publish_at_end).format('DD/MM/YYYY HH:mm');
+                    const start = moment(pub.startDate).format('DD/MM/YYYY HH:mm');
+                    const end = moment(pub.endDate).format('DD/MM/YYYY HH:mm');
                     /* @ts-ignore */
-                    await this.sendEmail(pub?.title, start, end);
-                    console.log(`Iniciada publicidade: ${pub.title}`);
+                    await this.sendEmail(pub?.name, start, end);
+                    console.log(`Iniciada publicidade: ${pub.name}`);
                 } catch (emailError) {
-                    console.error(`Erro ao enviar email para ${pub.title}:`, emailError);
+                    console.error(`Erro ao enviar email para ${pub.name}:`, emailError);
                 }
 
                 // Finaliza processamento
-                await prismaClient.marketingPublication.update({
+                await prismaClient.promotion.update({
                     where: { id: pub.id },
                     data: {
                         is_processing: false,
@@ -67,7 +66,7 @@ class StartMarketingPublicationScheduler {
                 });
             }
         } catch (error) {
-            console.error("Erro ao iniciar publicações:", error);
+            console.error("Erro ao iniciar a promoção:", error);
         }
     }
 
@@ -82,23 +81,23 @@ class StartMarketingPublicationScheduler {
 
         const data_templates = await prismaClient.emailTemplate.findFirst({
             where: {
-                templateName: "publicidade_programada.ejs"
+                templateName: "promocao_programada.ejs"
             }
         });
 
         if (!data_templates) {
             await prismaClient.emailTemplate.create({
             data: {
-                title: "Publicidade Programada Iniciada",
-                subject: "Publicidade Programada Iniciada",
-                templateName: "publicidade_programada.ejs",
+                title: "Promoção Programada Iniciada",
+                subject: "Promoção Programada Iniciada",
+                templateName: "promocao_programada.ejs",
                 isActive: true,
                 hoursAfter: 0
             }
         });
         }
 
-        const emailTemplatePath = path.join(__dirname, "../../emails_templates/publicidade_programada.ejs");
+        const emailTemplatePath = path.join(__dirname, "../../emails_templates/promocao_programada.ejs");
 
         const htmlContent = await ejs.renderFile(emailTemplatePath, { title, start, end, name, logo, domain_site, domain_api });
 
@@ -119,7 +118,7 @@ class StartMarketingPublicationScheduler {
 
         const notificationsData = all_user_ids.map((userEcommerce_id) => ({
             userEcommerce_id,
-            message: `Publicidade programada "${title ? title : "Sem titulo"}" foi publicado na loja.`,
+            message: `Programação programada "${title ? title : "Sem nome"}" foi publicado na loja.`,
             type: NotificationType.MARKETING
         }));
 
@@ -128,4 +127,4 @@ class StartMarketingPublicationScheduler {
 
 }
 
-export { StartMarketingPublicationScheduler };
+export { StartPromotionScheduler };

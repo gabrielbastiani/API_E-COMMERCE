@@ -129,6 +129,14 @@ enum StatusMarketingPublication {
   Indisponivel
 }
 
+enum StatusPromotion {
+  Programado
+  Fim_da_programacao
+  Disponivel
+  Disponivel_programado
+  Indisponivel
+}
+
 enum Position {
   SLIDER
   TOP_BANNER
@@ -590,11 +598,14 @@ model ProductVideo {
 }
 
 model Promotion {
-  id          String   @id @default(uuid())
-  name        String
-  description String?
-  startDate   DateTime
-  endDate     DateTime
+  id            String    @id @default(uuid())
+  name          String
+  description   String?
+  startDate     DateTime? @db.Timestamptz(3)
+  endDate       DateTime? @db.Timestamptz(3)
+  is_processing Boolean   @default(false)
+  is_completed  Boolean   @default(false)
+  email_sent    Boolean   @default(false)
 
   hasCoupon          Boolean @default(true)
   multipleCoupons    Boolean @default(false)
@@ -602,9 +613,9 @@ model Promotion {
   perUserCouponLimit Int?
   totalCouponCount   Int?
 
-  active     Boolean @default(false)
-  cumulative Boolean @default(false)
-  priority   Int     @default(0)
+  status     StatusPromotion @default(Disponivel)
+  cumulative Boolean         @default(false)
+  priority   Int             @default(0)
 
   coupons           Coupon[]
   conditions        PromotionCondition[]

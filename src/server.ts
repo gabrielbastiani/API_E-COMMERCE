@@ -6,9 +6,13 @@ import path from 'path';
 import cron from "node-cron";
 import { StartMarketingPublicationScheduler } from './services/marketing_publication/StartMarketingPublicationScheduler';
 import { EndMarketingPublicationScheduler } from './services/marketing_publication/EndMarketingPublicationScheduler';
+import { StartPromotionScheduler } from './services/promotion/StartPromotionScheduler';
+import { EndPromotionScheduler } from './services/promotion/EndPromotionScheduler';
 
-const startScheduler = new StartMarketingPublicationScheduler();
-const endScheduler = new EndMarketingPublicationScheduler();
+const startSchedulerPublication = new StartMarketingPublicationScheduler();
+const endSchedulerPublication = new EndMarketingPublicationScheduler();
+const startSchedulerPromotion = new StartPromotionScheduler();
+const endSchedulerPromotion = new EndPromotionScheduler();
 
 const app = express();
 
@@ -52,10 +56,12 @@ const errorHandler: ErrorRequestHandler = (
 app.use(errorHandler);
 
 cron.schedule("* * * * *", async () => {
-    await startScheduler.execute();
+    await startSchedulerPublication.execute();
+    await startSchedulerPromotion.execute();
 
     setTimeout(async () => {
-        await endScheduler.execute();
+        await endSchedulerPublication.execute();
+        await endSchedulerPromotion.execute();
     }, 10000);
 });
 

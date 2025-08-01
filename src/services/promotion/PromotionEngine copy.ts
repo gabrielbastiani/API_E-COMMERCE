@@ -7,7 +7,6 @@ import {
   StatusPromotion,
 } from "@prisma/client";
 import { CartContext } from "../../../@types";
-import axios from "axios";
 
 const prisma = new PrismaClient();
 
@@ -29,40 +28,17 @@ export interface PromotionEngineResult {
   promotions: PromotionDetail[];
 }
 
-interface ViaCEPResponse {
-  uf: string;
-  erro?: boolean;
-}
-
 export class PromotionEngine {
   static async applyPromotions(
     cart: CartContext,
     couponCode?: string
   ): Promise<PromotionEngineResult> {
-
-    let userState: string | null = null;
-    if (cart.cep) {
-      const cepDigits = cart.cep.replace(/\D/g, "");
-      try {
-        const resp = await axios.get<ViaCEPResponse>(
-          `https://viacep.com.br/ws/${cepDigits}/json/`
-        );
-        if (!resp.data.erro && resp.data.uf) {
-          userState = resp.data.uf;
-        }
-      } catch (error) {
-        console.log(error)
-      }
-    }
-
+    // 1) Buscar todas as promoções ativas
     const allPromos = await prisma.promotion.findMany({
       where: {
-        status: {
-          in: [
-            StatusPromotion.Disponivel,
-            StatusPromotion.Disponivel_programado,
-          ],
-        },
+        status: StatusPromotion.Disponivel,
+        startDate: { lte: new Date() },
+        endDate: { gte: new Date() },
       },
       include: {
         conditions: true,
@@ -70,23 +46,25 @@ export class PromotionEngine {
         coupons: true,
         badges: true,
         variantPromotions: true,
-        displays: true,
       },
       orderBy: { priority: "desc" },
     });
 
-    // 2) separar automáticas e as que requerem cupom
-    const autoPromos = allPromos.filter(p => !p.hasCoupon);
+    console.log(allPromos)
+
+    // 2) separa promoções automáticas (sem cupom) das que exigem cupom
+    const autoPromos = allPromos.filter((p) => !p.hasCoupon);
     const couponPromos = couponCode
-      ? allPromos.filter(p =>
-        p.hasCoupon &&
-        p.coupons.some(c => c.code === couponCode)
+      ? allPromos.filter(
+        (p) =>
+          p.hasCoupon &&
+          p.coupons.some((c) => c.code === couponCode)
       )
       : [];
 
-    // 3) se não aceitar múltiplos, pega só a de maior prioridade
+    // 3) se houver cupom e a promoção não permitir multipleCoupons, pega só a de maior prioridade
     let selectedCouponPromos: typeof allPromos = [];
-    if (couponPromos.length) {
+    if (couponPromos.length > 0) {
       if (!couponPromos[0].multipleCoupons) {
         selectedCouponPromos = [couponPromos[0]];
       } else {
@@ -94,27 +72,40 @@ export class PromotionEngine {
       }
     }
 
-    // 4) concatenar e reordenar por prioridade
-    const toApply = [...autoPromos, ...selectedCouponPromos]
-      .sort((a, b) => b.priority - a.priority);
+    // 4) concatena mantendo prioridade geral
+    const toApply = [...autoPromos, ...selectedCouponPromos].sort(
+      (a, b) => b.priority - a.priority
+    );
 
+    console.log(
+      "→ Promoções automáticas:",
+      autoPromos.map((p) => p.name)
+    );
+    console.log(
+      `→ Promoções de cupom (“${couponCode}”):`,
+      selectedCouponPromos.map((p) => p.name)
+    );
+
+    // 5) aplica cada promoção até que uma não seja cumulativa
     let productDiscount = 0;
     let shippingDiscount = 0;
     const freeGifts: Array<{ variantId: string; quantity: number }> = [];
     const badgeMap: Record<string, { title: string; imageUrl: string }> = {};
     const descriptions: string[] = [];
+
     const promotions: PromotionDetail[] = [];
 
-    // 5) aplicar cada promoção até que não seja cumulativa
     for (const promo of toApply) {
-      if (!this.evaluateConditions(promo.conditions, cart, userState)) {
-        continue;
-      }
+      // checa condições
+      if (!this.evaluateConditions(promo.conditions, cart)) continue;
 
-      const before = productDiscount + shippingDiscount;
+      let before = productDiscount + shippingDiscount;
+
+      // armazena descrição para retornar
       descriptions.push(promo.description ?? "");
 
-      // ações
+      console.log(`→ [${promo.name}] aplicando ações:`);
+      // executa ações
       for (const act of promo.actions) {
         const p = act.params as any;
         switch (act.type) {
@@ -282,26 +273,32 @@ export class PromotionEngine {
         }
       }
 
-      // aplicar badges
+      // aplica selos
       for (const badge of promo.badges) {
         if (promo.variantPromotions.length) {
-          promo.variantPromotions.forEach(v => {
-            badgeMap[v.id] = { title: badge.title, imageUrl: badge.imageUrl };
+          promo.variantPromotions.forEach((v) => {
+            badgeMap[v.id] = {
+              title: badge.title,
+              imageUrl: badge.imageUrl,
+            };
           });
         } else {
-          cart.items.forEach(i => {
-            badgeMap[i.variantId] = { title: badge.title, imageUrl: badge.imageUrl };
+          cart.items.forEach((i) => {
+            badgeMap[i.variantId] = {
+              title: badge.title,
+              imageUrl: badge.imageUrl,
+            };
           });
         }
       }
 
-      const after = productDiscount + shippingDiscount;
+      let after = productDiscount + shippingDiscount;
       const delta = Number((after - before).toFixed(2));
 
       promotions.push({
         id: promo.id,
         name: promo.name,
-        description: promo.description ?? "",
+        description: promo.description ?? '',
         discount: delta,
         type:
           delta === 0
@@ -311,12 +308,19 @@ export class PromotionEngine {
               : 'product',
       });
 
-      if (!promo.cumulative) {
-        break;
-      }
+      if (!promo.cumulative) break;
+
     }
 
     const discountTotal = productDiscount + shippingDiscount;
+    console.log(
+      `→ Desconto total: R$${discountTotal.toFixed(
+        2
+      )} (produto R$${productDiscount.toFixed(
+        2
+      )} + frete R$${shippingDiscount.toFixed(2)})`
+    );
+
     return {
       discountTotal,
       productDiscount,
@@ -330,21 +334,11 @@ export class PromotionEngine {
 
   private static evaluateConditions(
     conditions: PromotionCondition[],
-    cart: CartContext,
-    userState: string | null
+    cart: CartContext
   ): boolean {
     return conditions.every((cond) => {
       const value = cond.value as Record<string, any>;
       switch (cond.type) {
-        case ConditionType.STATE:
-          if (!userState) return false;
-          const states: string[] = Array.isArray(value.states) ? value.states : [];
-          if (cond.operator === Operator.NOT_EQUAL) {
-            return !states.includes(userState);
-          } else {
-            return states.includes(userState);
-          }
-
         case ConditionType.FIRST_ORDER:
           return this.compareBoolean(
             cart.isFirstPurchase,
@@ -514,6 +508,24 @@ export class PromotionEngine {
           actual.length === expected.length &&
           expected.every((v) => actual.includes(v))
         );
+    }
+    return false;
+  }
+
+  private static compareString(
+    actual: string,
+    operator: Operator,
+    [from, to]: [string, string]
+  ): boolean {
+    switch (operator) {
+      case Operator.CONTAINS:
+        return actual.includes(from);
+      case Operator.NOT_CONTAINS:
+        return !actual.includes(from);
+      case Operator.EQUAL:
+        return actual === from;
+      case Operator.NOT_EQUAL:
+        return actual !== from;
     }
     return false;
   }

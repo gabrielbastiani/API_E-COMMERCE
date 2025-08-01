@@ -4,7 +4,7 @@ import path from "path";
 import ejs from "ejs";
 import moment from "moment";
 
-class EndMarketingPublicationScheduler {
+class EndPromotionScheduler {
     private transporter;
 
     constructor() {
@@ -26,19 +26,18 @@ class EndMarketingPublicationScheduler {
         try {
             const now = new Date();
 
-            // Busca publicações que precisam ser encerradas e não estão em processamento
-            const publications = await prismaClient.marketingPublication.findMany({
+            const promotions = await prismaClient.promotion.findMany({
                 where: {
                     status: "Disponivel_programado",
-                    publish_at_end: { lte: now },
+                    endDate: { lte: now },
                     is_processing: false,
-                    email_sent: false, // Apenas publicações sem email enviado
+                    email_sent: false,
                 },
             });
 
-            for (const pub of publications) {
+            for (const pub of promotions) {
                 // Atualiza status para evitar concorrência
-                await prismaClient.marketingPublication.update({
+                await prismaClient.promotion.update({
                     where: { id: pub.id },
                     data: {
                         is_processing: true,
@@ -47,7 +46,7 @@ class EndMarketingPublicationScheduler {
                 });
 
                 try {
-                    await prismaClient.marketingPublication.update({
+                    await prismaClient.promotion.update({
                         where: { id: pub.id },
                         data: {
                             status: "Indisponivel",
@@ -56,16 +55,16 @@ class EndMarketingPublicationScheduler {
                         },
                     });
 
-                    const start = moment(pub.publish_at_start).format('DD/MM/YYYY HH:mm');
-                    const end = moment(pub.publish_at_end).format('DD/MM/YYYY HH:mm');
+                    const start = moment(pub.startDate).format('DD/MM/YYYY HH:mm');
+                    const end = moment(pub.endDate).format('DD/MM/YYYY HH:mm');
                     /* @ts-ignore */
-                    await this.sendEmail(pub.title, start, end);
+                    await this.sendEmail(pub.name, start, end);
                 } catch (emailError) {
-                    console.error(`Erro ao processar encerramento de ${pub.title}:`, emailError);
+                    console.error(`Erro ao processar encerramento de ${pub.name}:`, emailError);
                 }
             }
         } catch (error) {/* @ts-ignore */
-            console.error("Erro ao encerrar publicações:", error.message);
+            console.error("Erro ao encerrar promoção:", error.message);
             /* @ts-ignore */
             if (error.code === "P1001") {
                 console.error("Erro de conexão com o banco de dados. Verifique o servidor.");
@@ -86,23 +85,23 @@ class EndMarketingPublicationScheduler {
 
         const data_templates = await prismaClient.emailTemplate.findFirst({
             where: {
-                templateName: "encerrar_publicidade_programada.ejs"
+                templateName: "encerrar_promocao_programada.ejs"
             }
         });
 
         if (!data_templates) {
             await prismaClient.emailTemplate.create({
                 data: {
-                    title: "Publicidade Programada Encerrada",
-                    subject: "Publicidade Programada Encerrada",
-                    templateName: "encerrar_publicidade_programada.ejs",
+                    title: "Promoção Programada Encerrada",
+                    subject: "Promoção Programada Encerrada",
+                    templateName: "encerrar_promocao_programada.ejs",
                     isActive: true,
                     hoursAfter: 0
                 }
             });
         }
 
-        const emailTemplatePath = path.join(__dirname, "../../emails_templates/encerrar_publicidade_programada.ejs");
+        const emailTemplatePath = path.join(__dirname, "../../emails_templates/encerrar_promocao_programada.ejs");
 
         const htmlContent = await ejs.renderFile(emailTemplatePath, { title, start, end, name, logo, domain_site, domain_api });
 
@@ -115,4 +114,4 @@ class EndMarketingPublicationScheduler {
     }
 }
 
-export { EndMarketingPublicationScheduler };
+export { EndPromotionScheduler };
