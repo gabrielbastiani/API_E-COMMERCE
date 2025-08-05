@@ -1,14 +1,29 @@
 import { Request, Response, Router } from "express";
 import { ApplyPromotionsInput, PromotionService } from "../../services/promotion/ApplyPromotionService";
+import prisma from "../../prisma";
 
 export class ApplyPromotionController {
   static async apply(req: Request, res: Response) {
+
+    const body = req.body as any;
+    const { customer_id } = body;
+    // 🔍 Descobre quantos pedidos já existem para esse customer_id
+    let isFirstPurchase = true;
+
+    if (customer_id) {
+      const count = await prisma.order.count({
+        where: { customer_id }
+      });
+      isFirstPurchase = count === 0;
+    }
+
     try {
       const body = req.body as ApplyPromotionsInput;
       const result = await PromotionService.applyPromotions({
+        ...body,
+        isFirstPurchase,
         cartItems: body.cartItems,
         customer_id: body.customer_id,
-        isFirstPurchase: body.isFirstPurchase,
         cep: body.cep,
         couponCode: body.couponCode,
         shippingCost: body.shippingCost,

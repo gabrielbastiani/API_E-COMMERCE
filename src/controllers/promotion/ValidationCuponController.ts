@@ -1,6 +1,7 @@
 import { Request, Response, Router } from "express";
-import { ValidationCouponService } from "../../services/promotion/ValidationCuponService"; 
+import { ValidationCouponService } from "../../services/promotion/ValidationCuponService";
 import { ApplyPromotionController } from "./ApplyPromotionController";
+import prisma from "../../prisma";
 
 export class ValidationCouponController {
   static async handle(req: Request, res: Response) {
@@ -8,11 +9,19 @@ export class ValidationCouponController {
       const {
         cartItems,
         customer_id,
-        isFirstPurchase,
         cep,
         shippingCost,
         coupon,
       } = req.body;
+
+      // 🔍 Descobre se é a primeira compra
+      let isFirstPurchase = true;
+      if (customer_id) {
+        const count = await prisma.order.count({
+          where: { customer_id }
+        });
+        isFirstPurchase = count === 0;
+      }
 
       const svc = new ValidationCouponService();
       const { valid, result } = await svc.execute({
