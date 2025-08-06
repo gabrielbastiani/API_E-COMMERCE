@@ -48,10 +48,21 @@ class ProductPageStoreDetailsService {
                 videos: true,
                 promotions: {
                     include: {
+                        badges: true,
+                        displays: true,
                         mainVariants: true
                     }
                 },
-                productRelations: true
+                productRelations: true,
+                buyTogether: {
+                    include: {
+                        product: {
+                            include: {
+                                images: true
+                            }
+                        }
+                    }
+                }
             }
         });
 
