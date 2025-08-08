@@ -474,6 +474,7 @@ model ProductVariant {
   mainPromotion_id String?
   variantAttribute VariantAttribute[]
   promotions       Promotion[]        @relation("variantPromotions")
+  cartItem         CartItem[]
 
   productVariantImage ProductVariantImage[]
   productVariantVideo ProductVariantVideo[]
@@ -843,15 +844,19 @@ model Cart {
 }
 
 model CartItem {
-  id         String  @id @default(uuid())
-  quantity   Int     @default(1)
-  product    Product @relation(fields: [product_id], references: [id])
-  product_id String  @db.Uuid
-  cart       Cart    @relation(fields: [cart_id], references: [id])
+  id         String          @id @default(uuid())
+  quantity   Int             @default(1)
+  product    Product         @relation(fields: [product_id], references: [id])
+  product_id String          @db.Uuid
+  cart       Cart            @relation(fields: [cart_id], references: [id])
   cart_id    String
+  variant    ProductVariant? @relation(fields: [variant_id], references: [id])
+  variant_id String?         @db.Uuid
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
 
+  // Opcional: único composto (cart+product+variant)
+  @@unique([cart_id, product_id, variant_id])
   @@map("cartItens")
 }
 

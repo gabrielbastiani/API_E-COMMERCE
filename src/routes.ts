@@ -209,8 +209,8 @@ import { calculateFreightHandler } from "./controllers/frete/FreteController";
 import { ApplyPromotionController } from "./controllers/promotion/ApplyPromotionController";
 import { GetVariantUniqueController } from "./controllers/product/variation/GetVariantUniqueController";
 import { ValidationCouponController } from "./controllers/promotion/ValidationCuponController";
-import { ProductsBuyToghethesController } from "./controllers/product/ProductsBuyToghethesController";
-
+import { ProductsBatchController } from "./controllers/product/ProductsBatchController";
+const productsBatchController = new ProductsBatchController();
 
 
 
@@ -452,7 +452,7 @@ router.get('/products/offers', new OffersProductController().handle);
 router.get('/product/unique/data', new FindUniqueProductStoreController().handle);
 router.get('/products/highlights', new HighlightsProductsController().handle);
 router.get('/product/page', new ProductPageStoreDetailsController().handle);
-router.get('/product/buyTogheter', new ProductsBuyToghethesController().handle);
+router.post("/products/batch", (req, res) => productsBatchController.handle(req, res));
 router.post('/product/recently/views', new ProductsRecentlyViewsController().handle);
 router.patch("/product/:product_id/views", new UpdateViewsController().handle);
 

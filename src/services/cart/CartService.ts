@@ -3,10 +3,11 @@ import prismaClient from "../../prisma";
 export interface CartItemDTO {
     id: string;
     product_id: string;
+    variant_id?: string | null;
     name: string;
     price: number;
     quantity: number;
-    imageUrl?: string;
+    imageUrl?: string | null;
 }
 
 export interface CartDTO {
@@ -20,7 +21,7 @@ export interface CartDTO {
 export class CartService {
     // retorna o carrinho do usuário (inclui items e recalcula totais)
     static async getCart(customer_id: string): Promise<CartDTO> {
-        // busca cart e items
+        // busca cart e items, incluindo produto e possível variante para obter preço/imagem corretos
         const cart = await prismaClient.cart.findUnique({
             where: { customer_id: customer_id },
             include: {
@@ -34,25 +35,44 @@ export class CartService {
                                 images: { take: 1, select: { url: true } },
                             },
                         },
+                        // supondo que o relacionamento na tabela cartItem seja "variant"
+                        // que referencia a ProductVariant (modelo de variantes)
+                        variant: {
+                            select: {
+                                id: true,
+                                price_per: true,
+                                productVariantImage: { take: 1, select: { url: true } },
+                            },
+                        },
                     },
                 },
             },
         });
 
         if (!cart) {
-            // cria carrinho vazio
+            // cria carrinho vazio retornável
             return { id: "", items: [], subtotal: 0, shippingCost: 0, total: 0 };
         }
 
-        // mapeia itens
-        const items: CartItemDTO[] = cart.items.map((ci) => ({
-            id: ci.id,
-            product_id: ci.product_id,
-            name: ci.product.name,
-            price: ci.product.price_per,
-            quantity: ci.quantity,
-            imageUrl: ci.product.images[0]?.url,
-        }));
+        // mapeia itens - usa dados da variante se existir, caso contrário do produto
+        const items: CartItemDTO[] = (cart.items || []).map((ci: any) => {
+            const variant = ci.variant ?? null;
+            const product = ci.product ?? null;
+
+            const price = variant?.price_per ?? product?.price_per ?? 0;
+            const imageUrl =
+                variant?.productVariantImage?.[0]?.url ?? product?.images?.[0]?.url ?? null;
+
+            return {
+                id: ci.id,
+                product_id: ci.product_id,
+                variant_id: variant?.id ?? null,
+                name: product?.name ?? "Produto",
+                price,
+                quantity: ci.quantity,
+                imageUrl,
+            };
+        });
 
         const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
         const shippingCost = cart.shippingCost ?? 0;
@@ -67,11 +87,15 @@ export class CartService {
         };
     }
 
-    // adiciona produto (ou incrementa) no carrinho do user
+    /**
+     * Adiciona produto (ou incrementa) no carrinho do user.
+     * Agora aceita variantId opcional; a chave de unicidade do item é (cart_id, product_id, variant_id)
+     */
     static async addItem(
         customer_id: string,
         productId: string,
-        quantity = 1
+        quantity = 1,
+        variantId?: string | null
     ): Promise<CartDTO> {
         // garante carrinho
         let cart = await prismaClient.cart.upsert({
@@ -85,9 +109,13 @@ export class CartService {
             update: {},
         });
 
-        // verifica se já existe item
+        // verifica se já existe item --- inclui variant_id na busca (pode ser null)
         const existing = await prismaClient.cartItem.findFirst({
-            where: { cart_id: cart.id, product_id: productId },
+            where: {
+                cart_id: cart.id,
+                product_id: productId,
+                variant_id: variantId ?? null,
+            },
         });
 
         if (existing) {
@@ -96,10 +124,12 @@ export class CartService {
                 data: { quantity: existing.quantity + quantity },
             });
         } else {
+            // cria novo item com variant_id quando informado
             await prismaClient.cartItem.create({
                 data: {
                     cart_id: cart.id,
                     product_id: productId,
+                    variant_id: variantId ?? null,
                     quantity,
                 },
             });
@@ -154,7 +184,7 @@ export class CartService {
         });
         if (cart) {
             await prismaClient.cartItem.deleteMany({ where: { cart_id: cart.id } });
-            // opcional: resetar frete/subtotal no registro
+            // resetar frete/subtotal no registro (opcional)
             await prismaClient.cart.update({
                 where: { id: cart.id },
                 data: { subtotal: 0, total: 0, shippingCost: 0 },

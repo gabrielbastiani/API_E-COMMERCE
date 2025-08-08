@@ -17,8 +17,13 @@ export class CartController {
     async addItem(req: Request, res: Response) {
         try {
             const customer_id = req.customer_id!;
-            const { product_id, quantity } = req.body;
-            const cart = await CartService.addItem(customer_id, product_id, quantity);
+            const { product_id, quantity = 1, variant_id = null } = req.body;
+
+            if (!product_id) {
+                res.status(400).json({ error: "product_id é obrigatório" });
+            }
+
+            const cart = await CartService.addItem(customer_id, product_id, quantity, variant_id);
             res.json(cart);
         } catch (err: any) {
             res.status(400).json({ error: err.message });

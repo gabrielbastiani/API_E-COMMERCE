@@ -1,4 +1,4 @@
-import prismaClient from "../../prisma"; 
+import prismaClient from "../../prisma";
 
 interface ProductRequest {
     productSlug: string;
@@ -18,8 +18,16 @@ class ProductPageStoreDetailsService {
                 },
                 childRelations: {
                     include: {
-                        childProduct: true,
-                        parentProduct: true,
+                        childProduct: {
+                            include: {
+                                images: true
+                            }
+                        },
+                        parentProduct: {
+                            include: {
+                                images: true
+                            }
+                        },
                         product: true
                     }
                 },
@@ -27,9 +35,21 @@ class ProductPageStoreDetailsService {
                 mainPromotion: true,
                 parentRelations: {
                     include: {
-                        childProduct: true,
-                        parentProduct: true,
-                        product: true
+                        childProduct: {
+                            include: {
+                                images: true
+                            }
+                        },
+                        parentProduct: {
+                            include: {
+                                images: true
+                            }
+                        },
+                        product: {
+                            include: {
+                                images: true
+                            }
+                        }
                     }
                 },
                 productsDescriptions: true,
