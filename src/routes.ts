@@ -210,6 +210,7 @@ import { ApplyPromotionController } from "./controllers/promotion/ApplyPromotion
 import { GetVariantUniqueController } from "./controllers/product/variation/GetVariantUniqueController";
 import { ValidationCouponController } from "./controllers/promotion/ValidationCuponController";
 import { ProductsBatchController } from "./controllers/product/ProductsBatchController";
+import { LookupController } from "./controllers/product/LookupController";
 const productsBatchController = new ProductsBatchController();
 
 
@@ -455,6 +456,7 @@ router.get('/product/page', new ProductPageStoreDetailsController().handle);
 router.post("/products/batch", (req, res) => productsBatchController.handle(req, res));
 router.post('/product/recently/views', new ProductsRecentlyViewsController().handle);
 router.patch("/product/:product_id/views", new UpdateViewsController().handle);
+router.post('/catalog/lookup', new LookupController().handle);
 
 // --- VARIANT --- //
 router.get('/variant/get/unique', new GetVariantUniqueController().handle);
