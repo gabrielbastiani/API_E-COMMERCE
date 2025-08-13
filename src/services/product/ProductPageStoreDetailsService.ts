@@ -113,7 +113,19 @@ class ProductPageStoreDetailsService {
                         },
                         productVariantImage: true,
                         productVariantVideo: true,
-                        mainPromotion: true,
+                        mainPromotion: {
+                            include: {
+                                actions: true,
+                                badges: true,
+                                conditions: true,
+                                categories: true,
+                                coupons: true,
+                                displays: true,
+                                featuredProducts: true,
+                                mainVariants: true,
+                                variantPromotions: true
+                            },
+                        },
                         variantAttribute: {
                             include: {
                                 variantAttributeImage: true
