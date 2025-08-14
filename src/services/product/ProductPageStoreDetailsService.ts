@@ -165,6 +165,12 @@ class ProductPageStoreDetailsService {
                             }
                         }
                     }
+                },
+                reviews: {
+                    include: {
+                        customer: true,
+                        product: true
+                    }
                 }
             }
         });

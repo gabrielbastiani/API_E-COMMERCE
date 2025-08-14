@@ -211,7 +211,13 @@ import { GetVariantUniqueController } from "./controllers/product/variation/GetV
 import { ValidationCouponController } from "./controllers/promotion/ValidationCuponController";
 import { ProductsBatchController } from "./controllers/product/ProductsBatchController";
 import { LookupController } from "./controllers/product/LookupController";
+import { CreateFavoriteController } from "./controllers/favorite/CreateFavoriteController";
+import { DeleteFavoriteController } from "./controllers/favorite/DeleteFavoriteController";
+import { GetFavoriteCustomerController } from "./controllers/favorite/GetFavoriteCustomerController";
+import { CreateReviewController } from "./controllers/review/CreateReviewController";
 const productsBatchController = new ProductsBatchController();
+import { getPaginatedReviews, 
+  getReviewSummary } from "./controllers/review/ReviewController"; 
 
 
 
@@ -482,6 +488,16 @@ router.post('/shipment/calculate', calculateFreightHandler);
 // --- PROMOTION --- //
 router.post("/promotions/apply", ApplyPromotionController.apply);
 router.post("/coupon/validate", ValidationCouponController.handle);
+
+// --- FAVORITE --- //
+router.post('/favorite/create', new CreateFavoriteController().handle);
+router.delete('/favorite/delete', new DeleteFavoriteController().handle);
+router.get('/favorite/customer/pageProduct', new GetFavoriteCustomerController().handle);
+
+// --- REVIEW --- //
+router.post('/review/create', isAuthenticatedCustomer, new CreateReviewController().handle);
+router.get('/review', getReviewSummary);
+router.get('/review/pagination', getPaginatedReviews);
 
 
 export { router };
