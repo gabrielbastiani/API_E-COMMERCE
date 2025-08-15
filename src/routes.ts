@@ -126,6 +126,7 @@ import { CategoryDeleteController } from "./controllers/category/CategoryDeleteC
 import { CategoryDeleteImageController } from "./controllers/category/CategoryDeleteImageController";
 import { AllProductsCategoryController } from "./controllers/category/AllProductsCategoryController";
 import { CategoriesStoreHomeController } from "./controllers/category/CategoriesStoreHomeController";
+import { listProductsByCategory, listFiltersByCategory } from "./controllers/product/categoryProduct/category.controller"; 
 
 // --- PRODUCT --- //
 import { CreateProductController } from "./controllers/product/CreateProductController";
@@ -216,8 +217,7 @@ import { DeleteFavoriteController } from "./controllers/favorite/DeleteFavoriteC
 import { GetFavoriteCustomerController } from "./controllers/favorite/GetFavoriteCustomerController";
 import { CreateReviewController } from "./controllers/review/CreateReviewController";
 const productsBatchController = new ProductsBatchController();
-import { getPaginatedReviews, 
-  getReviewSummary } from "./controllers/review/ReviewController"; 
+import { getPaginatedReviews, getReviewSummary } from "./controllers/review/ReviewController"; 
 
 
 
@@ -452,6 +452,10 @@ router.get('/marketing_publication/existing_mosaic', new ExistingMosaicControlle
 
 // --- CATEGORY --- //
 router.get('/categories/store/grid', new CategoriesStoreHomeController().handle);
+
+// --- CATEGORY PRODUCT --- //
+router.get('/categories/:slug/products', listProductsByCategory);
+router.get('/categories/:slug/filters', listFiltersByCategory);
 
 // --- PRODUCT --- //
 router.get("/products/busca", searchController);
