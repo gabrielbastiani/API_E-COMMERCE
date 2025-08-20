@@ -1,61 +1,60 @@
-import { Request, Response } from "express";
-import { FilterService } from "../../services/filter/FilterService";
+import { Request, Response } from 'express';
+import { FilterService } from '../../services/filter/FilterService';
+
+const service = new FilterService();
 
 class FilterController {
-    private service = new FilterService();
-
     async handleCreate(req: Request, res: Response) {
         try {
-            const filter = await this.service.create(req.body);
-            res.status(201).json(filter);
-        } catch (err: any) {
-            console.error("Error creating filter:", err);
-            res
-                .status(400)
-                .json({ message: err.message || "Erro ao criar filtro" });
+            const created = await service.create(req.body);
+            res.status(201).json(created);
+        } catch (err) {
+            console.error('Filter create error', err);
+            res.status(500).json({ error: 'Erro interno' });
         }
     }
 
     async handleGetAll(_req: Request, res: Response) {
-        const list = await this.service.findAll();
-        res.json(list);
+        try {
+            const list = await service.findAll();
+            res.json(list);
+        } catch (err) {
+            console.error('Filter getAll error', err);
+            res.status(500).json({ error: 'Erro interno' });
+        }
     }
 
     async handleGetOne(req: Request, res: Response) {
-        const { id } = req.params;
-        const filter = await this.service.findById(id);
-        if (!filter) {
-            res.status(404).json({ error: "Filtro não encontrado" });
+        try {
+            const { id } = req.params;
+            const f = await service.findById(id);
+            if (!f) res.status(404).json({ error: 'Not found' });
+            res.json(f);
+        } catch (err) {
+            console.error('Filter getOne error', err);
+            res.status(500).json({ error: 'Erro interno' });
         }
-        res.json(filter);
     }
 
     async handleUpdate(req: Request, res: Response) {
-        const { id } = req.params;
         try {
-            const updated = await this.service.update({
-                id,
-                ...req.body,
-            });
+            const { id } = req.params;
+            const updated = await service.update({ id, ...req.body });
             res.json(updated);
-        } catch (err: any) {
-            console.error("Error updating filter:", err);
-            res
-                .status(400)
-                .json({ message: err.message || "Erro ao atualizar filtro" });
+        } catch (err) {
+            console.error('Filter update error', err);
+            res.status(500).json({ error: 'Erro interno' });
         }
     }
 
     async handleDelete(req: Request, res: Response) {
-        const { id } = req.params;
         try {
-            await this.service.delete(id);
+            const { id } = req.params;
+            await service.delete(id);
             res.status(204).send();
-        } catch (err: any) {
-            console.error("Error deleting filter:", err);
-            res
-                .status(400)
-                .json({ message: err.message || "Erro ao excluir filtro" });
+        } catch (err) {
+            console.error('Filter delete error', err);
+            res.status(500).json({ error: 'Erro interno' });
         }
     }
 }

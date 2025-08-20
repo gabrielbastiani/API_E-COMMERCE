@@ -1,201 +1,278 @@
-import prisma from "../../../prisma"
+import prisma from "../../../prisma";
 
 export type ProductListOptions = {
-    page?: number
-    perPage?: number
-    q?: string
-    brand?: string
-    minPrice?: number
-    maxPrice?: number
-    sort?: 'maisVendidos' | 'nomeAsc' | 'nomeDesc' | 'menor' | 'maior' | 'maiorDesconto'
-    filters?: Record<string, string[]>
-}
+    page?: number;
+    perPage?: number;
+    q?: string;
+    brand?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    sort?: "maisVendidos" | "nomeAsc" | "nomeDesc" | "menor" | "maior" | "maiorDesconto";
+    filters?: Record<string, string[]>;
+};
 
 /** Busca categoria por slug */
 export async function getCategoryBySlug(slug: string) {
-    return prisma.category.findFirst({
-        where: { slug },
-    })
+    return prisma.category.findFirst({ where: { slug } });
 }
 
-/**
- * Helper: popula opções de filtro automaticamente, com base no fieldName e na categoria.
- * Retorna { options?: Array<{ id,label,value }>, minValue?, maxValue? }
- */
+/** normalizeKeys: aceita array, string JSON ou CSV */
+function normalizeKeys(raw: any): string[] {
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw.map(String);
+    if (typeof raw === "string") {
+        // tenta parse JSON
+        try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) return parsed.map(String);
+        } catch { /* ignore */ }
+        // fallback CSV
+        return raw.split(",").map(s => s.trim()).filter(Boolean);
+    }
+    return [];
+}
+
+/** Retorna SKUs das variantes (útil para endpoint/fallback) */
+export async function getSkusForCategory(slug: string) {
+    const values = await prisma.productVariant.findMany({
+        where: { product: { categories: { some: { category: { slug } } } }, sku: { not: undefined } },
+        distinct: ['sku'],
+        select: { sku: true },
+        orderBy: { sku: 'asc' },
+        take: 5000
+    });
+
+    return values.map((v: any) => String(v.sku));
+}
+
+/** popula opções de filtro automaticamente, com base no fieldName e na categoria. */
 async function populateFilterOptionsForCategory(filter: any, slug: string) {
-    const result: any = { options: [], minValue: null, maxValue: null }
+    const result: any = { options: [], minValue: null, maxValue: null, reviewSummary: null };
 
-    // fieldName pode ter formas:
-    // - "variantAttribute" (usa filter.name como chave)
-    // - "variantAttribute:Cor" (usa chave a seguir ao :)
-    // - "brand"
-    // - "price_per"
-    // - "price_of"
-    // - "variant.sku"
-    // - "category"
-    // - outros -> fallback sem opções
+    const field = (filter.fieldName ?? "").trim();
 
-    const field = (filter.fieldName ?? '').trim()
+    // variantAttribute: suporta filter.attributeKeys (Json), fieldName like 'variantAttribute:cor' ou filter.name
+    if (field.startsWith("variantAttribute")) {
+        let keys: string[] = [];
+        if (filter.attributeKeys) keys = normalizeKeys(filter.attributeKeys);
+        else if (field.includes(":")) keys = [field.split(":")[1]];
+        else if (filter.name) keys = [filter.name];
 
-    // variantAttribute (key either in filter.name or after colon)
-    if (field.startsWith('variantAttribute')) {
-        // determine attribute key
-        let keyName: string | null = null
-        if (field.includes(':')) keyName = field.split(':')[1]
-        else if (filter.name) keyName = filter.name
-        if (!keyName) return result
+        if (!keys || keys.length === 0) return result;
 
-        // find distinct values of variantAttribute.value for that key within products of the category
+        // pegar valores distintos
         const values = await prisma.variantAttribute.findMany({
             where: {
-                key: keyName,
-                variant: {
-                    product: {
-                        categories: {
-                            some: {
-                                category: { slug },
-                            },
-                        },
-                    },
-                },
+                key: { in: keys },
+                variant: { product: { categories: { some: { category: { slug } } } } }
             },
-            distinct: ['value'],
+            distinct: ["value"],
             select: { value: true },
-            orderBy: { value: 'asc' },
-        })
+            orderBy: { value: "asc" as const },
+            take: 2000
+        });
 
-        result.options = values.map((v: any) => ({ id: String(v.value), label: String(v.value), value: String(v.value) }))
-        return result
+        // Para cada valor, tentar trazer imagem do atributo (VariantAttributeImage)
+        // e como fallback imagem da variante (ProductVariantImage).
+        const options = await Promise.all(values.map(async (v: any) => {
+            const val = v.value == null ? "" : String(v.value);
+
+            // procurar imagem no VariantAttributeImage (prioridade)
+            const attrImage = await prisma.variantAttributeImage.findFirst({
+                where: {
+                    variantAttribute: {
+                        key: { in: keys },
+                        value: val
+                    }
+                },
+                orderBy: [{ isPrimary: 'desc' }, { created_at: 'asc' }],
+                select: { url: true, altText: true }
+            });
+
+            // fallback: imagem da variante que possua esse attribute value e esteja na categoria
+            const variantImage = !attrImage ? await prisma.productVariantImage.findFirst({
+                where: {
+                    productVariant: {
+                        variantAttribute: {
+                            some: {
+                                key: { in: keys },
+                                value: val
+                            }
+                        },
+                        product: {
+                            categories: {
+                                some: { category: { slug } }
+                            }
+                        }
+                    }
+                },
+                orderBy: [{ isPrimary: 'desc' }, { created_at: 'asc' }],
+                select: { url: true, altText: true }
+            }) : null;
+
+            const image = attrImage ?? variantImage ?? null;
+
+            return {
+                id: val,
+                label: val,
+                value: val,
+                image: image ? { url: image.url, altText: image.altText ?? null } : null
+            };
+        }));
+
+        result.options = options.filter((x: any) => x.value !== "");
+        return result;
     }
 
     // brand
-    if (field === 'brand' || field.toLowerCase() === 'marca') {
+    if (field === "brand" || field.toLowerCase() === "marca") {
         const values = await prisma.product.findMany({
-            where: {
-                categories: { some: { category: { slug } } },
-                NOT: { brand: null },
-            },
-            distinct: ['brand'],
+            where: { categories: { some: { category: { slug } } }, NOT: { brand: null } },
+            distinct: ["brand"],
             select: { brand: true },
-            orderBy: { brand: 'asc' as const },
-        })
-        result.options = values.filter(v => v.brand).map((v: any) => ({ id: String(v.brand), label: String(v.brand), value: String(v.brand) }))
-        return result
+            orderBy: { brand: "asc" as const }
+        });
+        result.options = values.filter(v => v.brand).map((v: any) => ({ id: String(v.brand), label: String(v.brand), value: String(v.brand) }));
+        return result;
     }
 
-    // price_per or price_of -> compute min/max across products in category
-    if (field === 'price_per' || field === 'price_of') {
+    // price_per / price_of
+    if (field === "price_per" || field === "price_of") {
         const agg = await prisma.product.aggregate({
             where: { categories: { some: { category: { slug } } } },
             _min: { price_per: true, price_of: true },
-            _max: { price_per: true, price_of: true },
-        })
-        result.minValue = field === 'price_per' ? (agg._min.price_per ?? 0) : (agg._min.price_of ?? 0)
-        result.maxValue = field === 'price_per' ? (agg._max.price_per ?? 0) : (agg._max.price_of ?? 0)
-        return result
+            _max: { price_per: true, price_of: true }
+        });
+        result.minValue = field === "price_per" ? (agg._min.price_per ?? 0) : (agg._min.price_of ?? 0);
+        result.maxValue = field === "price_per" ? (agg._max.price_per ?? 0) : (agg._max.price_of ?? 0);
+        return result;
     }
 
-    // variant.sku
-    if (field === 'variant.sku' || field === 'variant_sku') {
+    // variant.sku / sku (RESTORE ORIGINAL WORKING LOGIC)
+    if (field === "variant.sku" || field === "variant_sku" || field === "sku") {
         const values = await prisma.productVariant.findMany({
-            where: {
-                product: { categories: { some: { category: { slug } } } },
-            },
-            distinct: ['sku'],
+            where: { product: { categories: { some: { category: { slug } } } }, sku: { not: undefined } },
+            distinct: ["sku"],
             select: { sku: true },
-            orderBy: { sku: 'asc' as const },
-        })
-        result.options = values.map((v: any) => ({ id: v.sku, label: v.sku, value: v.sku }))
-        return result
+            orderBy: { sku: "asc" as const },
+            take: 2000
+        });
+
+        result.options = values.map((v: any) => ({ id: String(v.sku), label: String(v.sku), value: String(v.sku) }));
+        return result;
     }
 
-    // category -> categorias relacionadas dos produtos dentro dessa categoria
-    if (field === 'category') {
-        // pegar todas categorias associadas aos produtos dessa categoria (p.ex. subcategorias)
+    // category (categorias associadas aos produtos desta categoria)
+    if (field === "category") {
         const products = await prisma.product.findMany({
             where: { categories: { some: { category: { slug } } } },
             include: { categories: { include: { category: true } } },
-            take: 1000,
-        })
-        const map = new Map<string, string>()
+            take: 2000
+        });
+        const map = new Map<string, string>();
         for (const p of products) {
             for (const pc of p.categories ?? []) {
-                if (pc.category) map.set(pc.category.id, pc.category.name)
+                if (pc.category) map.set(pc.category.id, pc.category.name);
             }
         }
-        result.options = Array.from(map.entries()).map(([id, name]) => ({ id, label: name, value: id }))
-        return result
+        result.options = Array.from(map.entries()).map(([id, name]) => ({ id, label: name, value: id }));
+        return result;
     }
 
-    // fallback: tentar popular a partir de product fields (ex: skuMaster, ean, name suggestion)
-    if (field === 'skuMaster' || field === 'sku' || field === 'ean') {
-        // tenta coletar distincts simples de produtos (skuMaster ou ean)
-        const fieldName = field
+    // fallback para campos simples (skuMaster, ean, name)
+    if (["skuMaster", "sku", "ean", "name"].includes(field)) {
         const values = await prisma.product.findMany({
-            where: { categories: { some: { category: { slug } } }, NOT: { [fieldName]: null } },
-            distinct: [fieldName as any],
-            select: { [fieldName]: true },
-            orderBy: { [fieldName]: 'asc' as const },
-            take: 1000,
-        })
+            where: { categories: { some: { category: { slug } } }, NOT: { [field]: null } },
+            distinct: [field as any],
+            select: { [field]: true },
+            orderBy: { [field]: "asc" as const },
+            take: 2000
+        });
         result.options = values.map((v: any) => {
-            const val = v[fieldName]
-            return { id: String(val), label: String(val), value: String(val) }
-        })
-        return result
+            const val = v[field];
+            return { id: String(val), label: String(val), value: String(val) };
+        });
+        return result;
     }
 
-    // se não reconhecido, retorna vazio
-    return result
+    // rating / reviews -> calcular média via leitura de reviews
+    if (field === "rating" || field.toLowerCase() === "rating" || field.toLowerCase() === "avaliacao") {
+        try {
+            // buscar reviews dos produtos dessa categoria
+            const reviews = await prisma.review.findMany({
+                where: { product: { categories: { some: { category: { slug } } } } },
+                select: { product_id: true, rating: true }
+            });
+
+            // agrupar por produto e calcular média
+            const mapAvg = new Map<string, { sum: number, count: number }>();
+            for (const r of reviews) {
+                const pid = String((r as any).product_id ?? (r as any).productId ?? '');
+                const rt = Number((r as any).rating ?? 0);
+                const cur = mapAvg.get(pid) ?? { sum: 0, count: 0 };
+                cur.sum += rt;
+                cur.count += 1;
+                mapAvg.set(pid, cur);
+            }
+
+            // calcular média global e contagens por rating
+            let sum = 0, cnt = 0;
+            for (const [, v] of mapAvg) {
+                sum += v.sum;
+                cnt += v.count;
+            }
+            const avg = cnt ? (sum / cnt) : 0;
+            // countsByRating (por estrela) — conte diretamente dos reviews
+            const counts = reviews.reduce((acc: Record<string, number>, r: any) => {
+                const k = String(r.rating ?? 0);
+                acc[k] = (acc[k] ?? 0) + 1;
+                return acc;
+            }, {});
+            result.reviewSummary = { avgRating: avg, countsByRating: counts };
+        } catch (err) {
+            console.warn('rating populate error', err);
+        }
+        return result;
+    }
+
+    // não reconhecido -> vazio
+    return result;
 }
 
 /**
- * Retorna filtros configurados para a categoria (leva em conta CategoryFilter e DirectCategoryFilters).
- * Cada filtro vem com opções (FilterOption) quando existentes ou é auto-populado a partir do catálogo.
+ * Retorna filtros configurados para a categoria.
+ * Busca associações via categoryFilter (tabela de ligação).
  */
 export async function getFiltersForCategory(slug: string) {
-    const category = await prisma.category.findFirst({
-        where: { slug },
-        include: {
-            directFilters: {
-                include: { options: true, group: true },
-            },
-            filters: {
-                include: {
-                    filter: {
-                        include: { options: true, group: true },
-                    },
-                },
-            },
-        },
-    })
+    const category = await prisma.category.findFirst({ where: { slug }, select: { id: true } });
+    if (!category) return [];
 
-    if (!category) return []
+    // buscar categoryFilters e carregar filter associado
+    const catFilters = await prisma.categoryFilter.findMany({
+        where: { category_id: category.id },
+        include: { filter: { include: { group: true } } }
+    });
 
-    // Compose raw filters from directFilters and category.filters
-    const rawFilters: any[] = []
+    // coletar filtros brutos
+    const rawFilters: any[] = catFilters.map(cf => cf.filter).filter(Boolean);
 
-    if (Array.isArray(category.directFilters)) {
-        for (const f of category.directFilters) rawFilters.push(f)
-    }
-
-    if (Array.isArray(category.filters)) {
-        for (const cf of category.filters) {
-            if (cf.filter) rawFilters.push(cf.filter)
-        }
-    }
-
-    // group by group
-    const groupsMap = new Map<string, { group: any | null; filters: any[] }>()
+    // agrupar por group
+    const groupsMap = new Map<string, { group: any | null, filters: any[] }>();
     for (const f of rawFilters) {
-        const group = f.group ? { id: f.group.id, name: f.group.name } : null
-        const groupKey = group ? group.id : 'ungrouped'
-        if (!groupsMap.has(groupKey)) groupsMap.set(groupKey, { group, filters: [] })
+        const group = f.group ? { id: f.group.id, name: f.group.name } : null;
+        const key = group ? group.id : 'ungrouped';
+        if (!groupsMap.has(key)) groupsMap.set(key, { group, filters: [] });
 
-        // prepare options from DB if already exist
-        const options = (f.options ?? []).map((o: any) => ({ id: o.id, label: o.label, value: o.value, order: o.order }))
+        // preserva opções armazenadas no DB (e seu possível campo image)
+        const options = (f.options ?? []).map((o: any) => ({
+            id: o.id,
+            label: o.label,
+            value: o.value,
+            order: o.order,
+            image: o.image ?? null
+        }));
 
-        groupsMap.get(groupKey)!.filters.push({
+        groupsMap.get(key)!.filters.push({
             id: f.id,
             name: f.name,
             fieldName: f.fieldName,
@@ -208,161 +285,192 @@ export async function getFiltersForCategory(slug: string) {
             minValue: f.minValue,
             maxValue: f.maxValue,
             options,
-        })
+            attributeKeys: f.attributeKeys ?? null
+        });
     }
 
-    // Auto-populate filters that requested it or have no options
-    const groupsResult: any[] = []
+    const groupsResult: any[] = [];
     for (const [, groupEntry] of groupsMap) {
-        const filtersFilled: any[] = []
+        const filtersFilled: any[] = [];
         for (const fl of groupEntry.filters) {
-            const needPopulate = fl.autoPopulate === true || !fl.options || fl.options.length === 0
+            const needPopulate = fl.autoPopulate === true || !fl.options || fl.options.length === 0;
             if (needPopulate) {
                 try {
-                    const populated = await populateFilterOptionsForCategory(fl, slug)
-                    // merge results:
-                    if (populated.options && populated.options.length > 0) {
-                        // if there were options from DB, prefer them; otherwise use populated
-                        fl.options = populated.options
+                    const populated = await populateFilterOptionsForCategory(fl, slug);
+                    // prefer options do DB se existirem; caso contrário use populated
+                    if ((!fl.options || fl.options.length === 0) && populated.options && populated.options.length > 0) {
+                        fl.options = populated.options;
                     }
-                    if ((fl.minValue === null || fl.minValue === undefined) && populated.minValue !== null) fl.minValue = populated.minValue
-                    if ((fl.maxValue === null || fl.maxValue === undefined) && populated.maxValue !== null) fl.maxValue = populated.maxValue
+                    if ((fl.minValue === null || fl.minValue === undefined) && populated.minValue !== null) fl.minValue = populated.minValue;
+                    if ((fl.maxValue === null || fl.maxValue === undefined) && populated.maxValue !== null) fl.maxValue = populated.maxValue;
+                    if (populated.reviewSummary) fl.reviewSummary = populated.reviewSummary;
                 } catch (err) {
-                    console.error('populate filter error for', fl.id, err)
+                    console.error('populate filter error for', fl.id, err);
                 }
             }
-            filtersFilled.push(fl)
+            filtersFilled.push(fl);
         }
         groupsResult.push({
             group: groupEntry.group,
-            filters: filtersFilled.sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0)),
-        })
+            filters: filtersFilled.sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0))
+        });
     }
 
-    return groupsResult
+    return groupsResult;
 }
 
 /**
- * Busca produtos pela category.slug com paginação, ordenação e filtros.
- * filters: { [filterId]: string[] }
+ * Retorna produtos pela category.slug com paginação, ordenação e filtros.
  */
 export async function getProductsByCategorySlug(slug: string, opts: ProductListOptions = {}) {
-    const page = opts.page && opts.page > 0 ? opts.page : 1
-    const perPage = opts.perPage && opts.perPage > 0 ? opts.perPage : 12
-    const skip = (page - 1) * perPage
+    const page = opts.page && opts.page > 0 ? opts.page : 1;
+    const perPage = opts.perPage && opts.perPage > 0 ? opts.perPage : 12;
+    const skip = (page - 1) * perPage;
 
     const where: any = {
         status: 'DISPONIVEL',
-        categories: { some: { category: { slug } } },
-    }
+        categories: { some: { category: { slug } } }
+    };
 
     if (opts.q) {
-        const q = opts.q
-        where.AND = where.AND ?? []
+        const q = opts.q;
+        where.AND = where.AND ?? [];
         where.AND.push({
             OR: [
                 { name: { contains: q, mode: 'insensitive' } },
-                { description: { contains: q, mode: 'insensitive' } },
-            ],
-        })
+                { description: { contains: q, mode: 'insensitive' } }
+            ]
+        });
     }
 
-    if (opts.brand) where.brand = opts.brand
+    if (opts.brand) where.brand = opts.brand;
 
     // price range via minPrice/maxPrice
     if (typeof opts.minPrice === 'number' || typeof opts.maxPrice === 'number') {
         if (typeof opts.minPrice === 'number' && typeof opts.maxPrice === 'number') {
-            where.price_per = { gte: opts.minPrice, lte: opts.maxPrice }
+            where.price_per = { gte: opts.minPrice, lte: opts.maxPrice };
         } else if (typeof opts.minPrice === 'number') {
-            where.price_per = { gte: opts.minPrice }
+            where.price_per = { gte: opts.minPrice };
         } else if (typeof opts.maxPrice === 'number') {
-            where.price_per = { lte: opts.maxPrice }
+            where.price_per = { lte: opts.maxPrice };
         }
     }
 
     // apply filters (by filter id)
     if (opts.filters && Object.keys(opts.filters).length > 0) {
-        const filterIds = Object.keys(opts.filters)
-        const dbFilters = await prisma.filter.findMany({ where: { id: { in: filterIds } } })
+        const filterIds = Object.keys(opts.filters);
+        const dbFilters = await prisma.filter.findMany({ where: { id: { in: filterIds } } });
 
-        where.AND = where.AND ?? []
+        where.AND = where.AND ?? [];
+
         for (const dbf of dbFilters) {
-            const selectedValues = opts.filters![dbf.id] ?? []
-            if (!selectedValues || selectedValues.length === 0) continue
+            const selectedValues = opts.filters![dbf.id] ?? [];
+            if (!selectedValues || selectedValues.length === 0) continue;
 
-            const field = (dbf.fieldName ?? '').trim()
+            const field = (dbf.fieldName ?? "").trim();
 
-            // variantAttribute (either use dbf.name as key or support fieldName like 'variantAttribute:Key')
-            if (field.startsWith('variantAttribute')) {
-                let keyName: string | null = null
-                if (field.includes(':')) keyName = field.split(':')[1]
-                else keyName = dbf.name
-                if (!keyName) continue
+            // variantAttribute (usar attributeKeys Json quando presente)
+            if (field.startsWith("variantAttribute")) {
+                const keys = dbf.attributeKeys ? normalizeKeys(dbf.attributeKeys) : (field.includes(":") ? [field.split(":")[1]] : (dbf.name ? [dbf.name] : []));
+                if (keys.length === 0) continue;
 
                 where.AND.push({
                     variants: {
                         some: {
                             variantAttribute: {
                                 some: {
-                                    key: keyName,
-                                    value: { in: selectedValues },
-                                },
-                            },
-                        },
-                    },
-                })
-                continue
+                                    key: { in: keys },
+                                    value: { in: selectedValues }
+                                }
+                            }
+                        }
+                    }
+                });
+                continue;
             }
 
             // brand
-            if (field === 'brand') {
-                where.AND.push({ brand: { in: selectedValues } })
-                continue
+            if (field === "brand") {
+                where.AND.push({ brand: { in: selectedValues } });
+                continue;
             }
 
-            // price range expressed by filter - if selectedValues contain two numbers, interpret as range
-            if (field === 'price_per' || field === 'price_of') {
-                const nums = selectedValues.map(Number).filter(n => !Number.isNaN(n))
+            // price range
+            if (field === "price_per" || field === "price_of") {
+                const nums = selectedValues.map(Number).filter(n => !Number.isNaN(n));
                 if (nums.length >= 2) {
-                    const [min, max] = [Math.min(...nums), Math.max(...nums)]
-                    where.AND.push({ price_per: { gte: min, lte: max } })
+                    const [min, max] = [Math.min(...nums), Math.max(...nums)];
+                    where.AND.push({ price_per: { gte: min, lte: max } });
                 } else if (nums.length === 1) {
-                    // single value: treat as exact or minimum
-                    where.AND.push({ price_per: { gte: nums[0] } })
+                    where.AND.push({ price_per: { gte: nums[0] } });
                 }
-                continue
+                continue;
             }
 
-            // variant.sku
-            if (field === 'variant.sku' || field === 'variant_sku') {
-                where.AND.push({
-                    variants: { some: { sku: { in: selectedValues } } },
-                })
-                continue
+            // variant.sku (RESTORE ORIGINAL LOGIC)
+            if (field === "variant.sku" || field === "variant_sku" || field === "sku") {
+                where.AND.push({ variants: { some: { sku: { in: selectedValues } } } });
+                continue;
+            }
+
+            // rating -> buscar reviews e filtrar por product ids
+            if (field === "rating") {
+                const nums = selectedValues.map(Number).filter(n => !isNaN(n));
+                if (nums.length === 0) continue;
+                const min = Math.min(...nums), max = Math.max(...nums);
+
+                // buscar reviews dos produtos da categoria
+                const reviews = await prisma.review.findMany({
+                    where: { product: { categories: { some: { category: { slug } } } } },
+                    select: { product_id: true, rating: true }
+                });
+
+                // calcular avg por produto
+                const mapAvg = new Map<string, { sum: number, count: number }>();
+                for (const r of reviews) {
+                    const pid = String((r as any).product_id ?? (r as any).productId ?? '');
+                    const rt = Number((r as any).rating ?? 0);
+                    const cur = mapAvg.get(pid) ?? { sum: 0, count: 0 };
+                    cur.sum += rt;
+                    cur.count += 1;
+                    mapAvg.set(pid, cur);
+                }
+
+                const matchedIds = Array.from(mapAvg.entries())
+                    .filter(([, v]) => {
+                        const avg = v.count ? v.sum / v.count : 0;
+                        return avg >= min && avg <= max;
+                    })
+                    .map(([pid]) => pid);
+
+                if (matchedIds.length === 0) {
+                    where.AND.push({ id: { in: ['__no_match__'] } });
+                } else {
+                    where.AND.push({ id: { in: matchedIds } });
+                }
+                continue;
             }
 
             // category by id
-            if (field === 'category') {
-                where.AND.push({
-                    categories: { some: { category: { id: { in: selectedValues } } } },
-                })
-                continue
+            if (field === "category") {
+                where.AND.push({ categories: { some: { category: { id: { in: selectedValues } } } } });
+                continue;
             }
 
             // fallback: product field in (ex: skuMaster, ean)
-            where.AND.push({ [field]: { in: selectedValues } })
+            where.AND.push({ [field]: { in: selectedValues } });
         }
     }
 
     // orderBy
-    let orderBy: any = undefined
-    if (opts.sort === 'maisVendidos') orderBy = { view: 'desc' }
-    else if (opts.sort === 'nomeAsc') orderBy = { name: 'asc' }
-    else if (opts.sort === 'nomeDesc') orderBy = { name: 'desc' }
-    else if (opts.sort === 'menor') orderBy = { price_per: 'asc' }
-    else if (opts.sort === 'maior') orderBy = { price_per: 'desc' }
+    let orderBy: any = undefined;
+    if (opts.sort === 'maisVendidos') orderBy = { view: 'desc' };
+    else if (opts.sort === 'nomeAsc') orderBy = { name: 'asc' };
+    else if (opts.sort === 'nomeDesc') orderBy = { name: 'desc' };
+    else if (opts.sort === 'menor') orderBy = { price_per: 'desc' };
+    else if (opts.sort === 'maior') orderBy = { price_per: 'asc' };
 
-    const total = await prisma.product.count({ where })
+    const total = await prisma.product.count({ where });
 
     const products = await prisma.product.findMany({
         where,
@@ -371,27 +479,27 @@ export async function getProductsByCategorySlug(slug: string, opts: ProductListO
             variants: {
                 include: {
                     variantAttribute: true,
-                    productVariantImage: { orderBy: [{ isPrimary: 'desc' }, { created_at: 'asc' }] },
-                },
+                    productVariantImage: { orderBy: [{ isPrimary: 'desc' }, { created_at: 'asc' }] }
+                }
             },
-            categories: { include: { category: true } },
+            categories: { include: { category: true } }
         },
         orderBy: orderBy ? orderBy : undefined,
         skip,
-        take: perPage,
-    })
+        take: perPage
+    });
 
-    let sortedProducts = products
+    let sortedProducts = products;
     if ((opts.sort as any) === 'maiorDesconto') {
         sortedProducts = products.sort((a: any, b: any) => {
-            const aDiff = (a.price_of ?? a.price_per) - a.price_per
-            const bDiff = (b.price_of ?? b.price_per) - b.price_per
-            return bDiff - aDiff
-        })
+            const aDiff = (a.price_of ?? a.price_per) - a.price_per;
+            const bDiff = (b.price_of ?? b.price_per) - b.price_per;
+            return bDiff - aDiff;
+        });
     }
 
     const formatted = sortedProducts.map((p: any) => {
-        const primaryImage = p.images && p.images.length > 0 ? p.images[0].url : null
+        const primaryImage = p.images && p.images.length > 0 ? p.images[0].url : null;
         return {
             id: p.id,
             name: p.name,
@@ -410,11 +518,11 @@ export async function getProductsByCategorySlug(slug: string, opts: ProductListO
                 price_per: v.price_per,
                 price_of: v.price_of,
                 stock: v.stock,
-                attributes: v.variantAttribute.map((a: any) => ({ key: a.key, value: a.value })),
-                images: v.productVariantImage?.map((iv: any) => ({ url: iv.url, altText: iv.altText, isPrimary: iv.isPrimary })),
-            })),
-        }
-    })
+                attributes: (v.variantAttribute ?? []).map((a: any) => ({ key: a.key, value: a.value })),
+                images: v.productVariantImage?.map((iv: any) => ({ url: iv.url, altText: iv.altText, isPrimary: iv.isPrimary }))
+            }))
+        };
+    });
 
-    return { total, page, perPage, products: formatted }
+    return { total, page, perPage, products: formatted };
 }

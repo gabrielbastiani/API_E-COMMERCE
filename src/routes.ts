@@ -164,7 +164,6 @@ import { FindUniqueBuyTogetherController } from "./controllers/buyTogether/FindU
 
 // --- FILTERS --- //
 import { FilterController } from "./controllers/filter/FilterController";
-import { FilterOptionController } from "./controllers/filter/FilterOptionController";
 import { FilterGroupController } from "./controllers/filter/FilterGroupController";
 import { CategoryFilterController } from "./controllers/filter/CategoryFilterController";
 import { FilterCmsController } from "./controllers/filter/FilterCmsController";
@@ -172,7 +171,6 @@ import { FilterDeleteController } from "./controllers/filter/FilterDeleteControl
 import { StatusFilterController } from "./controllers/filter/StatusFilterController";
 import { GetFilterCategoriesController } from "./controllers/filter/GetFilterCategoriesController";
 const controllerFilter = new FilterController();
-const ctrlFilterOption = new FilterOptionController();
 const ctrlFilterGroup = new FilterGroupController();
 const ctrlFilterCategory = new CategoryFilterController();
 const filterDeleteCtrl = new FilterDeleteController();
@@ -218,6 +216,7 @@ import { GetFavoriteCustomerController } from "./controllers/favorite/GetFavorit
 import { CreateReviewController } from "./controllers/review/CreateReviewController";
 const productsBatchController = new ProductsBatchController();
 import { getPaginatedReviews, getReviewSummary } from "./controllers/review/ReviewController"; 
+import { DetectAttributeKeysController } from "./controllers/filter/DetectAttributeKeysController";
 
 
 
@@ -398,12 +397,6 @@ router.get("/filters/get/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SU
 router.put("/filter/update/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), controllerFilter.handleUpdate.bind(controllerFilter));
 router.delete("/filter/delete/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), controllerFilter.handleDelete.bind(controllerFilter));
 
-router.post("/filterOptions/create", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), ctrlFilterOption.handleCreate.bind(ctrlFilterOption));
-router.get("/filterOptions/getAll", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), ctrlFilterOption.handleGetAll.bind(ctrlFilterOption));
-router.get("/filterOptions/get/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), ctrlFilterOption.handleGetOne.bind(ctrlFilterOption));
-router.put("/filterOptions/update/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), ctrlFilterOption.handleUpdate.bind(ctrlFilterOption));
-router.delete("/filterOptions/deleteOption/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), ctrlFilterOption.handleDelete.bind(ctrlFilterOption));
-
 router.post("/filterGroups/create", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), ctrlFilterGroup.handleCreate.bind(ctrlFilterGroup));
 router.get("/filterGroups/getAll", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), ctrlFilterGroup.handleGetAll.bind(ctrlFilterGroup));
 router.get("/filterGroups/group/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), ctrlFilterGroup.handleGetOne.bind(ctrlFilterGroup));
@@ -420,6 +413,16 @@ router.get('/filter/categories', isAuthenticatedEcommerce, checkRole(["ADMIN", "
 router.get('/filters/cms', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new FilterCmsController().handle);
 router.delete('/filterData/delete', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), (req, res) => filterDeleteCtrl.handle(req, res));
 router.put('/filter/status', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new StatusFilterController().handle);
+router.get('/filters/detectAttributeKeys', async (req, res, next) => {
+  try {
+    const mod = await import('./controllers/filter/DetectAttributeKeysController');
+    const DetectAttributeKeysController = mod.DetectAttributeKeysController;
+    const ctrl = new DetectAttributeKeysController();
+    return ctrl.handle(req, res, next);
+  } catch (err) {
+    next(err);
+  }
+});
 
 // --- MENUS --- //
 router.post("/menu/create", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), upload_image.single('file'), new CreateMenuController().handle);

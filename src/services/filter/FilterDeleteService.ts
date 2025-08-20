@@ -12,11 +12,6 @@ export class FilterDeleteService {
                 where: { filter_id: { in: id_delete } }
             });
 
-            // 2) Remove todas as opções de filtro
-            await prisma.filterOption.deleteMany({
-                where: { filter_id: { in: id_delete } }
-            });
-
             // 3) Remove os próprios filtros
             await prisma.filter.deleteMany({
                 where: { id: { in: id_delete } }

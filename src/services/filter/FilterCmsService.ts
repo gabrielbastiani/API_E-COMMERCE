@@ -42,8 +42,7 @@ class FilterCmsService {
                 category: true,
                 categoryFilter: true,
                 directCategories: true,
-                group: true,
-                options: true
+                group: true
             }
         });
 

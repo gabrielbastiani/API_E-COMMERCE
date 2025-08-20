@@ -20,26 +20,114 @@ class ProductsRecentlyViewsService {
                 },
                 childRelations: {
                     include: {
-                        childProduct: true,
-                        parentProduct: true,
+                        childProduct: {
+                            include: {
+                                images: true
+                            }
+                        },
+                        parentProduct: {
+                            include: {
+                                images: true
+                            }
+                        },
                         product: true
                     }
                 },
                 images: true,
-                mainPromotion: true,
+                mainPromotion: {
+                    include: {
+                        actions: true,
+                        badges: true,
+                        categories: true,
+                        conditions: true,
+                        coupons: true,
+                        displays: true,
+                        featuredProducts: {
+                            include: {
+                                categories: {
+                                    include: {
+                                        category: true
+                                    }
+                                },
+                                images: true,
+                            }
+                        },
+                        products: {
+                            include: {
+                                images: true
+                            }
+                        },
+                        variantPromotions: {
+                            include: {
+                                variantAttribute: true,
+                                product: true,
+                                productVariantImage: true,
+                                productVariantVideo: true
+                            }
+                        }
+                    }
+                },
                 parentRelations: {
                     include: {
-                        childProduct: true,
-                        parentProduct: true,
-                        product: true
+                        childProduct: {
+                            include: {
+                                images: true
+                            }
+                        },
+                        parentProduct: {
+                            include: {
+                                images: true
+                            }
+                        },
+                        product: {
+                            include: {
+                                images: true
+                            }
+                        }
                     }
                 },
                 productsDescriptions: true,
                 variants: {
                     include: {
+                        product: {
+                            include: {
+                                images: true,
+                                categories: {
+                                    include: {
+                                        category: true
+                                    }
+                                },
+                                variants: {
+                                    include: {
+                                        product: {
+                                            include: {
+                                                categories: {
+                                                    include: {
+                                                        category: true
+                                                    }
+                                                },
+                                                images: true
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
                         productVariantImage: true,
                         productVariantVideo: true,
-                        mainPromotion: true,
+                        mainPromotion: {
+                            include: {
+                                actions: true,
+                                badges: true,
+                                conditions: true,
+                                categories: true,
+                                coupons: true,
+                                displays: true,
+                                featuredProducts: true,
+                                mainVariants: true,
+                                variantPromotions: true
+                            },
+                        },
                         variantAttribute: {
                             include: {
                                 variantAttributeImage: true
@@ -50,10 +138,42 @@ class ProductsRecentlyViewsService {
                 videos: true,
                 promotions: {
                     include: {
-                        mainVariants: true
+                        badges: true,
+                        displays: true,
+                        mainVariants: {
+                            include: {
+                                product: {
+                                    include: {
+                                        images: true,
+                                        categories: {
+                                            include: {
+                                                category: true
+                                            }
+                                        }
+                                    }
+                                },
+                                productVariantImage: true,
+                                productVariantVideo: true
+                            }
+                        }
                     }
                 },
-                productRelations: true
+                productRelations: true,
+                buyTogether: {
+                    include: {
+                        product: {
+                            include: {
+                                images: true
+                            }
+                        }
+                    }
+                },
+                reviews: {
+                    include: {
+                        customer: true,
+                        product: true
+                    }
+                }
             }
         });
 

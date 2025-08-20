@@ -17,27 +17,27 @@ class FilterGroupService {
     async findAll() {
         return prismaClient.filterGroup.findMany({
             include: { filters: true },
-            orderBy: { order: "asc" }
+            orderBy: { order: "asc" },
         });
     }
 
     async findById(id: string) {
         return prismaClient.filterGroup.findUnique({
             where: { id },
-            include: { filters: true }
+            include: { filters: true },
         });
     }
 
     async update({ id, ...rest }: UpdateFilterGroupDTO) {
         return prismaClient.filterGroup.update({
             where: { id },
-            data: rest
+            data: rest,
         });
     }
 
     async delete(id: string) {
         return prismaClient.filterGroup.delete({
-            where: { id }
+            where: { id },
         });
     }
 }
