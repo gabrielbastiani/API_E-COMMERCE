@@ -126,7 +126,7 @@ import { CategoryDeleteController } from "./controllers/category/CategoryDeleteC
 import { CategoryDeleteImageController } from "./controllers/category/CategoryDeleteImageController";
 import { AllProductsCategoryController } from "./controllers/category/AllProductsCategoryController";
 import { CategoriesStoreHomeController } from "./controllers/category/CategoriesStoreHomeController";
-import { listProductsByCategory, listFiltersByCategory } from "./controllers/product/categoryProduct/category.controller"; 
+import { listProductsByCategory, listFiltersByCategory } from "./controllers/product/categoryProduct/category.controller";
 
 // --- PRODUCT --- //
 import { CreateProductController } from "./controllers/product/CreateProductController";
@@ -215,11 +215,11 @@ import { DeleteFavoriteController } from "./controllers/favorite/DeleteFavoriteC
 import { GetFavoriteCustomerController } from "./controllers/favorite/GetFavoriteCustomerController";
 import { CreateReviewController } from "./controllers/review/CreateReviewController";
 const productsBatchController = new ProductsBatchController();
-import { getPaginatedReviews, getReviewSummary } from "./controllers/review/ReviewController"; 
-import { DetectAttributeKeysController } from "./controllers/filter/DetectAttributeKeysController";
+import { getPaginatedReviews, getReviewSummary } from "./controllers/review/ReviewController";
 import { CategoryPageController } from "./controllers/category/CategoryPageController";
 import productsController from "./controllers/favorite/products.controller";
 
+import * as CheckoutController from './controllers/checkout/checkout.controller';
 
 
 const router = Router();
@@ -416,14 +416,14 @@ router.get('/filters/cms', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_
 router.delete('/filterData/delete', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), (req, res) => filterDeleteCtrl.handle(req, res));
 router.put('/filter/status', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new StatusFilterController().handle);
 router.get('/filters/detectAttributeKeys', async (req, res, next) => {
-  try {
-    const mod = await import('./controllers/filter/DetectAttributeKeysController');
-    const DetectAttributeKeysController = mod.DetectAttributeKeysController;
-    const ctrl = new DetectAttributeKeysController();
-    return ctrl.handle(req, res, next);
-  } catch (err) {
-    next(err);
-  }
+    try {
+        const mod = await import('./controllers/filter/DetectAttributeKeysController');
+        const DetectAttributeKeysController = mod.DetectAttributeKeysController;
+        const ctrl = new DetectAttributeKeysController();
+        return ctrl.handle(req, res, next);
+    } catch (err) {
+        next(err);
+    }
 });
 
 // --- MENUS --- //
@@ -510,6 +510,21 @@ router.get("/productsById/favoritesPage/:id", (req, res) => productsController.g
 router.post('/review/create', isAuthenticatedCustomer, new CreateReviewController().handle);
 router.get('/review', getReviewSummary);
 router.get('/review/pagination', getPaginatedReviews);
+
+// Addresses (require auth for persistent CRUD; guest uses inline address)
+router.get('/addresses', CheckoutController.getAddresses)
+router.post('/addresses', CheckoutController.createAddress)
+router.put('/addresses/:id', CheckoutController.updateAddress)
+router.delete('/addresses/:id', CheckoutController.deleteAddress)
+
+// Shipping: accepts { addressId, items } OR { address, items }
+router.post('/shipping', CheckoutController.calculateShipping)
+
+// Payments options
+router.get('/payments/options', CheckoutController.getPaymentOptions)
+
+// Place order: supports authenticated and guest flows
+router.post('/order', CheckoutController.placeOrder)
 
 
 export { router };
