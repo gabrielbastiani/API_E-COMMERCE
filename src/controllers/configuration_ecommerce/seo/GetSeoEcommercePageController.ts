@@ -1,7 +1,7 @@
 import { Request, Response } from 'express'
 import { GetSeoEcommercePageService } from '../../../services/configuration_ecommerce/seo/GetSeoEcommercePageService'; 
 
-class GetSeoBlogPageController {
+class GetSeoEcommercePageController {
     async handle(req: Request, res: Response) {
 
         const page = req.query.page as string;
@@ -15,4 +15,4 @@ class GetSeoBlogPageController {
     }
 }
 
-export { GetSeoBlogPageController }
+export { GetSeoEcommercePageController }

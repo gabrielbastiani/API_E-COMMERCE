@@ -47,7 +47,7 @@ import { ColorsController } from "./controllers/configuration_ecommerce/colors_s
 // --- CONFIGURAÇÔES DO ECOMMERCE --- //
 import { CreateConfigurationController } from "./controllers/configuration_ecommerce/CreateConfigurationController";
 import { DeleteFilesExcelController } from "./controllers/configuration_ecommerce/DeleteFilesExcelController";
-import { GetSeoBlogPageController } from "./controllers/configuration_ecommerce/seo/GetSeoEcommercePageController";
+import { GetSeoEcommercePageController } from "./controllers/configuration_ecommerce/seo/GetSeoEcommercePageController";
 
 // --- TEMPLATES DE EMAILS
 import { TemplatesEmailsController } from "./controllers/templates_emails/TemplatesEmailsController";
@@ -217,6 +217,8 @@ import { CreateReviewController } from "./controllers/review/CreateReviewControl
 const productsBatchController = new ProductsBatchController();
 import { getPaginatedReviews, getReviewSummary } from "./controllers/review/ReviewController"; 
 import { DetectAttributeKeysController } from "./controllers/filter/DetectAttributeKeysController";
+import { CategoryPageController } from "./controllers/category/CategoryPageController";
+import productsController from "./controllers/favorite/products.controller";
 
 
 
@@ -338,7 +340,7 @@ router.post('/seo/og-images', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUP
 router.delete('/seo/og-image', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new DeleteOgImageController().handle);
 router.post('/seo/twitter-images', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), upload_image.array('images'), new AddTwitterImagesController().handle);
 router.delete('/seo/twitter-image', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new DeleteTwitterImageController().handle);
-router.get('/seo/get_page', new GetSeoBlogPageController().handle);
+router.get('/seo/get_page', new GetSeoEcommercePageController().handle);
 router.get('/seo/all_seos', new AllSeoEcommercePageController().handle);
 
 // --- MEDIA SOCIAL --- //
@@ -455,6 +457,7 @@ router.get('/marketing_publication/existing_mosaic', new ExistingMosaicControlle
 
 // --- CATEGORY --- //
 router.get('/categories/store/grid', new CategoriesStoreHomeController().handle);
+router.get('/category/name', new CategoryPageController().handle);
 
 // --- CATEGORY PRODUCT --- //
 router.get('/categories/:slug/products', listProductsByCategory);
@@ -500,6 +503,8 @@ router.post("/coupon/validate", ValidationCouponController.handle);
 router.post('/favorite/create', new CreateFavoriteController().handle);
 router.delete('/favorite/delete', new DeleteFavoriteController().handle);
 router.get('/favorite/customer/pageProduct', new GetFavoriteCustomerController().handle);
+router.get("/productsFavorites", (req, res) => productsController.getProducts(req, res));
+router.get("/productsById/favoritesPage/:id", (req, res) => productsController.getProductById(req, res));
 
 // --- REVIEW --- //
 router.post('/review/create', isAuthenticatedCustomer, new CreateReviewController().handle);
