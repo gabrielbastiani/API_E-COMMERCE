@@ -220,6 +220,7 @@ import { CategoryPageController } from "./controllers/category/CategoryPageContr
 import productsController from "./controllers/favorite/products.controller";
 
 import * as CheckoutController from './controllers/checkout/checkout.controller';
+import { UpdateAddressController } from "./controllers/users/customers/address/UpdateAddressController";
 
 
 const router = Router();
@@ -491,6 +492,7 @@ router.get("/menu/get/store", ctrlMenu.getMenu.bind(ctrlMenu));
 router.post('/address/customer/create', new CreateAddressCustomerController().handle);
 router.get('/customer/address/list', isAuthenticatedCustomer, new ListAddressCustomerController().handle);
 router.delete('/customer/address/delete', isAuthenticatedCustomer, new DeleteAddressController().handle);
+router.put('/customer/address/update', isAuthenticatedCustomer, new UpdateAddressController().handle);
 
 // --- FRETE --- //
 router.post('/shipment/calculate', calculateFreightHandler);
