@@ -2,6 +2,7 @@ import prismaClient from "../../../../prisma";
 
 interface AddressProps {
     customer_id: string;
+    recipient_name?: string;
     street: string;
     city: string;
     state: string;
@@ -16,6 +17,7 @@ interface AddressProps {
 class CreateAddressCustomerService {
     async execute({
         customer_id,
+        recipient_name,
         street,
         city,
         state,
@@ -29,6 +31,7 @@ class CreateAddressCustomerService {
         const address = await prismaClient.address.create({
             data: {
                 customer_id,
+                recipient_name,
                 street,
                 city,
                 state,

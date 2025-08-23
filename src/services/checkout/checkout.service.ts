@@ -3,6 +3,7 @@ import * as AsaasClient from './asaas.client'
 import * as MelhorEnvioClient from './melhorenvio.client'
 
 type AddressPayload = {
+  recipient_name?: string
   street: string
   number?: string | null
   neighborhood?: string | null
@@ -31,6 +32,7 @@ export async function createAddress(customerId: string, payload: AddressPayload)
   // Prisma model Address requires 'country' non-nullable
   const data: any = {
     customer_id: customerId,
+    recipient_name: payload.recipient_name,
     street: payload.street,
     city: payload.city,
     state: payload.state,

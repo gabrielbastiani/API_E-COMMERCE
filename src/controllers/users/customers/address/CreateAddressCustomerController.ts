@@ -5,6 +5,7 @@ class CreateAddressCustomerController {
     async handle(req: Request, res: Response) {
         const {
             customer_id,
+            recipient_name,
             street,
             city,
             state,
@@ -20,6 +21,7 @@ class CreateAddressCustomerController {
 
         const address = await createAddress.execute({
             customer_id,
+            recipient_name,
             street,
             city,
             state,
