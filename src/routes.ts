@@ -513,20 +513,22 @@ router.post('/review/create', isAuthenticatedCustomer, new CreateReviewControlle
 router.get('/review', getReviewSummary);
 router.get('/review/pagination', getPaginatedReviews);
 
-// Addresses (require auth for persistent CRUD; guest uses inline address)
-router.get('/addresses', CheckoutController.getAddresses)
-router.post('/addresses', CheckoutController.createAddress)
-router.put('/addresses/:id', CheckoutController.updateAddress)
-router.delete('/addresses/:id', CheckoutController.deleteAddress)
+// Addresses
+router.get('/customer/address/list', isAuthenticatedCustomer, CheckoutController.getAddresses);
+router.post('/address/customer/create', isAuthenticatedCustomer, CheckoutController.createAddress);
+router.put('/customer/address/update', isAuthenticatedCustomer, CheckoutController.updateAddress); // you used body address_id earlier
+// Alternative: make update/delete use params:
+router.put('/checkout/addresses/:id', isAuthenticatedCustomer, CheckoutController.updateAddress);
+router.delete('/checkout/addresses/:id', isAuthenticatedCustomer, CheckoutController.deleteAddress);
 
-// Shipping: accepts { addressId, items } OR { address, items }
-router.post('/shipping', CheckoutController.calculateShipping)
+// Shipping
+router.post('/checkout/shipping', isAuthenticatedCustomer, CheckoutController.calculateShipping);
 
-// Payments options
-router.get('/payments/options', CheckoutController.getPaymentOptions)
+// Payments/options
+router.get('/checkout/payments/options', isAuthenticatedCustomer, CheckoutController.getPaymentOptions);
 
-// Place order: supports authenticated and guest flows
-router.post('/order', CheckoutController.placeOrder)
+// Place order
+router.post('/checkout/order', isAuthenticatedCustomer, CheckoutController.placeOrder);
 
 
 export { router };
