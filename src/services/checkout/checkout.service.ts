@@ -16,7 +16,18 @@ type AddressPayload = {
   reference?: string | null;
 };
 
+type CardPayload = {
+  number: string;
+  holderName: string;
+  expirationMonth: string | number;
+  expirationYear: string | number;
+  cvv: string;
+  installments?: number | null;
+  brand?: string | null;
+};
+
 type PlaceOrderInput = {
+  cartId?: string | null; // <-- opcional: enviado pelo frontend para remover AbandonedCart
   customer_id?: string | undefined;
   addressId?: string | null;
   address?: AddressPayload | null;
@@ -25,15 +36,82 @@ type PlaceOrderInput = {
   items: Array<{ product_id: string; price?: number; quantity?: number; weight?: number; length?: number; height?: number; width?: number; variant_id?: string | null }>;
   guestCustomer?: { name?: string; email?: string; phone?: string; cpf?: string };
   customerNote?: string;
-  shippingCost?: number | null; // **novo**: se enviado, evita recálculo
-  shippingRaw?: any | null; // opcional: raw option from frontend
+  shippingCost?: number | null;
+  shippingRaw?: any | null;
   couponCode?: string | null;
+  card?: CardPayload | null;
+  orderTotalOverride?: number | null; // <-- novo: valor final (ex.: inclui juros) quando calculado no frontend
 };
 
-export async function placeOrder(input: PlaceOrderInput) {
-  const { customer_id, addressId, address, shippingId, paymentId, items, guestCustomer, shippingCost: shippingCostFromFrontend, shippingRaw } = input;
+/* --- utilitárias de endereço (mantidas) --- */
+export async function listAddresses(customerId: string) {
+  if (!customerId) throw new Error('customer_id obrigatório');
+  return prisma.address.findMany({ where: { customer_id: customerId }, orderBy: { created_at: 'desc' } as any });
+}
 
-  // --- 1) customer load/create (igual ao anterior) ---
+export async function createAddress(customerId: string, payload: Partial<AddressPayload>) {
+  if (!customerId) throw new Error('customer_id obrigatório');
+  const data: any = {
+    customer: { connect: { id: customerId } },
+    recipient_name: payload.recipient_name ?? '',
+    street: payload.street ?? '',
+    city: payload.city ?? '',
+    state: payload.state ?? '',
+    zipCode: payload.zipCode ?? '',
+    number: payload.number ?? '',
+    neighborhood: payload.neighborhood ?? '',
+    country: payload.country ?? 'Brasil',
+    complement: payload.complement ?? null,
+    reference: payload.reference ?? null,
+  };
+  return prisma.address.create({ data });
+}
+
+export async function updateAddress(customerId: string, addressId: string, payload: Partial<AddressPayload>) {
+  if (!customerId) throw new Error('customer_id obrigatório');
+  const existing = await prisma.address.findUnique({ where: { id: addressId } });
+  if (!existing) throw new Error('Endereço não encontrado');
+  if (existing.customer_id !== customerId) throw new Error('Não autorizado');
+  const data: any = {
+    recipient_name: payload.recipient_name ?? existing.recipient_name,
+    street: payload.street ?? existing.street,
+    city: payload.city ?? existing.city,
+    state: payload.state ?? existing.state,
+    zipCode: payload.zipCode ?? existing.zipCode,
+    number: payload.number ?? existing.number,
+    neighborhood: payload.neighborhood ?? existing.neighborhood,
+    country: payload.country ?? existing.country,
+    complement: payload.complement ?? existing.complement,
+    reference: payload.reference ?? existing.reference,
+  };
+  return prisma.address.update({ where: { id: addressId }, data });
+}
+
+export async function deleteAddress(customerId: string, addressId: string) {
+  if (!customerId) throw new Error('customer_id obrigatório');
+  const existing = await prisma.address.findUnique({ where: { id: addressId } });
+  if (!existing) throw new Error('Endereço não encontrado');
+  if (existing.customer_id !== customerId) throw new Error('Não autorizado');
+  await prisma.address.delete({ where: { id: addressId } });
+  return true;
+}
+
+export async function getPaymentOptions() {
+  return [
+    { id: 'asaas-pix', provider: 'Asaas', method: 'PIX', label: 'PIX (pagamento instantâneo)', description: 'Pague via QR Code / Payload Pix' },
+    { id: 'asaas-boleto', provider: 'Asaas', method: 'BOLETO', label: 'Boleto bancário', description: 'Pague com boleto' },
+    { id: 'asaas-card', provider: 'Asaas', method: 'CARD', label: 'Cartão de crédito', description: 'Pague com cartão de crédito' },
+  ];
+}
+
+/**
+ * placeOrder: cria pedido + cobrança e retorna objeto do pedido já normalizado
+ * Retorna: { success: true, orderId, orderData, paymentData }
+ */
+export async function placeOrder(input: PlaceOrderInput) {
+  const { cartId, customer_id, addressId, address, shippingId, paymentId, items, guestCustomer, shippingCost: shippingCostFromFrontend, shippingRaw, card, orderTotalOverride } = input;
+
+  // --- 1) carregar / criar customer ---
   let customer: any = null;
   if (customer_id) {
     customer = await prisma.customer.findUnique({ where: { id: customer_id } });
@@ -41,8 +119,7 @@ export async function placeOrder(input: PlaceOrderInput) {
   } else {
     if (!guestCustomer || !guestCustomer.name) throw new Error('Dados do cliente visitante obrigatórios');
     try {
-      // @ts-ignore - ajuste conforme seu schema se tiver campos obrigatórios extras
-      customer = await prisma.customer.create({// @ts-ignore
+      customer = await prisma.customer.create({/* @ts-ignore */
         data: {
           name: guestCustomer.name,
           email: guestCustomer.email ?? `guest+${Date.now()}@example.com`,
@@ -56,7 +133,7 @@ export async function placeOrder(input: PlaceOrderInput) {
     }
   }
 
-  // tentar criar customer no Asaas (não falhar o checkout caso dê erro)
+  // tentar criar customer no Asaas (não falha o checkout)
   if (!customer.asaas_customer_id) {
     try {
       const asaasCustomer = await AsaasClient.createCustomer({
@@ -65,14 +142,16 @@ export async function placeOrder(input: PlaceOrderInput) {
         phone: customer.phone ?? undefined,
         cpfCnpj: customer.cpf ?? undefined,
       });
-      await prisma.customer.update({ where: { id: customer.id }, data: { asaas_customer_id: asaasCustomer.id } });
-      customer.asaas_customer_id = asaasCustomer.id;
+      if (asaasCustomer?.id) {
+        await prisma.customer.update({ where: { id: customer.id }, data: { asaas_customer_id: asaasCustomer.id } });
+        customer.asaas_customer_id = asaasCustomer.id;
+      }
     } catch (err) {
       console.warn('Não foi possível criar cliente na Asaas (continuando):', err instanceof Error ? err.message : err);
     }
   }
 
-  // --- 2) subtotal (usar price enviado ou consultar produto) ---
+  // --- 2) subtotal ---
   let subtotal = 0;
   for (const it of items) {
     let priceNum = Number(it.price ?? 0);
@@ -84,20 +163,17 @@ export async function placeOrder(input: PlaceOrderInput) {
     subtotal += priceNum * (it.quantity ?? 1);
   }
 
-  // --- 3) shippingCost: prioridade para frontend ---
+  // --- 3) shippingCost: prioridade frontend ---
   let shippingCost: number | undefined = undefined;
   if (typeof shippingCostFromFrontend === 'number' && !isNaN(shippingCostFromFrontend)) {
     shippingCost = shippingCostFromFrontend;
   }
 
-  // se não tiver, vamos recalcular com MelhorEnvio (caminho fallback)
   if (shippingCost == null) {
     try {
-      // se shippingRaw tem preço, tenta usar
       if (shippingRaw && typeof shippingRaw.price === 'number') {
         shippingCost = shippingRaw.price;
       } else {
-        // obter dest zip
         let destZip: string | undefined;
         if (addressId) {
           const a = await prisma.address.findUnique({ where: { id: addressId } });
@@ -122,21 +198,22 @@ export async function placeOrder(input: PlaceOrderInput) {
         }));
 
         const quoteArr = await MelhorEnvioClient.quote({ from: process.env.ORIGIN_CEP!, to: destZip!, products });
-        // quoteArr agora é normalizado pela lib => [{ id, name, total (number|null), raw }]
         const first = Array.isArray(quoteArr) && quoteArr.length > 0 ? quoteArr[0] : null;
         if (!first || first.total == null) {
-          throw new Error('MelhorEnvio: preço inválido na cotaçao');
+          throw new Error('MelhorEnvio: preço inválido na cotação');
         }
         shippingCost = Number(first.total);
       }
     } catch (err: any) {
-      throw new Error(`Não foi possível calcular/validar o frete no servidor: ${err?.message ?? String(err)}. Se o frete já foi calculado no frontend, envie shippingCost no payload para evitar cálculo servidor.`);
+      throw new Error(`Não foi possível calcular/validar o frete no servidor: ${err?.message ?? String(err)}. Envie shippingCost no payload se o frete já foi calculado no frontend.`);
     }
   }
 
-  // --- 4) totals e criação do pedido ---
-  const grandTotal = subtotal + (shippingCost ?? 0);
+  // --- 4) calcular grandTotal (usar orderTotalOverride se fornecido) ---
+  const computedGrand = subtotal + (shippingCost ?? 0);
+  const finalGrandTotal = (typeof orderTotalOverride === 'number' && !isNaN(orderTotalOverride)) ? Number(orderTotalOverride) : Number(computedGrand);
 
+  // --- 5) criar pedido (transaction) ---
   const createdOrder = await prisma.$transaction(async (tx) => {
     const addressText = addressId
       ? ((await tx.address.findUnique({ where: { id: addressId } }))?.street ?? '')
@@ -146,7 +223,7 @@ export async function placeOrder(input: PlaceOrderInput) {
       data: {
         total: subtotal,
         shippingCost: shippingCost ?? 0,
-        grandTotal,
+        grandTotal: finalGrandTotal,
         shippingAddress: addressText,
         shippingMethod: shippingRaw ? (shippingRaw.provider ?? shippingRaw.carrier ?? String(shippingId)) : String(shippingId),
         customer: { connect: { id: customer.id } },
@@ -173,24 +250,65 @@ export async function placeOrder(input: PlaceOrderInput) {
     return created;
   });
 
-  // --- 5) criar cobrança na Asaas ---
-  const billingType = paymentId.includes('pix') ? 'PIX' : paymentId.includes('boleto') ? 'BOLETO' : (paymentId.includes('card') ? 'CREDIT_CARD' : 'BOLETO');
+  // --- 6) criar cobrança na Asaas ---
+  const billingType = String(paymentId ?? '').toLowerCase().includes('pix')
+    ? 'PIX'
+    : String(paymentId ?? '').toLowerCase().includes('boleto')
+      ? 'BOLETO'
+      : String(paymentId ?? '').toLowerCase().includes('card')
+        ? 'CREDIT_CARD'
+        : 'BOLETO';
 
   let paymentResult: any;
   try {
-    paymentResult = await AsaasClient.createPayment({
-      customer_asaaS_id: customer.asaas_customer_id ?? undefined,
-      amount: grandTotal,
-      billingType: billingType as any,
-      description: `Pedido ${createdOrder.id}`,
-      externalReference: String(createdOrder.id),
-      dueDate: null,
-    });
+    if (billingType === 'CREDIT_CARD' && card) {
+      let tokenResp: any = null;
+      try {
+        tokenResp = await AsaasClient.tokenizeCard({
+          customerAsaasId: customer.asaas_customer_id ?? undefined,
+          cardNumber: card.number.replace(/\s+/g, ''),
+          holderName: card.holderName,
+          expirationMonth: String(card.expirationMonth).padStart(2, '0'),
+          expirationYear: String(card.expirationYear),
+          cvv: card.cvv,
+        });
+      } catch (err) {
+        console.warn('Tokenização falhou:', err instanceof Error ? err.message : err);
+        throw new Error('Falha na tokenização do cartão. Verifique os dados do cartão.');
+      }
+
+      const maybeToken = tokenResp?.creditCardToken || tokenResp?.token || tokenResp?.id;
+      if (!maybeToken) {
+        throw new Error('Token de cartão não retornado pela Asaas. Verifique resposta: ' + JSON.stringify(tokenResp));
+      }
+
+      // Aqui usamos finalGrandTotal (que pode vir do orderTotalOverride enviado pelo frontend)
+      paymentResult = await AsaasClient.createPayment({
+        customer_asaaS_id: customer.asaas_customer_id ?? undefined,
+        amount: finalGrandTotal,
+        billingType: 'CREDIT_CARD',
+        description: `Pedido ${createdOrder.id}`,
+        externalReference: String(createdOrder.id),
+        creditCardToken: maybeToken,
+        creditCardHolderName: card.holderName,
+        installments: card.installments ?? 1,
+      });
+    } else {
+      // PIX / BOLETO / etc. também usam finalGrandTotal
+      paymentResult = await AsaasClient.createPayment({
+        customer_asaaS_id: customer.asaas_customer_id ?? undefined,
+        amount: finalGrandTotal,
+        billingType: billingType as any,
+        description: `Pedido ${createdOrder.id}`,
+        externalReference: String(createdOrder.id),
+      });
+    }
   } catch (err: any) {
     const errMsg = err instanceof Error ? err.message : String(err);
+    // Persistir pagamento com status FAILED
     await prisma.payment.create({
       data: {
-        amount: grandTotal,
+        amount: finalGrandTotal,
         method: billingType as any,
         status: 'FAILED',
         transaction_id: null,
@@ -205,37 +323,147 @@ export async function placeOrder(input: PlaceOrderInput) {
     throw new Error(`Falha ao criar cobrança no gateway: ${errMsg}`);
   }
 
-  // persist payment
-  const payment = await prisma.payment.create({
+  // --- 7) normalizar/persistir payment no banco ---
+  const raw = paymentResult.raw ?? paymentResult;
+
+  const normalizedPixQr =
+    paymentResult.pix_payload ??
+    paymentResult.pix_payload_string ??
+    paymentResult.pix_qr ??
+    raw?.pixPayload ??
+    raw?.pix_payload ??
+    raw?.pixQr ??
+    null;
+
+  const normalizedPixExpiration =
+    paymentResult.pix_expiration ??
+    paymentResult.pixExpiration ??
+    raw?.pixExpirationDate ??
+    raw?.pix_expiration ??
+    raw?.dueDate ??
+    null;
+
+  const normalizedPixEncodedImage = paymentResult.pix_qr_image ?? paymentResult.pixEncodedImage ?? raw?.pixQrEncodedImage ?? null;
+
+  const normalizedBoletoUrl =
+    paymentResult.boleto_url ??
+    paymentResult.bankSlipUrl ??
+    paymentResult.invoiceUrl ??
+    raw?.bankSlipUrl ??
+    raw?.invoiceUrl ??
+    raw?.bankSlip ??
+    null;
+
+  const normalizedBoletoBarcode =
+    paymentResult.boleto_barcode ??
+    paymentResult.barcode ??
+    paymentResult.line ??
+    raw?.barCode ??
+    raw?.line ??
+    raw?.boleto_barCode ??
+    null;
+
+  const persistedPayment = await prisma.payment.create({
     data: {
-      amount: grandTotal,
+      amount: finalGrandTotal,
       method: billingType as any,
-      status: 'PENDING',
+      status: (paymentResult.status ?? 'PENDING') as any,
       transaction_id: paymentResult.id ?? null,
       asaas_customer_id: customer.asaas_customer_id ?? null,
       asaas_payment_id: paymentResult.id ?? null,
       description: paymentResult.description ?? null,
       installment_plan: paymentResult.installments ? { installments: paymentResult.installments } : undefined,
-      pix_qr_code: paymentResult.pix_qr ?? null,
-      pix_expiration: paymentResult.pix_expiration ? new Date(paymentResult.pix_expiration) : null,
-      boleto_url: paymentResult.boleto_url ?? null,
-      boleto_barcode: paymentResult.boleto_barcode ?? null,
-      gateway_response: paymentResult.raw ?? paymentResult,
+      pix_qr_code: normalizedPixQr ?? null,
+      pix_expiration: normalizedPixExpiration ? new Date(normalizedPixExpiration) : null,
+      boleto_url: normalizedBoletoUrl ?? null,
+      boleto_barcode: normalizedBoletoBarcode ?? null,
+      gateway_response: {
+        raw,
+        pix_qr_image: normalizedPixEncodedImage ?? null,
+      } as any,
       order: { connect: { id: createdOrder.id } },
       customer: { connect: { id: customer.id } },
     },
   });
 
+  // --- 8) buscar o pedido completo (items + payments + customer) e retornar para frontend ---
+  const full = await prisma.order.findUnique({
+    where: { id: createdOrder.id },
+    include: {
+      items: true,
+      payment: true,
+      customer: true,
+    } as any,
+  });
+
+  const paymentsFromDb = await prisma.payment.findMany({
+    where: { order_id: createdOrder.id },
+    orderBy: { created_at: 'asc' } as any,
+  });
+
+  const itemsFromDb = await prisma.orderItem.findMany({ where: { order_id: createdOrder.id } });
+
+  const normalized = {
+    id: createdOrder.id,
+    total: Number(createdOrder.total ?? subtotal),
+    shippingCost: Number(createdOrder.shippingCost ?? shippingCost ?? 0),
+    grandTotal: Number(createdOrder.grandTotal ?? finalGrandTotal),
+    shippingAddress: createdOrder.shippingAddress ?? (address ? `${address.street}, ${address.number ?? ''}` : null),
+    shippingMethod: createdOrder.shippingMethod ?? String(shippingId),
+    customer: customer ? { id: customer.id, name: customer.name, email: customer.email, phone: customer.phone, cpf: customer.cpf, asaas_customer_id: customer.asaas_customer_id ?? null } : null,
+    items: itemsFromDb.map((it: any) => ({
+      id: it.id,
+      product_id: it.product_id,
+      price: Number(it.price ?? 0),
+      quantity: Number(it.quantity ?? 0),
+    })),
+    payments: paymentsFromDb.map((p: any) => ({
+      id: p.id,
+      amount: Number(p.amount ?? 0),
+      method: p.method,
+      status: p.status,
+      transaction_id: p.transaction_id ?? null,
+      asaas_payment_id: p.asaas_payment_id ?? null,
+      boleto_url: p.boleto_url ?? null,
+      boleto_barcode: p.boleto_barcode ?? null,
+      pix_qr_code: p.pix_qr_code ?? null,
+      pix_expiration: p.pix_expiration ?? null,
+      gateway_response: p.gateway_response ?? null,
+      created_at: p.created_at ?? null,
+    })),
+    created_at: full?.created_at ?? new Date().toISOString(),
+    raw: full ?? null,
+  };
+
+  const paymentData = {
+    boleto_url: normalizedBoletoUrl ?? null,
+    boleto_barcode: normalizedBoletoBarcode ?? null,
+    pix_qr: normalizedPixQr ?? null,
+    pix_payload: raw?.pixPayload ?? raw?.pix_payload ?? null,/* @ts-ignore */
+    pix_qr_image: (persistedPayment?.gateway_response?.pix_qr_image) ?? null,
+    pix_qr_url: paymentResult.pix_qr_url ?? raw?.pixQrCodeUrl ?? raw?.pix_qr_url ?? null,
+    pix_expiration: normalizedPixExpiration ?? null,
+    checkoutUrl: paymentResult.checkoutUrl ?? raw?.checkoutUrl ?? null,
+    raw,
+    status: paymentResult.status ?? 'PENDING',
+    id: paymentResult.id ?? null,
+    amount: finalGrandTotal,
+  };
+
+  // --- 9) remover AbandonedCart (se cartId foi enviado) ---
+  try {
+    if (cartId) {
+      // deleteMany para evitar problemas caso a constraint esteja diferente
+      await prisma.abandonedCart.deleteMany({ where: { cart_id: cartId } });
+    }
+  } catch (err) {
+    console.warn('Não foi possível remover AbandonedCart:', err);
+  }
+
   return {
     success: true,
-    orderId: createdOrder.id,
-    paymentRedirectUrl: paymentResult.checkoutUrl ?? null,
-    paymentData: {
-      boleto_url: paymentResult.boleto_url ?? null,
-      boleto_barcode: paymentResult.boleto_barcode ?? null,
-      pix_qr: paymentResult.pix_qr ?? null,
-      pix_qr_url: paymentResult.pix_qr_url ?? null,
-      pix_expiration: paymentResult.pix_expiration ?? null,
-    },
+    orderId: String(createdOrder.id),
+    orderData: normalized,
+    paymentData,
   };
 }

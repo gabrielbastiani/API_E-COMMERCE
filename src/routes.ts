@@ -195,6 +195,8 @@ const ctrlMenu = new MenuGetForStoreController();
 // --- CART --- //
 import { CartController } from "./controllers/cart/CartController";
 const ctrlCart = new CartController();
+import * as Controller from './controllers/cart/abandoned.controller';
+import * as AbandonedController from './controllers/cart/abandoned.controller';
 
 // --- ADDRESS --- //
 import { CreateAddressCustomerController } from "./controllers/users/customers/address/CreateAddressCustomerController";
@@ -221,6 +223,10 @@ import productsController from "./controllers/favorite/products.controller";
 
 import * as CheckoutController from './controllers/checkout/checkout.controller';
 import { UpdateAddressController } from "./controllers/users/customers/address/UpdateAddressController";
+
+import * as OrderController from './controllers/checkout/order.controller';
+import { asaasWebhookReceiver } from './controllers/checkout/asaasWebhook.controller';
+
 
 
 const router = Router();
@@ -485,6 +491,12 @@ router.put("/items/:itemId", isAuthenticatedCustomer, ctrlCart.updateItem.bind(c
 router.delete("/items/:itemId", isAuthenticatedCustomer, ctrlCart.removeItem.bind(ctrlCart));
 router.delete("/", isAuthenticatedCustomer, ctrlCart.clearCart.bind(ctrlCart));
 
+// Criar / atualizar abandoned cart
+router.post('/cart/abandoned', AbandonedController.postAbandonedCart);
+
+// Recuperar por cartId
+router.get('/cart/abandoned/:cartId', AbandonedController.getAbandonedCart);
+
 // --- MENU --- //
 router.get("/menu/get/store", ctrlMenu.getMenu.bind(ctrlMenu));
 
@@ -529,6 +541,8 @@ router.get('/checkout/payments/options', isAuthenticatedCustomer, CheckoutContro
 
 // Place order
 router.post('/checkout/order', isAuthenticatedCustomer, CheckoutController.placeOrder);
+router.get('/order/:id', isAuthenticatedCustomer, OrderController.getOrderHandler);
+router.post('/webhooks/asaas', asaasWebhookReceiver);
 
 
 export { router };

@@ -793,6 +793,7 @@ model BuyTogether {
 
 model Order {
   id                String           @id @default(uuid())
+  id_order_store    String?
   total             Float // Total dos produtos
   shippingCost      Float // Custo do frete (separado para relatórios)
   grandTotal        Float // total + shippingCost - descontos
@@ -883,7 +884,7 @@ model AbandonedCart {
   cart_id        String          @unique
   customer       Customer        @relation(fields: [customer_id], references: [id])
   customer_id    String          @db.Uuid
-  items          Json // Ex: [{ product_id: "123", quantity: 2, price: 99.90 }]
+  items          Json
   total          Float
   abandonedAt    DateTime        @default(now())
   reminderSentAt DateTime? // Último lembrete enviado
