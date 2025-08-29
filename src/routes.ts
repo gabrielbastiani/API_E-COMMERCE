@@ -1,3 +1,4 @@
+import express from 'express'
 import { Router } from "express";
 import multer from 'multer';
 import uploadConfig from './config/multer';
@@ -195,8 +196,6 @@ const ctrlMenu = new MenuGetForStoreController();
 // --- CART --- //
 import { CartController } from "./controllers/cart/CartController";
 const ctrlCart = new CartController();
-import * as Controller from './controllers/cart/abandoned.controller';
-import * as AbandonedController from './controllers/cart/abandoned.controller';
 
 // --- ADDRESS --- //
 import { CreateAddressCustomerController } from "./controllers/users/customers/address/CreateAddressCustomerController";
@@ -225,7 +224,8 @@ import * as CheckoutController from './controllers/checkout/checkout.controller'
 import { UpdateAddressController } from "./controllers/users/customers/address/UpdateAddressController";
 
 import * as OrderController from './controllers/checkout/order.controller';
-import { asaasWebhookReceiver } from './controllers/checkout/asaasWebhook.controller';
+
+import * as CartCtrl from './controllers/cart/cart.controller';
 
 
 
@@ -491,12 +491,6 @@ router.put("/items/:itemId", isAuthenticatedCustomer, ctrlCart.updateItem.bind(c
 router.delete("/items/:itemId", isAuthenticatedCustomer, ctrlCart.removeItem.bind(ctrlCart));
 router.delete("/", isAuthenticatedCustomer, ctrlCart.clearCart.bind(ctrlCart));
 
-// Criar / atualizar abandoned cart
-router.post('/cart/abandoned', AbandonedController.postAbandonedCart);
-
-// Recuperar por cartId
-router.get('/cart/abandoned/:cartId', AbandonedController.getAbandonedCart);
-
 // --- MENU --- //
 router.get("/menu/get/store", ctrlMenu.getMenu.bind(ctrlMenu));
 
@@ -542,7 +536,27 @@ router.get('/checkout/payments/options', isAuthenticatedCustomer, CheckoutContro
 // Place order
 router.post('/checkout/order', isAuthenticatedCustomer, CheckoutController.placeOrder);
 router.get('/order/:id', isAuthenticatedCustomer, OrderController.getOrderHandler);
-router.post('/webhooks/asaas', asaasWebhookReceiver);
+
+// Cart / Abandoned
+router.post('/cart/abandoned', isAuthenticatedCustomer, CartCtrl.createOrUpdateAbandoned)
+router.delete('/cart/abandoned/:cartId', isAuthenticatedCustomer, CartCtrl.deleteAbandoned)
+router.get('/cart', isAuthenticatedCustomer, CartCtrl.getCart)
+
+// Email reminders
+/* router.post('/cart/abandoned/:cartId/reminder', isAuthenticatedCustomer, AbandonedCtrl.sendAbandonedReminder) */
+
+import { sendAbandonedReminder } from './controllers/emails/email.controller';
+router.post('/cart/abandoned/:cartId/reminder', sendAbandonedReminder);
+
+import { handleAsaasWebhook } from './controllers/checkout/webhook/asaas.controller';
+import { rawBodyMiddleware } from './middlewares/rawBody';
+
+// Usar rawBodyMiddleware apenas para webhooks que precisam de verificação de assinatura
+router.post('/webhook/asaas', rawBodyMiddleware, express.json({
+    verify: (req, res, buf) => {
+        (req as any).rawBody = buf.toString();
+    }
+}), handleAsaasWebhook);
 
 
 export { router };

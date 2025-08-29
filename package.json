@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
+    "ngrok": "node scripts/ngrok-setup.js",
+    "ngrok:global": "ngrok http 3333 --region=us --log=stdout",
     "dev": "ts-node-dev src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
@@ -55,6 +57,7 @@
     "@types/express": "^5.0.1",
     "@types/multer": "^1.4.12",
     "@types/node": "^22.15.21",
+    "ngrok": "^5.0.0-beta.2",
     "prisma": "^6.6.0",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",

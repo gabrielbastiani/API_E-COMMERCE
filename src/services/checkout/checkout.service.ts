@@ -227,6 +227,7 @@ export async function placeOrder(input: PlaceOrderInput) {
         shippingAddress: addressText,
         shippingMethod: shippingRaw ? (shippingRaw.provider ?? shippingRaw.carrier ?? String(shippingId)) : String(shippingId),
         customer: { connect: { id: customer.id } },
+        cart_id: cartId ?? undefined,
       },
     });
 

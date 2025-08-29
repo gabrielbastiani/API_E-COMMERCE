@@ -1,5 +1,5 @@
 import 'express-async-errors';
-import express, { Request, Response, NextFunction, ErrorRequestHandler } from 'express';
+import express, { Request, Response, NextFunction, ErrorRequestHandler, json } from 'express';
 import cors from 'cors';
 import { router } from './routes';
 import path from 'path';
@@ -15,6 +15,22 @@ const startSchedulerPromotion = new StartPromotionScheduler();
 const endSchedulerPromotion = new EndPromotionScheduler();
 
 const app = express();
+
+app.use((req, res, next) => {
+    res.setTimeout(30000, () => {
+        console.log('Request has timed out.');
+        res.status(408).send('Timeout');
+    });
+    next();
+});
+
+// Configuração otimizada do body parser
+app.use(json({
+    limit: '10mb',
+    verify: (req: any, res, buf) => {
+        req.rawBody = buf.toString();
+    }
+}));
 
 app.set('trust proxy', true);
 
@@ -65,4 +81,6 @@ cron.schedule("* * * * *", async () => {
     }, 10000);
 });
 
-app.listen(process.env.PORT || 3333, () => console.log('Servidor online!!!!'));
+const server = app.listen(process.env.PORT || 3333, () => console.log('Servidor online!!!!'));
+
+server.setTimeout(30000);
