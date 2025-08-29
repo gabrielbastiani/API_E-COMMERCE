@@ -1,9 +1,9 @@
 import 'express-async-errors';
-import express, { Request, Response, NextFunction, ErrorRequestHandler, json } from 'express';
+import express, { Request, Response, NextFunction, ErrorRequestHandler } from 'express';
 import cors from 'cors';
-import { router } from './routes';
 import path from 'path';
-import cron from "node-cron";
+import cron from 'node-cron';
+import { router } from './routes';
 import { StartMarketingPublicationScheduler } from './services/marketing_publication/StartMarketingPublicationScheduler';
 import { EndMarketingPublicationScheduler } from './services/marketing_publication/EndMarketingPublicationScheduler';
 import { StartPromotionScheduler } from './services/promotion/StartPromotionScheduler';
@@ -16,71 +16,75 @@ const endSchedulerPromotion = new EndPromotionScheduler();
 
 const app = express();
 
-app.use((req, res, next) => {
-    res.setTimeout(30000, () => {
-        console.log('Request has timed out.');
-        res.status(408).send('Timeout');
-    });
-    next();
-});
-
-// Configuração otimizada do body parser
-app.use(json({
-    limit: '10mb',
-    verify: (req: any, res, buf) => {
-        req.rawBody = buf.toString();
+// Type augmentation para rawBody (Buffer)
+declare global {
+  namespace Express {
+    interface Request {
+      rawBody?: Buffer;
     }
+  }
+}
+
+const PORT = process.env.PORT ? Number(process.env.PORT) : 3333;
+
+// Captura raw body globalmente (útil para HMAC sem ambiguidade)
+app.use(express.json({
+  limit: '10mb',
+  verify: (req: any, _res, buf: Buffer) => {
+    // armazenamos o Buffer diretamente
+    req.rawBody = buf;
+  }
 }));
 
 app.set('trust proxy', true);
 
+// Headers / CORS
 app.use((req: Request, res: Response, next: NextFunction) => {
-    res.header('Access-Control-Allow-Origin', process.env.URL_ECOMMERCE);
-    res.header('Access-Control-Allow-Methods', 'GET, PATCH, POST, DELETE, PUT');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    next();
+  res.header('Access-Control-Allow-Origin', process.env.URL_ECOMMERCE || '*');
+  res.header('Access-Control-Allow-Methods', 'GET, PATCH, POST, DELETE, PUT, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Asaas-Signature, asaas-signature, X-Requested-With');
+  next();
 });
 
 app.use(cors());
-app.use(express.json());
 
+// Rotas
 app.use(router);
 
-app.use(
-    '/files',
-    express.static(path.resolve(__dirname, '..', 'images'))
-);
+// Servir arquivos estáticos
+app.use('/files', express.static(path.resolve(__dirname, '..', 'images')));
 
-// Middleware de erros corrigido
-const errorHandler: ErrorRequestHandler = (
-    err: unknown,
-    req: Request,
-    res: Response,
-    next: NextFunction
-) => {
-    if (err instanceof Error) {
-        res.status(400).json({ error: err.message });
-        return;
-    }
-
-    res.status(500).json({
-        status: 'error',
-        message: 'Internal server error.'
-    });
+// Error handler
+const errorHandler: ErrorRequestHandler = (err: unknown, _req, res, _next) => {
+  if (err instanceof Error) {
+    console.error('Erro capturado pelo errorHandler:', err.message);
+    res.status(400).json({ error: err.message });
+    return;
+  }
+  res.status(500).json({
+    status: 'error',
+    message: 'Internal server error.'
+  });
 };
 
 app.use(errorHandler);
 
+// Agendamentos (mantive sua lógica)
 cron.schedule("* * * * *", async () => {
+  try {
     await startSchedulerPublication.execute();
     await startSchedulerPromotion.execute();
 
     setTimeout(async () => {
-        await endSchedulerPublication.execute();
-        await endSchedulerPromotion.execute();
+      await endSchedulerPublication.execute();
+      await endSchedulerPromotion.execute();
     }, 10000);
+  } catch (err) {
+    console.error('Erro no cron jobs:', err);
+  }
 });
 
-const server = app.listen(process.env.PORT || 3333, () => console.log('Servidor online!!!!'));
+const server = app.listen(PORT, () => console.log(`Servidor online na porta ${PORT} !!!!`));
 
+// Timeout do servidor (30s)
 server.setTimeout(30000);

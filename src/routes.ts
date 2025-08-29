@@ -549,14 +549,8 @@ import { sendAbandonedReminder } from './controllers/emails/email.controller';
 router.post('/cart/abandoned/:cartId/reminder', sendAbandonedReminder);
 
 import { handleAsaasWebhook } from './controllers/checkout/webhook/asaas.controller';
-import { rawBodyMiddleware } from './middlewares/rawBody';
 
-// Usar rawBodyMiddleware apenas para webhooks que precisam de verificação de assinatura
-router.post('/webhook/asaas', rawBodyMiddleware, express.json({
-    verify: (req, res, buf) => {
-        (req as any).rawBody = buf.toString();
-    }
-}), handleAsaasWebhook);
+router.post('/webhook/asaas', handleAsaasWebhook);
 
 
 export { router };
