@@ -552,5 +552,8 @@ import { handleAsaasWebhook } from './controllers/checkout/webhook/asaas.control
 
 router.post('/webhook/asaas', handleAsaasWebhook);
 
+import * as PaymentsController from './controllers/checkout/boletoWebScraping/payments.controller';
+router.get('/payments/:paymentId/boleto', PaymentsController.getBoletoPdf);
+
 
 export { router };
