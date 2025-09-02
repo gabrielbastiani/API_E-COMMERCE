@@ -793,7 +793,7 @@ model BuyTogether {
 
 model Order {
   id                String           @id @default(uuid())
-  id_order_store    String?
+  id_order_store    String?          @unique
   total             Float // Total dos produtos
   shippingCost      Float // Custo do frete (separado para relatórios)
   grandTotal        Float // total + shippingCost - descontos

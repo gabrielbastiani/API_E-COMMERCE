@@ -289,6 +289,16 @@ class UserCreateService {
             }
         });
 
+        await prismaClient.emailTemplate.create({
+            data: {
+                title: "Email carrinho abandonado 1",
+                subject: "Deixou algo para tras",
+                templateName: "email_carrinho_abandonado_1.ejs",
+                isActive: true,
+                hoursAfter: 0
+            }
+        });
+
         const requiredPath = path.join(__dirname, `../../../emails_templates/criacao_de_super_administrador.ejs`);
 
         const data_templates = await prismaClient.emailTemplate.findFirst({

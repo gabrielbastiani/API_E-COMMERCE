@@ -1,3 +1,4 @@
+// src/services/checkout/asaas.client.ts
 import axios from 'axios';
 
 const BASE = process.env.ASAAS_BASE_URL ?? 'https://sandbox.asaas.com/api/v3';
@@ -23,8 +24,15 @@ function formatDateYYYYMMDD(d: Date) {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+// Remove tudo que não seja dígito — retorna undefined se resultar em string vazia/undefined
+function onlyDigits(str?: string | null) {
+  if (str === undefined || str === null) return undefined;
+  const s = String(str).replace(/\D/g, '');
+  return s === '' ? undefined : s;
+}
+
 /**
- * Helper de retry simples
+ * Helper de retry simples (para endpoints auxiliares que podem precisar de polling)
  */
 async function retry<T>(fn: () => Promise<T | null>, tries = 3, delayMs = 300): Promise<T | null> {
   for (let i = 0; i < tries; i++) {
@@ -32,7 +40,7 @@ async function retry<T>(fn: () => Promise<T | null>, tries = 3, delayMs = 300): 
       const out = await fn();
       if (out) return out;
     } catch {
-      // continue to retry
+      // ignora e tenta de novo
     }
     const wait = delayMs * (i + 1);
     await new Promise((r) => setTimeout(r, wait));
@@ -41,7 +49,7 @@ async function retry<T>(fn: () => Promise<T | null>, tries = 3, delayMs = 300): 
 }
 
 /**
- * Cria customer na Asaas
+ * Cria customer no Asaas garantindo cpfCnpj sanitizado (se fornecido)
  */
 export async function createCustomer(opts: {
   name: string;
@@ -52,7 +60,8 @@ export async function createCustomer(opts: {
   const payload: any = { name: opts.name };
   if (opts.email) payload.email = opts.email;
   if (opts.phone) payload.mobilePhone = opts.phone;
-  if (opts.cpfCnpj) payload.cpfCnpj = opts.cpfCnpj;
+  const cpfCnpjSan = onlyDigits(opts.cpfCnpj);
+  if (cpfCnpjSan) payload.cpfCnpj = cpfCnpjSan;
 
   try {
     const resp = await client.post('/customers', payload);
@@ -61,6 +70,40 @@ export async function createCustomer(opts: {
   } catch (err: any) {
     const data = err?.response?.data ?? err?.message ?? String(err);
     throw new Error(`Asaas createCustomer failed: ${JSON.stringify(data)}`);
+  }
+}
+
+/**
+ * Recupera customer do Asaas por id
+ */
+export async function getCustomer(asaasCustomerId: string) {
+  if (!asaasCustomerId) return null;
+  try {
+    const resp = await client.get(`/customers/${asaasCustomerId}`);
+    return resp.data ?? null;
+  } catch (err) {
+    // retorna null em caso de erro (upstream decide o que fazer)
+    return null;
+  }
+}
+
+/**
+ * Atualiza customer no Asaas (ex.: para postar cpfCnpj)
+ */
+export async function updateCustomer(asaasCustomerId: string, payload: { name?: string; cpfCnpj?: string; mobilePhone?: string; email?: string }) {
+  if (!asaasCustomerId) throw new Error('asaasCustomerId obrigatório para updateCustomer');
+  const body: any = {};
+  if (payload.name) body.name = payload.name;
+  if (payload.email) body.email = payload.email;
+  if (payload.mobilePhone) body.mobilePhone = payload.mobilePhone;
+  if (payload.cpfCnpj) body.cpfCnpj = onlyDigits(payload.cpfCnpj);
+
+  try {
+    const resp = await client.put(`/customers/${asaasCustomerId}`, body);
+    return resp.data ?? null;
+  } catch (err: any) {
+    const data = err?.response?.data ?? err?.message ?? String(err);
+    throw new Error(`Asaas updateCustomer failed: ${JSON.stringify(data)}`);
   }
 }
 
@@ -142,6 +185,12 @@ async function fetchBoletoIdentificationField(paymentId: string) {
   }
 }
 
+/**
+ * Cria pagamento
+ * - customer_asaaS_id: se fornecido, será enviado como `customer`
+ * - billingType: 'PIX' | 'BOLETO' | 'CREDIT_CARD' | ...
+ * - opcional: cpfCnpj (se desejar criar payment sem customer id e passar cpfCnpj diretamente no payload — compatibilidade)
+ */
 export async function createPayment(opts: {
   customer_asaaS_id?: string | undefined;
   amount: number;
@@ -152,6 +201,7 @@ export async function createPayment(opts: {
   creditCardToken?: string | null;
   creditCardHolderName?: string | null;
   installments?: number | null;
+  cpfCnpj?: string | null; // opcional: fallback (usar apenas se NÃO houver customer_asaaS_id)
 }) {
   const { customer_asaaS_id, amount, billingType, description, externalReference, creditCardToken, creditCardHolderName, installments } = opts;
 
@@ -161,6 +211,13 @@ export async function createPayment(opts: {
   };
 
   if (customer_asaaS_id) payload.customer = customer_asaaS_id;
+  // fallback: se nenhum customer_asaaS_id e cpfCnpj foi passado, tentamos enviar o cpfCnpj direto (algumas versões aceitam)
+  const cpfCnpjSan = onlyDigits(opts.cpfCnpj ?? undefined);
+  if (!customer_asaaS_id && cpfCnpjSan) {
+    // Note: nem sempre a criação de payment aceita cpfCnpj direto — preferir garantir que existe o customer com cpfCnpj.
+    payload.cpfCnpj = cpfCnpjSan;
+  }
+
   if (description) payload.description = description;
   if (externalReference) payload.externalReference = externalReference;
 
@@ -168,7 +225,6 @@ export async function createPayment(opts: {
   if (opts.dueDate !== undefined && opts.dueDate !== null) {
     payload.dueDate = opts.dueDate;
   } else {
-    // ensure a dueDate is always sent when gateway expects it (BOLETO/PIX/CARD)
     if (String(billingType).toUpperCase() === 'BOLETO') {
       const d = new Date();
       d.setDate(d.getDate() + 3);
@@ -176,7 +232,6 @@ export async function createPayment(opts: {
     } else if (String(billingType).toUpperCase() === 'PIX') {
       payload.dueDate = formatDateYYYYMMDD(new Date());
     } else if (String(billingType).toUpperCase() === 'CREDIT_CARD' || String(billingType).toUpperCase() === 'CARD') {
-      // Some environments of Asaas require dueDate even for card charges — use today's date
       payload.dueDate = formatDateYYYYMMDD(new Date());
     }
   }
@@ -184,7 +239,6 @@ export async function createPayment(opts: {
   // installments for credit card
   if (String(billingType).toUpperCase() === 'CREDIT_CARD' && installments && Number(installments) > 1) {
     payload.installmentCount = Number(installments);
-    // installmentValue: divide amount by installments (rounded to 2 decimals)
     payload.installmentValue = Number((Number(amount) / Number(installments)).toFixed(2));
   }
 
@@ -289,9 +343,7 @@ export async function createPayment(opts: {
       raw: data,
     };
   } catch (err: any) {
-    // Normalize error message for easier debugging
     const data = err?.response?.data ?? err?.message ?? String(err);
-    // Throw descriptive error to upstream (checkout service)
     throw new Error(`Asaas createPayment failed: ${JSON.stringify(data)}`);
   }
 }

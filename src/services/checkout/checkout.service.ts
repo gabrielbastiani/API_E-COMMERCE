@@ -27,20 +27,20 @@ type CardPayload = {
 };
 
 type PlaceOrderInput = {
-  cartId?: string | null; // <-- opcional: enviado pelo frontend para remover AbandonedCart
+  cartId?: string | null;
   customer_id?: string | undefined;
   addressId?: string | null;
   address?: AddressPayload | null;
   shippingId: string;
   paymentId: string;
   items: Array<{ product_id: string; price?: number; quantity?: number; weight?: number; length?: number; height?: number; width?: number; variant_id?: string | null }>;
-  guestCustomer?: { name?: string; email?: string; phone?: string; cpf?: string };
+  guestCustomer?: { name?: string; email?: string; phone?: string; cpf?: string; cnpj?: string };
   customerNote?: string;
   shippingCost?: number | null;
   shippingRaw?: any | null;
   couponCode?: string | null;
   card?: CardPayload | null;
-  orderTotalOverride?: number | null; // <-- novo: valor final (ex.: inclui juros) quando calculado no frontend
+  orderTotalOverride?: number | null;
 };
 
 /* --- utilitárias de endereço (mantidas) --- */
@@ -104,6 +104,101 @@ export async function getPaymentOptions() {
   ];
 }
 
+/* --------------------------
+   Helpers locais
+   -------------------------- */
+
+// sanitiza CPF/CNPJ (remove tudo que não for dígito); retorna undefined se vazio
+function onlyDigits(str?: string | null) {
+  if (str === undefined || str === null) return undefined;
+  const s = String(str).replace(/\D/g, '');
+  return s === '' ? undefined : s;
+}
+
+/**
+ * Garante que o customer no Asaas possua cpfCnpj (CPF ou CNPJ).
+ * - Se customer.asaas_customer_id não existir: tenta criar na Asaas com cpfCnpj.
+ * - Se asaas_customer_id existir: busca o customer no Asaas e, caso esteja sem cpfCnpj, faz update com o cpfCnpj local (se houver).
+ * - Lança erro se não for possível garantir cpfCnpj no Asaas (mensagem clara para upstream).
+ */
+async function ensureAsaasCustomerHasCpfCnpj(customer: any) {
+  if (!customer) throw new Error('Customer obrigatório para ensureAsaasCustomerHasCpfCnpj');
+
+  const cpfOrCnpj = customer.cpf ?? customer.cnpj ?? null;
+  const cpfCnpjSan = onlyDigits(cpfOrCnpj ?? undefined);
+
+  // Se não há cpf/cnpj no cliente local -> não podemos garantir no Asaas
+  if (!cpfCnpjSan) {
+    // permitir comportamento: se cliente local realmente não possui cpf nem cnpj, não tentamos forçar no Asaas.
+    // Porém, criar cobrança sem identificação falhará no gateway. Melhor falhar cedo.
+    throw new Error('CPF ou CNPJ do cliente não informado. É necessário ter CPF ou CNPJ para criar cobrança na Asaas.');
+  }
+
+  // 1) Se não temos asaas_customer_id -> tentar criar com cpfCnpj
+  if (!customer.asaas_customer_id) {
+    try {
+      const asaasCustomer = await AsaasClient.createCustomer({
+        name: customer.name,
+        email: customer.email ?? undefined,
+        phone: customer.phone ?? undefined,
+        cpfCnpj: cpfCnpjSan,
+      });
+
+      if (asaasCustomer?.id) {
+        // Persistir no DB local
+        await prisma.customer.update({ where: { id: customer.id }, data: { asaas_customer_id: asaasCustomer.id } });
+        customer.asaas_customer_id = asaasCustomer.id;
+        return;
+      } else {
+        throw new Error('Criação do cliente na Asaas não retornou id.');
+      }
+    } catch (err: any) {
+      // repassa erro claro
+      throw new Error(`Falha ao criar cliente na Asaas (necessário CPF/CNPJ): ${err?.message ?? String(err)}`);
+    }
+  }
+
+  // 2) Se temos asaas_customer_id -> buscar e, se necessário, atualizar cpfCnpj
+  if (customer.asaas_customer_id) {
+    try {
+      const asaasCust = await AsaasClient.getCustomer(customer.asaas_customer_id);
+      // algumas versões do retorno usam cpfCnpj ou cpf_cnpj, tentamos pegar qualquer um
+      const asaasCpfCnpj = asaasCust?.cpfCnpj ?? asaasCust?.cpf_cnpj ?? asaasCust?.cpf ?? asaasCust?.cnpj ?? null;
+      if ((!asaasCpfCnpj || String(asaasCpfCnpj).trim() === '') && cpfCnpjSan) {
+        // atualizar no Asaas
+        try {
+          await AsaasClient.updateCustomer(customer.asaas_customer_id, { cpfCnpj: cpfCnpjSan });
+          return;
+        } catch (err: any) {
+          throw new Error(`Falha ao atualizar CPF/CNPJ do cliente no Asaas: ${err?.message ?? String(err)}`);
+        }
+      } else {
+        // já tem cpfCnpj -> OK
+        return;
+      }
+    } catch (err: any) {
+      // Se não conseguimos buscar (ex.: customer não existe no Asaas), tentamos criar de novo
+      try {
+        const asaasCustomer = await AsaasClient.createCustomer({
+          name: customer.name,
+          email: customer.email ?? undefined,
+          phone: customer.phone ?? undefined,
+          cpfCnpj: cpfCnpjSan,
+        });
+        if (asaasCustomer?.id) {
+          await prisma.customer.update({ where: { id: customer.id }, data: { asaas_customer_id: asaasCustomer.id } });
+          customer.asaas_customer_id = asaasCustomer.id;
+          return;
+        } else {
+          throw new Error('Criação alternativa do cliente na Asaas não retornou id.');
+        }
+      } catch (err2: any) {
+        throw new Error(`Falha ao garantir CPF/CNPJ no Asaas para o cliente (id local: ${customer.id}): ${err2?.message ?? String(err2)}`);
+      }
+    }
+  }
+}
+
 /**
  * placeOrder: cria pedido + cobrança e retorna objeto do pedido já normalizado
  * Retorna: { success: true, orderId, orderData, paymentData }
@@ -126,6 +221,7 @@ export async function placeOrder(input: PlaceOrderInput) {
           password: Math.random().toString(36).slice(2, 10),
           phone: guestCustomer.phone ?? '',
           cpf: guestCustomer.cpf ?? undefined,
+          cnpj: guestCustomer.cnpj ?? undefined,
         },
       });
     } catch (err: any) {
@@ -133,22 +229,12 @@ export async function placeOrder(input: PlaceOrderInput) {
     }
   }
 
-  // tentar criar customer no Asaas (não falha o checkout)
-  if (!customer.asaas_customer_id) {
-    try {
-      const asaasCustomer = await AsaasClient.createCustomer({
-        name: customer.name,
-        email: customer.email ?? undefined,
-        phone: customer.phone ?? undefined,
-        cpfCnpj: customer.cpf ?? undefined,
-      });
-      if (asaasCustomer?.id) {
-        await prisma.customer.update({ where: { id: customer.id }, data: { asaas_customer_id: asaasCustomer.id } });
-        customer.asaas_customer_id = asaasCustomer.id;
-      }
-    } catch (err) {
-      console.warn('Não foi possível criar cliente na Asaas (continuando):', err instanceof Error ? err.message : err);
-    }
+  // --- 1.1) Garantir que o cliente no Asaas tenha CPF/CNPJ antes de criar cobrança ---
+  try {
+    await ensureAsaasCustomerHasCpfCnpj(customer);
+  } catch (err: any) {
+    // Interrompe o fluxo e retorna erro claro — evita erro de gateway invalid_customer.cpfCnpj
+    throw new Error(err?.message ?? 'Não foi possível garantir CPF/CNPJ no Asaas para este cliente');
   }
 
   // --- 2) subtotal ---
@@ -219,6 +305,18 @@ export async function placeOrder(input: PlaceOrderInput) {
       ? ((await tx.address.findUnique({ where: { id: addressId } }))?.street ?? '')
       : `${address?.street ?? ''}, ${address?.number ?? ''} - ${address?.city ?? ''}/${address?.state ?? ''} - ${address?.zipCode ?? ''}`;
 
+    // ---------- gerar número sequencial (Postgres SEQUENCE) ----------
+    let idOrderStore: string | null = null;
+    try {
+      const seqRows = (await tx.$queryRaw`SELECT nextval('order_store_seq') as val`) as Array<{ val: number | string }>;
+      const seqNum = Number(seqRows?.[0]?.val ?? 0);
+      const year = new Date().getFullYear();
+      idOrderStore = `${year}-${String(seqNum).padStart(6, '0')}`;
+    } catch (err: any) {
+      throw new Error("Falha ao gerar número sequencial 'order_store_seq'. Execute a migration que cria a sequence (CREATE SEQUENCE order_store_seq) e tente novamente. Detalhe: " + (err?.message ?? String(err)));
+    }
+
+    // ---------- criar o pedido já com id_order_store setado ----------
     const created = await tx.order.create({
       data: {
         total: subtotal,
@@ -228,6 +326,7 @@ export async function placeOrder(input: PlaceOrderInput) {
         shippingMethod: shippingRaw ? (shippingRaw.provider ?? shippingRaw.carrier ?? String(shippingId)) : String(shippingId),
         customer: { connect: { id: customer.id } },
         cart_id: cartId ?? undefined,
+        id_order_store: idOrderStore,
       },
     });
 
@@ -260,6 +359,9 @@ export async function placeOrder(input: PlaceOrderInput) {
         ? 'CREDIT_CARD'
         : 'BOLETO';
 
+  // Use id_order_store legível quando disponível
+  const orderRefForGateway = (createdOrder as any).id_order_store ?? createdOrder.id;
+
   let paymentResult: any;
   try {
     if (billingType === 'CREDIT_CARD' && card) {
@@ -288,8 +390,8 @@ export async function placeOrder(input: PlaceOrderInput) {
         customer_asaaS_id: customer.asaas_customer_id ?? undefined,
         amount: finalGrandTotal,
         billingType: 'CREDIT_CARD',
-        description: `Pedido ${createdOrder.id}`,
-        externalReference: String(createdOrder.id),
+        description: `Pedido ${orderRefForGateway}`,
+        externalReference: String(orderRefForGateway),
         creditCardToken: maybeToken,
         creditCardHolderName: card.holderName,
         installments: card.installments ?? 1,
@@ -300,8 +402,8 @@ export async function placeOrder(input: PlaceOrderInput) {
         customer_asaaS_id: customer.asaas_customer_id ?? undefined,
         amount: finalGrandTotal,
         billingType: billingType as any,
-        description: `Pedido ${createdOrder.id}`,
-        externalReference: String(createdOrder.id),
+        description: `Pedido ${orderRefForGateway}`,
+        externalReference: String(orderRefForGateway),
       });
     }
   } catch (err: any) {
@@ -406,6 +508,7 @@ export async function placeOrder(input: PlaceOrderInput) {
 
   const normalized = {
     id: createdOrder.id,
+    id_order_store: (createdOrder as any).id_order_store ?? null,
     total: Number(createdOrder.total ?? subtotal),
     shippingCost: Number(createdOrder.shippingCost ?? shippingCost ?? 0),
     grandTotal: Number(createdOrder.grandTotal ?? finalGrandTotal),
@@ -454,7 +557,6 @@ export async function placeOrder(input: PlaceOrderInput) {
   // --- 9) remover AbandonedCart (se cartId foi enviado) ---
   try {
     if (cartId) {
-      // deleteMany para evitar problemas caso a constraint esteja diferente
       await prisma.abandonedCart.deleteMany({ where: { cart_id: cartId } });
     }
   } catch (err) {

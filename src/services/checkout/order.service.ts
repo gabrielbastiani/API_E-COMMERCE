@@ -2,6 +2,7 @@ import prisma from '../../prisma';
 
 export type NormalizedOrder = {
   id: string | number;
+  id_order_store: string | number;
   total: number;
   shippingCost: number;
   grandTotal: number;
@@ -70,6 +71,7 @@ export async function getOrderById(orderId: string): Promise<NormalizedOrder> {
 
   const normalized: NormalizedOrder = {
     id: (order as any).id,
+    id_order_store: (order as any).id_order_store,
     total: Number((order as any).total ?? 0),
     shippingCost: Number((order as any).shippingCost ?? 0),
     grandTotal: Number((order as any).grandTotal ?? 0),

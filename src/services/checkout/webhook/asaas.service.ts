@@ -210,11 +210,15 @@ async function handlePaymentReceived(payment: any, externalReference: string | n
       // Notificações: cliente + admins
       try {
         const customerId = existingPayment.customer_id;
+
+        // resolve id_order_store (se existir) — usamos esse valor para exibir/compor links e mensagens
+        const orderStoreId = await resolveOrderStoreIdentifier(existingPayment.order_id);
+
         await NotificationService.createForCustomer({
           customerId,
           type: 'ORDER',
-          message: `Pagamento confirmado para pedido ${existingPayment.order_id}. Obrigado!`,
-          link: `/orders/${existingPayment.order_id}`
+          message: `Pagamento confirmado para pedido ${orderStoreId}. Obrigado!`,
+          link: `/pedido/${orderStoreId}`
         });
 
         const admins = await prisma.userEcommerce.findMany({
@@ -226,8 +230,8 @@ async function handlePaymentReceived(payment: any, externalReference: string | n
           await NotificationService.createForUser({
             userEcommerceId: admin.id,
             type: 'ORDER',
-            message: `Pedido ${existingPayment.order_id} teve pagamento confirmado (payment ${paymentId}).`,
-            link: `/admin/orders/${existingPayment.order_id}`
+            message: `Pedido ${orderStoreId} teve pagamento confirmado (ID do pagamento: ${paymentId}).`,
+            link: `/order/${orderStoreId}`
           });
         }
       } catch (e) {
@@ -291,11 +295,15 @@ async function handlePaymentReceived(payment: any, externalReference: string | n
         // Notificações (customer + admins)
         try {
           const customerId = order.customer_id;
+
+          // usa id_order_store se existir
+          const orderStoreId = order.id_order_store || order.id;
+
           await NotificationService.createForCustomer({
             customerId,
             type: 'ORDER',
-            message: `Pagamento recebido para pedido ${order.id}. Obrigado!`,
-            link: `/orders/${order.id}`
+            message: `Pagamento recebido para pedido ${orderStoreId}. Obrigado!`,
+            link: `/orders/${orderStoreId}`
           });
 
           const admins = await prisma.userEcommerce.findMany({
@@ -307,8 +315,8 @@ async function handlePaymentReceived(payment: any, externalReference: string | n
             await NotificationService.createForUser({
               userEcommerceId: admin.id,
               type: 'ORDER',
-              message: `Pedido ${order.id} pago (payment ${paymentId}).`,
-              link: `/admin/orders/${order.id}`
+              message: `Pedido ${orderStoreId} pago (payment ${paymentId}).`,
+              link: `/admin/orders/${orderStoreId}`
             });
           }
         } catch (e) {
@@ -347,11 +355,13 @@ async function handlePaymentOverdue(payment: any, externalReference: string | nu
 
       // Notificar cliente e admins
       try {
+        const orderStoreId = await resolveOrderStoreIdentifier(existingPayment.order_id);
+
         await NotificationService.createForCustomer({
           customerId: existingPayment.customer_id,
           type: 'ORDER',
-          message: `O pagamento do pedido ${existingPayment.order_id} está vencido. Acesse sua conta para opções de pagamento.`,
-          link: `/orders/${existingPayment.order_id}`
+          message: `O pagamento do pedido ${orderStoreId} está vencido. Acesse sua conta para opções de pagamento.`,
+          link: `/orders/${orderStoreId}`
         });
 
         const admins = await prisma.userEcommerce.findMany({
@@ -363,8 +373,8 @@ async function handlePaymentOverdue(payment: any, externalReference: string | nu
           await NotificationService.createForUser({
             userEcommerceId: admin.id,
             type: 'ORDER',
-            message: `Pagamento vencido para pedido ${existingPayment.order_id} (payment ${paymentId}).`,
-            link: `/admin/orders/${existingPayment.order_id}`
+            message: `Pagamento vencido para pedido ${orderStoreId} (payment ${paymentId}).`,
+            link: `/admin/orders/${orderStoreId}`
           });
         }
       } catch (e) {
@@ -402,11 +412,12 @@ async function handlePaymentOverdue(payment: any, externalReference: string | nu
       const order = await prisma.order.findUnique({ where: { id: externalReference } });
       if (order) {
         try {
+          const orderStoreId = order.id_order_store || order.id;
           await NotificationService.createForCustomer({
             customerId: order.customer_id,
             type: 'ORDER',
-            message: `Identificamos um pagamento vencido para o pedido ${order.id}. Verifique suas formas de pagamento.`,
-            link: `/orders/${order.id}`
+            message: `Identificamos um pagamento vencido para o pedido ${orderStoreId}. Verifique suas formas de pagamento.`,
+            link: `/orders/${orderStoreId}`
           });
         } catch (e) {
           console.error('Erro ao notificar customer para overdue (sem payment):', e);
@@ -478,11 +489,13 @@ async function handlePaymentRefunded(payment: any, externalReference: string | n
 
       // Notificar cliente e admins
       try {
+        const orderStoreId = await resolveOrderStoreIdentifier(existingPayment.order_id);
+
         await NotificationService.createForCustomer({
           customerId: existingPayment.customer_id,
           type: 'ORDER',
-          message: `O pagamento do pedido ${existingPayment.order_id} foi reembolsado.`,
-          link: `/orders/${existingPayment.order_id}`
+          message: `O pagamento do pedido ${orderStoreId} foi reembolsado.`,
+          link: `/orders/${orderStoreId}`
         });
 
         const admins = await prisma.userEcommerce.findMany({
@@ -494,8 +507,8 @@ async function handlePaymentRefunded(payment: any, externalReference: string | n
           await NotificationService.createForUser({
             userEcommerceId: admin.id,
             type: 'ORDER',
-            message: `Pagamento do pedido ${existingPayment.order_id} foi reembolsado (payment ${paymentId}).`,
-            link: `/admin/orders/${existingPayment.order_id}`
+            message: `Pagamento do pedido ${orderStoreId} foi reembolsado (payment ${paymentId}).`,
+            link: `/admin/orders/${orderStoreId}`
           });
         }
       } catch (e) {
@@ -534,13 +547,17 @@ async function processBusinessRules(payload: any, status: string | null) {
         if (customer) {
           const abandonedCart = await prisma.abandonedCart.findFirst({
             where: { customer_id: customer.id },
-            orderBy: { abandonedAt: 'desc' } as any
+            orderBy: { abandonedAt: 'desc' } as any,
+            include: {
+              customer: true
+            }
           });
 
           if (abandonedCart) {
             await createEmailReminderForCart({
               cartId: abandonedCart.cart_id,
               customerId: abandonedCart.customer_id,
+              email: abandonedCart.customer.email
             });
           }
         }
@@ -561,4 +578,19 @@ function mapBillingTypeToPaymentMethod(billingType: string | null | undefined) {
   if (bt.includes('PIX')) return 'PIX';
   if (bt.includes('TRANSFER')) return 'BANK_TRANSFER';
   return 'PIX';
+}
+
+/**
+ * Resolve o identificador que deve ser mostrado/uso na loja (id_order_store quando disponível)
+ * Se não existir id_order_store, retorna o próprio id da order (fallback seguro).
+ */
+async function resolveOrderStoreIdentifier(orderId: string): Promise<string> {
+  try {
+    if (!orderId) return orderId;
+    const ord = await prisma.order.findUnique({ where: { id: orderId }, select: { id_order_store: true } });
+    return ord?.id_order_store || orderId;
+  } catch (e) {
+    console.warn('Erro ao buscar id_order_store para order', orderId, e);
+    return orderId;
+  }
 }
