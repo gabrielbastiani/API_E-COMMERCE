@@ -36,6 +36,8 @@ app.use(express.json({
   }
 }));
 
+app.use("/webhooks", router);
+
 app.set('trust proxy', true);
 
 // Headers / CORS

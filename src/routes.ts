@@ -522,8 +522,7 @@ router.get('/review/pagination', getPaginatedReviews);
 // Addresses
 router.get('/customer/address/list', isAuthenticatedCustomer, CheckoutController.getAddresses);
 router.post('/address/customer/create', isAuthenticatedCustomer, CheckoutController.createAddress);
-router.put('/customer/address/update', isAuthenticatedCustomer, CheckoutController.updateAddress); // you used body address_id earlier
-// Alternative: make update/delete use params:
+router.put('/customer/address/update', isAuthenticatedCustomer, CheckoutController.updateAddress);
 router.put('/checkout/addresses/:id', isAuthenticatedCustomer, CheckoutController.updateAddress);
 router.delete('/checkout/addresses/:id', isAuthenticatedCustomer, CheckoutController.deleteAddress);
 
@@ -543,8 +542,6 @@ router.delete('/cart/abandoned/:cartId', isAuthenticatedCustomer, CartCtrl.delet
 router.get('/cart', isAuthenticatedCustomer, CartCtrl.getCart)
 
 // Email reminders
-/* router.post('/cart/abandoned/:cartId/reminder', isAuthenticatedCustomer, AbandonedCtrl.sendAbandonedReminder) */
-
 import { sendAbandonedReminder } from './controllers/emails/email.controller';
 router.post('/cart/abandoned/:cartId/reminder', sendAbandonedReminder);
 
@@ -554,6 +551,12 @@ router.post('/webhook/asaas', handleAsaasWebhook);
 
 import * as PaymentsController from './controllers/checkout/boletoWebScraping/payments.controller';
 router.get('/payments/:paymentId/boleto', PaymentsController.getBoletoPdf);
+
+import { WebhookController } from "./controllers/frete/webhook.controller";
+import { CustomerOrderController } from './controllers/users/customers/orders/CustomerOrderController';
+router.post("/melhorenvio", express.raw({ type: "application/json", limit: "1mb" }), (req, res) => WebhookController.receberMelhorEnvio(req, res));
+
+router.get('/customer/orders', isAuthenticatedCustomer, new CustomerOrderController().handle);
 
 
 export { router };

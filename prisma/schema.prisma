@@ -971,6 +971,34 @@ model PaymentWebhook {
   @@map("paymentWebhooks")
 }
 
+model MelhorEnvioWebhookLog {
+  id          String    @id @default(uuid())
+  event       String
+  dataId      String? // id interno do objeto (ex: data.id do payload)
+  payload     Json
+  signature   String?
+  receivedAt  DateTime  @default(now())
+  processed   Boolean   @default(false)
+  processedAt DateTime?
+  error       String?
+
+  @@index([dataId])
+  @@map("melhorEnvioWebhooksLog")
+}
+
+model ShippingLabel {
+  id            String   @id @default(uuid())
+  melhorEnvioId String   @unique
+  protocol      String?
+  status        String
+  tracking      String?
+  trackingUrl   String?
+  created_at    DateTime @default(now()) @db.Timestamptz(3)
+  updated_at    DateTime @updatedAt
+
+  @@map("shippingsLabel")
+}
+
 model Address {
   id             String   @id @default(uuid())
   customer       Customer @relation(fields: [customer_id], references: [id])
