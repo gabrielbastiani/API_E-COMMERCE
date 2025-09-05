@@ -1,6 +1,6 @@
 // src/controllers/checkout/checkout.controller.ts
 import { Request, Response } from "express";
-import * as CheckoutService from "../../services/checkout/checkout.service";
+import * as CheckoutService from "../../services/checkout/checkoutServices/checkout.service";
 import { calculateFreight, CartItem } from "../../services/frete/FreteService";
 
 const CS: any = CheckoutService as any;

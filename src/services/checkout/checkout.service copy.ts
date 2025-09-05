@@ -1,4 +1,3 @@
-// src/services/checkout/checkout.service.ts
 import prisma from '../../prisma';
 import * as AsaasClient from './asaas.client';
 import * as MelhorEnvioClient from './melhorenvio.client';
@@ -115,12 +114,6 @@ function onlyDigits(str?: string | null) {
   return s === '' ? undefined : s;
 }
 
-/**
- * Garante que o customer no Asaas possua cpfCnpj (CPF ou CNPJ).
- * - Se customer.asaas_customer_id não existir: tenta criar na Asaas com cpfCnpj.
- * - Se asaas_customer_id existir: busca o customer no Asaas e, caso esteja sem cpfCnpj, faz update com o cpfCnpj local (se houver).
- * - Lança erro se não for possível garantir cpfCnpj no Asaas (mensagem clara para upstream).
- */
 async function ensureAsaasCustomerHasCpfCnpj(customer: any) {
   if (!customer) throw new Error('Customer obrigatório para ensureAsaasCustomerHasCpfCnpj');
 

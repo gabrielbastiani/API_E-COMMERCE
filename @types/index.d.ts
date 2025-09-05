@@ -87,4 +87,5 @@ export interface CartContext {
     subtotal: number;
     total: number;
     shipping: number;
+    priceMap?: Record<string, number>;
 }

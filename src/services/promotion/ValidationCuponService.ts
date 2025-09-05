@@ -1,5 +1,5 @@
 import { ApplyPromotionsInput, PromotionService } from "./ApplyPromotionService";
-import { PromotionEngineResult } from "./PromotionEngine";
+import { PromotionEngineResult } from "./promotionEngine/types";
 
 interface ValidationRequest
   extends Omit<ApplyPromotionsInput, "descriptions" | "couponCode"> {
@@ -26,8 +26,19 @@ export class ValidationCouponService {
       descriptions: [],
     });
 
-    // 3) Só aceitamos se o desconto total realmente aumentar
-    const valid = couponResult.discountTotal > baseResult.discountTotal;
+    // 3) Aceitar o cupom se:
+    //    - aumentar o desconto total, OU
+    //    - adicionar brindes (freeGifts), OU
+    //    - adicionar pelo menos 1 promoção nova (por id)
+    const increasedDiscount = couponResult.discountTotal > baseResult.discountTotal;
+
+    const freeGiftsAdded =
+      (couponResult.freeGifts?.length ?? 0) > (baseResult.freeGifts?.length ?? 0);
+
+    const basePromoIds = new Set((baseResult.promotions ?? []).map((p) => p.id));
+    const newPromotionAdded = (couponResult.promotions ?? []).some((p) => !basePromoIds.has(p.id));
+
+    const valid = increasedDiscount || freeGiftsAdded || newPromotionAdded;
 
     return valid
       ? { valid: true, result: couponResult }

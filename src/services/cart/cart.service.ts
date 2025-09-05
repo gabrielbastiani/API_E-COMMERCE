@@ -61,6 +61,7 @@ export async function upsertCartAndAbandoned(payload: AbandonedPayload) {
                     total,
                 },
             })
+
         } else {
             cart = await tx.cart.update({
                 where: { id: cart.id },

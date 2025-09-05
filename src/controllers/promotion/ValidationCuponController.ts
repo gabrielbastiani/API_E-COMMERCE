@@ -1,7 +1,7 @@
-import { Request, Response, Router } from "express";
+import { Request, Response } from "express";
 import { ValidationCouponService } from "../../services/promotion/ValidationCuponService";
-import { ApplyPromotionController } from "./ApplyPromotionController";
 import prisma from "../../prisma";
+import { StatusPromotion } from "@prisma/client";
 
 export class ValidationCouponController {
   static async handle(req: Request, res: Response) {
@@ -13,6 +13,41 @@ export class ValidationCouponController {
         shippingCost,
         coupon,
       } = req.body;
+
+      if (!coupon || typeof coupon !== "string") {
+        res.json({ valid: false });
+      }
+
+      const normalized = coupon.trim();
+
+      // FETCH CUPOM (case-insensitive quando suportado)
+      const couponRow = await prisma.coupon.findFirst({
+        where: {
+          code: { equals: normalized, mode: "insensitive" as any }, // "mode" works on Postgres; se seu DB não suportar, remova o mode
+        },
+        include: { promotion: true },
+      });
+
+      if (!couponRow || !couponRow.promotion) {
+        // cupom não existe
+        res.json({ valid: false });
+        return
+      }
+
+      // Verifica status da promoção
+      const promo = couponRow.promotion;
+      if (promo.status !== StatusPromotion.Disponivel) {
+        res.json({ valid: false });
+      }
+
+      // Verifica datas (se configuradas)
+      const now = new Date();
+      if (promo.startDate && new Date(promo.startDate) > now) {
+        res.json({ valid: false });
+      }
+      if (promo.endDate && new Date(promo.endDate) < now) {
+        res.json({ valid: false });
+      }
 
       // 🔍 Descobre se é a primeira compra
       let isFirstPurchase = true;
@@ -30,13 +65,14 @@ export class ValidationCouponController {
         isFirstPurchase,
         cep,
         shippingCost,
-        coupon,
+        coupon: normalized,
       });
 
       res.json({
         valid,
         promotions: result?.promotions,
         discountTotal: result?.discountTotal,
+        freeGifts: result?.freeGifts,
       });
     } catch (err) {
       console.error("Erro em ValidationCouponController:", err);
@@ -46,15 +82,3 @@ export class ValidationCouponController {
     }
   }
 }
-
-// monta e exporta o router corretamente
-export const PromotionRoutes = Router();
-
-PromotionRoutes.post(
-  "/promotions/apply",
-  ApplyPromotionController.apply
-);
-PromotionRoutes.post(
-  "/coupon/validate",
-  ValidationCouponController.handle
-);
