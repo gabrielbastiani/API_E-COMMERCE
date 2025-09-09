@@ -1,13 +1,9 @@
 import prisma from '../../../prisma';
-import * as AsaasClient from '../asaas.client';
-import * as MelhorEnvioClient from '../melhorenvio.client';
-
 import { PlaceOrderInput } from './types';
-import { onlyDigits, ensureAsaasCustomerHasCpfCnpj } from './helpers';
+import { ensureAsaasCustomerHasCpfCnpj } from './helpers';
 import { listAddresses, createAddress, updateAddress, deleteAddress } from './address.service';
 import { getPaymentOptions } from './paymentOptions';
 import { calculateShippingCost } from './shipping.service';
-
 import { createPaymentOnGateway } from './payment.service';
 import { extractNormalizedFromRaw, persistPaymentOnDb } from './normalize.service';
 import { createOrderTransaction } from './order.service';
@@ -15,7 +11,8 @@ import { createOrderTransaction } from './order.service';
 export { listAddresses, createAddress, updateAddress, deleteAddress, getPaymentOptions };
 
 export async function placeOrder(input: PlaceOrderInput) {
-  const { cartId, customer_id, addressId, address, shippingId, paymentId, items, guestCustomer, shippingCost: shippingCostFromFrontend, shippingRaw, card, orderTotalOverride } = input;
+
+  const { cartId, promotion_id, customer_id, addressId, address, shippingId, paymentId, items, guestCustomer, shippingCost: shippingCostFromFrontend, shippingRaw, card, orderTotalOverride } = input;
 
   // 1) carregar / criar customer
   let customer: any = null;
@@ -67,7 +64,7 @@ export async function placeOrder(input: PlaceOrderInput) {
   const finalGrandTotal = (typeof orderTotalOverride === 'number' && !isNaN(orderTotalOverride)) ? Number(orderTotalOverride) : Number(computedGrand);
 
   // 5) criar pedido (transaction)
-  const createdOrder = await createOrderTransaction({ cartId, items, subtotal, shippingCost: shippingCost ?? 0, finalGrandTotal, addressId, address, shippingRaw, shippingId, customer });
+  const createdOrder = await createOrderTransaction({ cartId, promotion_id, items, subtotal, shippingCost: shippingCost ?? 0, finalGrandTotal, addressId, address, shippingRaw, shippingId, customer });
 
   // 6) criar cobrança no gateway
   const orderRefForGateway = (createdOrder as any).id_order_store ?? createdOrder.id;

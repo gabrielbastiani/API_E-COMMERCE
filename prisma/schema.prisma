@@ -432,6 +432,7 @@ model Product {
   width                Float?
   height               Float?
   stock                Int                  @default(0)
+  reservedStock        Int                  @default(0)
   view                 Int?                 @default(0)
   mainPromotion        Promotion?           @relation("FeaturedPromotion", fields: [mainPromotion_id], references: [id])
   mainPromotion_id     String?
@@ -467,6 +468,7 @@ model ProductVariant {
   price_of         Float?
   price_per        Float
   stock            Int                @default(0)
+  reservedStock    Int                @default(0)
   allowBackorders  Boolean            @default(false) // Permitir compras sem estoque?
   sortOrder        Int                @default(0)
   ean              String?
@@ -627,7 +629,6 @@ model Promotion {
   variantPromotions ProductVariant[]     @relation("variantPromotions")
   featuredProducts  Product[]            @relation("FeaturedPromotion")
   categories        Category[]
-  orders            Order[]
   mainVariants      ProductVariant[]     @relation("variantMainPromotion")
   promotionUsage    PromotionUsage[]
 
@@ -804,8 +805,7 @@ model Order {
   estimatedDelivery String? // Data estimada de entrega
   customer          Customer         @relation(fields: [customer_id], references: [id])
   customer_id       String           @db.Uuid
-  promotion         Promotion?       @relation(fields: [promotion_id], references: [id])
-  promotion_id      String?
+  promotion_id      Json?
   cart_id           String?          @db.Uuid
   items             OrderItem[]
   payment           Payment?

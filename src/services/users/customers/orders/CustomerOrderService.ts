@@ -8,7 +8,7 @@ class CustomerOrderService {
     async execute({ customer_id }: UserRequest) {
         const ordersData = await prismaClient.order.findMany({
             where: {
-                id: customer_id
+                customer_id: customer_id
             },
             include: {
                 _count: true,
@@ -49,6 +49,21 @@ class CustomerOrderService {
                                 }
                             }
                         }
+                    }
+                },
+                payment: {
+                    include: {
+                        customer: true,
+                        order: true
+                    }
+                },
+                promotion: {
+                    include: {
+                        actions: true,
+                        badges: true,
+                        conditions: true,
+                        coupons: true,
+                        displays: true
                     }
                 }
             }

@@ -11,8 +11,9 @@ export async function createOrderTransaction(params: {
     shippingRaw?: any | null;
     shippingId: string;
     customer: any;
+    promotion_id?: any;
 }) {
-    const { cartId, items, subtotal, shippingCost, finalGrandTotal, addressId, address, shippingRaw, shippingId, customer } = params;
+    const { cartId, items, subtotal, shippingCost, finalGrandTotal, addressId, address, shippingRaw, customer, promotion_id } = params;
 
     const createdOrder = await prisma.$transaction(async (tx) => {
         const addressText = addressId
@@ -30,16 +31,20 @@ export async function createOrderTransaction(params: {
             throw new Error("Falha ao gerar número sequencial 'order_store_seq'. Execute a migration que cria a sequence (CREATE SEQUENCE order_store_seq) e tente novamente. Detalhe: " + (err?.message ?? String(err)));
         }
 
+        console.log(promotion_id)
+
         const created = await tx.order.create({
             data: {
                 total: subtotal,
                 shippingCost: shippingCost ?? 0,
                 grandTotal: finalGrandTotal,
                 shippingAddress: addressText,
-                shippingMethod: shippingRaw ? (shippingRaw.provider ?? shippingRaw.carrier ?? String(shippingId)) : String(shippingId),
+                shippingMethod: shippingRaw?.name,
+                estimatedDelivery: shippingRaw?.deliveryTime,
                 customer: { connect: { id: customer.id } },
                 cart_id: cartId ?? undefined,
                 id_order_store: idOrderStore,
+                promotion_id: promotion_id
             },
         });
 

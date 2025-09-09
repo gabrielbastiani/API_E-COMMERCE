@@ -47,4 +47,5 @@ export type PlaceOrderInput = {
     couponCode?: string | null;
     card?: CardPayload | null;
     orderTotalOverride?: number | null;
+    promotion_id?: any;
 };
