@@ -6,7 +6,7 @@ export type NormalizedOrder = {
   total: number;
   shippingCost: number;
   grandTotal: number;
-  shippingAddress?: string | null;
+  address_id?: string | null;
   shippingMethod?: string | null;
   customer?: {
     id: string;
@@ -75,7 +75,7 @@ export async function getOrderById(orderId: string): Promise<NormalizedOrder> {
     total: Number((order as any).total ?? 0),
     shippingCost: Number((order as any).shippingCost ?? 0),
     grandTotal: Number((order as any).grandTotal ?? 0),
-    shippingAddress: (order as any).shippingAddress ?? null,
+    address_id: (order as any).address_id ?? null,
     shippingMethod: (order as any).shippingMethod ?? null,
     customer: customer
       ? {

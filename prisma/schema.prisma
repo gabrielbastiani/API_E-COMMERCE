@@ -799,7 +799,8 @@ model Order {
   shippingCost      Float // Custo do frete (separado para relatórios)
   grandTotal        Float // total + shippingCost - descontos
   status            OrderStatus      @default(PENDING)
-  shippingAddress   String
+  address           Address          @relation(fields: [address_id], references: [id])
+  address_id        String
   shippingMethod    String?
   trackingCode      String? // Código de rastreio
   estimatedDelivery String? // Data estimada de entrega
@@ -1013,6 +1014,8 @@ model Address {
   country        String
   complement     String?
   reference      String?
+
+  order      Order[]
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
   updated_at DateTime @updatedAt

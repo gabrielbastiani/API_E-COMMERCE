@@ -16,9 +16,14 @@ export async function createOrderTransaction(params: {
     const { cartId, items, subtotal, shippingCost, finalGrandTotal, addressId, address, shippingRaw, customer, promotion_id } = params;
 
     const createdOrder = await prisma.$transaction(async (tx) => {
-        const addressText = addressId
-            ? ((await tx.address.findUnique({ where: { id: addressId } }))?.street ?? '')
-            : `${address?.street ?? ''}, ${address?.number ?? ''} - ${address?.city ?? ''}/${address?.state ?? ''} - ${address?.zipCode ?? ''}`;
+
+        console.log(addressId)
+
+        const id_address = await address.findUnique({
+            where: {
+                id: addressId
+            }
+        })
 
         // gerar número sequencial (Postgres SEQUENCE)
         let idOrderStore: string | null = null;
@@ -38,7 +43,7 @@ export async function createOrderTransaction(params: {
                 total: subtotal,
                 shippingCost: shippingCost ?? 0,
                 grandTotal: finalGrandTotal,
-                shippingAddress: addressText,
+                address_id: id_address,
                 shippingMethod: shippingRaw?.name,
                 estimatedDelivery: shippingRaw?.deliveryTime,
                 customer: { connect: { id: customer.id } },

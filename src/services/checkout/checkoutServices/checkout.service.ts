@@ -106,7 +106,7 @@ export async function placeOrder(input: PlaceOrderInput) {
     total: Number(createdOrder.total ?? subtotal),
     shippingCost: Number(createdOrder.shippingCost ?? shippingCost ?? 0),
     grandTotal: Number(createdOrder.grandTotal ?? finalGrandTotal),
-    shippingAddress: createdOrder.shippingAddress ?? (address ? `${address.street}, ${address.number ?? ''}` : null),
+    address_id: createdOrder.address_id ?? (address ? `${address.street}, ${address.number ?? ''}` : null),
     shippingMethod: createdOrder.shippingMethod ?? String(shippingId),
     customer: customer ? { id: customer.id, name: customer.name, email: customer.email, phone: customer.phone, cpf: customer.cpf, asaas_customer_id: customer.asaas_customer_id ?? null } : null,
     items: itemsFromDb.map((it: any) => ({ id: it.id, product_id: it.product_id, price: Number(it.price ?? 0), quantity: Number(it.quantity ?? 0) })),
