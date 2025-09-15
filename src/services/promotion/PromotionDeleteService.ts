@@ -53,7 +53,6 @@ export class PromotionDeleteService {
             variantPromotions: { set: [] },
             featuredProducts: { set: [] },
             categories: { set: [] },
-            orders: { set: [] },
             mainVariants: { set: [] },
           },
         });

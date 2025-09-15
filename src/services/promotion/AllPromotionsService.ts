@@ -49,7 +49,6 @@ class AllPromotionsService {
                 conditions: true,
                 coupons: true,
                 displays: true,
-                orders: true,
                 promotionUsage: true
             }
         });
@@ -75,7 +74,6 @@ class AllPromotionsService {
                 conditions: true,
                 coupons: true,
                 displays: true,
-                orders: true,
                 promotionUsage: true
             }
         });

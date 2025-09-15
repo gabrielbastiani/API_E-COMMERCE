@@ -6,6 +6,7 @@
     "ngrok": "node scripts/ngrok-setup.js",
     "ngrok:global": "ngrok http 3333 --region=us --log=stdout",
     "dev": "ts-node-dev src/server.ts",
+    "create-order-seq": "node scripts/create_order_store_seq.js",
     "build": "tsc",
     "start": "node dist/server.js",
     "prisma:generate": "prisma generate",

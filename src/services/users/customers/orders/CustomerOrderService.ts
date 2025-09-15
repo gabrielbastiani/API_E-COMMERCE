@@ -57,13 +57,9 @@ class CustomerOrderService {
                         order: true
                     }
                 },
-                promotion: {
+                address: {
                     include: {
-                        actions: true,
-                        badges: true,
-                        conditions: true,
-                        coupons: true,
-                        displays: true
+                        order: true
                     }
                 }
             }

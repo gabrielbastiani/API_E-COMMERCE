@@ -41,7 +41,7 @@ export class MelhorEnvioWebhookService {
      * Salva log do webhook (raw payload) e devolve o registro criado.
      * Usamos payloadJson já parseado.
      */
-    /* async saveLog(event: string, dataId: string | null, payloadJson: any, signature?: string) {
+    async saveLog(event: string, dataId: string | null, payloadJson: any, signature?: string) {
         return prisma.melhorEnvioWebhookLog.create({
             data: {
                 event,
@@ -50,23 +50,23 @@ export class MelhorEnvioWebhookService {
                 signature,
             },
         });
-    } */
+    }
 
     /**
      * Checa idempotência: se já processado evento com dataId e mesmo event, não repete.
      */
-    /* async isAlreadyProcessed(event: string, dataId?: string | null) {
+    async isAlreadyProcessed(event: string, dataId?: string | null) {
         if (!dataId) return false;
         const existing = await prisma.melhorEnvioWebhookLog.findFirst({
             where: { event, dataId, processed: true },
         });
         return !!existing;
-    } */
+    }
 
     /**
      * Marca log como processado (ou com erro)
      */
-    /* async markProcessed(logId: string, processed = true, error?: string) {
+    async markProcessed(logId: string, processed = true, error?: string) {
         return prisma.melhorEnvioWebhookLog.update({
             where: { id: logId },
             data: {
@@ -75,7 +75,7 @@ export class MelhorEnvioWebhookService {
                 error: error ?? null,
             },
         });
-    } */
+    }
 
     /**
      * Rode o handler principal para eventos. 
@@ -91,26 +91,26 @@ export class MelhorEnvioWebhookService {
         const trackingUrl = data?.tracking_url ?? data?.trackingUrl ?? null;
 
         // Idempotency by checking saved logs already processed:
-        /* if (await this.isAlreadyProcessed(event, melhorId)) {
+        if (await this.isAlreadyProcessed(event, melhorId)) {
             await this.markProcessed(logRecordId, true, undefined);
             return { skipped: true, reason: "already processed" };
-        } */
+        }
 
         // Basic mapping: crie ou atualize registro ShippingLabel
         try {
-            /* if (!melhorId) {
+            if (!melhorId) {
                 await this.markProcessed(logRecordId, true);
                 return { ok: true, note: "no melhor envio id" };
-            } */
+            }
 
             // Tenta encontrar label existente
-            /* const existing = await prisma.shippingLabel.findUnique({
+            const existing = await prisma.shippingLabel.findUnique({
                 where: { melhorEnvioId: melhorId },
-            }); */
+            });
 
             const newStatus = status ?? event.split(".").pop();
 
-            /* if (!existing) {
+            if (!existing) {
                 await prisma.shippingLabel.create({
                     data: {
                         melhorEnvioId: melhorId,
@@ -130,7 +130,7 @@ export class MelhorEnvioWebhookService {
                         trackingUrl: trackingUrl ?? existing.trackingUrl,
                     },
                 });
-            } */
+            }
 
             // A partir daqui você pode acionar outras ações do seu sistema:
             // - atualizar um pedido vinculado (order) para marcar como "enviado", "entregue", etc.
@@ -138,17 +138,19 @@ export class MelhorEnvioWebhookService {
             // - atualizar rastreamento na GUI do admin
             // EXEMPLO (comente/descomente e ajuste conforme seu schema):
             //
-            // if (newStatus === "delivered") {
-            //   await prisma.order.update({
-            //     where: { melhorEnvioId: melhorId },
-            //     data: { status: "delivered" }
-            //   })
-            // }
+            /* if (newStatus === "delivered") {
+                await prisma.order.update({
+                    where: { melhorEnvioId: melhorId },
+                    data: { status: "delivered" }
+                })
+            } */
 
-            /* await this.markProcessed(logRecordId, true); */
+            await this.markProcessed(logRecordId, true);
+
             return { ok: true };
+            
         } catch (err: any) {
-            /* await this.markProcessed(logRecordId, false, String(err.message ?? err)); */
+            await this.markProcessed(logRecordId, false, String(err.message ?? err));
             throw err;
         }
     }
