@@ -48,4 +48,5 @@ export type PlaceOrderInput = {
     card?: CardPayload | null;
     orderTotalOverride?: number | null;
     promotion_id?: any;
+    promotionDetails?: any;
 };

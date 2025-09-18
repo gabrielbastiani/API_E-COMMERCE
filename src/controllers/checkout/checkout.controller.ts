@@ -163,10 +163,37 @@ export async function placeOrder(req: Request, res: Response) {
       return;
     }
 
+    // -----------------------
+    // Normalização segura de `promotionDetails` (NOVA LÓGICA)
+    // - Aceita payload.promotionDetails vindo do frontend
+    // - Normaliza cada item para { id: string, discountApplied: number }
+    // - Mantém comportamento se não vier nada (é opcional)
+    // -----------------------
+    let normalizedPromotionDetails: Array<{ id: string; discountApplied: number } | null> | undefined = undefined;
+    if (Array.isArray(payload.promotionDetails) && payload.promotionDetails.length > 0) {
+      normalizedPromotionDetails = payload.promotionDetails.map((p: any) => {
+        try {
+          const id = String(p?.id ?? p?.promotion_id ?? "").trim();
+          if (!id) return null;
+          const discountApplied = Number(p?.discountApplied ?? p?.discount ?? 0) || 0;
+          return { id, discountApplied };
+        } catch {
+          return null;
+        }
+      }).filter((x: null) => x !== null) as Array<{ id: string; discountApplied: number }>;
+      if (!normalizedPromotionDetails.length) normalizedPromotionDetails = undefined;
+    }
+
     // Opcional: permitir envio de orderTotalOverride e cartId no body
     // Exemplo: { cartId: '...', orderTotalOverride: 123.45, ... }
     // Repassamos tudo para o serviço (que irá validar/usar orderTotalOverride)
-    const callPayload = { customer_id, ...payload };
+    // IMPORTANTE: mantemos todo o payload original, apenas garantimos `customer_id`
+    const callPayload: any = {
+      customer_id,
+      ...payload,
+      // se normalizamos, preferimos repassar a versão normalizada.
+      promotionDetails: normalizedPromotionDetails ?? payload.promotionDetails ?? undefined,
+    };
 
     const result = await CS.placeOrder(callPayload);
 

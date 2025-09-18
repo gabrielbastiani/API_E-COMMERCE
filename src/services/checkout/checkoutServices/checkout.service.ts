@@ -12,7 +12,7 @@ export { listAddresses, createAddress, updateAddress, deleteAddress, getPaymentO
 
 export async function placeOrder(input: PlaceOrderInput) {
 
-  const { cartId, promotion_id, customer_id, addressId, address, shippingId, paymentId, items, guestCustomer, shippingCost: shippingCostFromFrontend, shippingRaw, card, orderTotalOverride } = input;
+  const { cartId, promotion_id, customer_id, addressId, address, shippingId, paymentId, items, guestCustomer, shippingCost: shippingCostFromFrontend, shippingRaw, card, orderTotalOverride, promotionDetails: promotionDetailsFromFrontend } = input;
 
   // 1) carregar / criar customer
   let customer: any = null;
@@ -63,8 +63,55 @@ export async function placeOrder(input: PlaceOrderInput) {
   const computedGrand = subtotal + (shippingCost ?? 0);
   const finalGrandTotal = (typeof orderTotalOverride === 'number' && !isNaN(orderTotalOverride)) ? Number(orderTotalOverride) : Number(computedGrand);
 
+  // ----------------------------
+  // NOVO: normalizar promotionDetails (se vier do frontend)
+  // Esperamos um array de { id: string, discountApplied: number } ou algo semelhante.
+  // Fazemos normalização e validação leve aqui antes de repassar para createOrderTransaction.
+  // ----------------------------
+  let normalizedPromotionDetails: Array<{ id: string; discountApplied: number }> | undefined = undefined;
+  try {
+    if (Array.isArray(promotionDetailsFromFrontend) && promotionDetailsFromFrontend.length > 0) {
+      normalizedPromotionDetails = promotionDetailsFromFrontend
+        .map((p: any) => {
+          // aceitar várias formas: { id, discountApplied } ou { promotion_id, discount } etc.
+          const id = String(p?.id ?? p?.promotion_id ?? '').trim();
+          if (!id) return null;
+          const discountApplied = Number(p?.discountApplied ?? p?.discount ?? 0) || 0;
+          return { id, discountApplied };
+        })
+        .filter(Boolean) as Array<{ id: string; discountApplied: number }>;
+      if (normalizedPromotionDetails.length === 0) normalizedPromotionDetails = undefined;
+    }
+  } catch (err) {
+    // se houver problema ao normalizar, deixamos undefined e seguimos (mas logamos)
+    console.warn('Erro ao normalizar promotionDetailsFromFrontend:', err);
+    normalizedPromotionDetails = undefined;
+  }
+
+  // Debug: log temporário para confirmar que os dados chegam aqui
+  // Remova/neutralize esses logs em produção se quiser.
+  if (normalizedPromotionDetails) {
+    console.log('placeOrder -> normalizedPromotionDetails:', normalizedPromotionDetails);
+  } else if (promotionDetailsFromFrontend) {
+    console.log('placeOrder -> promotionDetailsFromFrontend presente mas não normalizou para um array válido:', promotionDetailsFromFrontend);
+  }
+
   // 5) criar pedido (transaction)
-  const createdOrder = await createOrderTransaction({ cartId, promotion_id, items, subtotal, shippingCost: shippingCost ?? 0, finalGrandTotal, addressId, address, shippingRaw, shippingId, customer });
+  // Agora passamos também promotionDetails para createOrderTransaction para que sejam criadas PromotionUsage e atualizados contadores.
+  const createdOrder = await createOrderTransaction({
+    cartId,
+    promotion_id,
+    items,
+    subtotal,
+    shippingCost: shippingCost ?? 0,
+    finalGrandTotal,
+    addressId,
+    address,
+    shippingRaw,
+    shippingId,
+    customer,
+    promotionDetails: normalizedPromotionDetails, // <-- NOVO
+  });
 
   // 6) criar cobrança no gateway
   const orderRefForGateway = (createdOrder as any).id_order_store ?? createdOrder.id;
@@ -145,5 +192,7 @@ export async function placeOrder(input: PlaceOrderInput) {
     orderId: String(createdOrder.id),
     orderData: normalized,
     paymentData,
+    appliedPromotions: (createdOrder as any).appliedPromotions ?? [],
+    skippedPromotions: (createdOrder as any).skippedPromotions ?? [],
   };
 }
