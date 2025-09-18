@@ -558,5 +558,19 @@ router.post("/melhorenvio", express.raw({ type: "application/json", limit: "1mb"
 
 router.get('/customer/orders', isAuthenticatedCustomer, new CustomerOrderController().handle);
 
+import { uploadCommentFiles } from "./middlewares/uploadCommentFiles";
+
+import { getOrderComments, postOrderComment } from "./controllers/users/customers/orders/commentOrder.controller";
+import { adminGetOrderComments, adminPostOrderComment, adminSetCommentVisibility } from "./controllers/users/users_ecommerce/commentOrderAdmin.controller";
+
+// cliente
+router.get("/customer/orders/:orderId/comments", isAuthenticatedCustomer, getOrderComments);
+router.post("/customer/orders/:orderId/comments", isAuthenticatedCustomer, uploadCommentFiles.array("files", 5), postOrderComment);
+
+// admin
+router.get("/admin/orders/:orderId/comments", isAuthenticatedEcommerce, adminGetOrderComments);
+router.post("/admin/orders/:orderId/comments", isAuthenticatedEcommerce, uploadCommentFiles.array("files", 5), adminPostOrderComment);
+router.post("/admin/comments/:commentId/visibility", isAuthenticatedEcommerce, adminSetCommentVisibility);
+
 
 export { router };

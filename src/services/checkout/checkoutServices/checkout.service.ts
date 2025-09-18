@@ -140,7 +140,59 @@ export async function placeOrder(input: PlaceOrderInput) {
   // 7) normalizar/persistir payment
   const { billingType, paymentResult } = gatewayResult;
   const normalizedFields = extractNormalizedFromRaw(paymentResult);
-  const persistedPayment = await persistPaymentOnDb({ finalGrandTotal, billingType, paymentResult, normalizedFields, orderId: createdOrder.id, customerId: customer.id });
+
+  let originalInstallmentPlan: any = undefined;
+  try {
+    if (card) {
+      // se frontend já enviou objeto explícito (preferência máxima)
+      if (card.installment_plan && typeof card.installment_plan === 'object') {
+        originalInstallmentPlan = card.installment_plan;
+      } else if (card.installmentPlan && typeof card.installmentPlan === 'object') {
+        originalInstallmentPlan = card.installmentPlan;
+      } else {
+        // tentar compor a partir de campos individuais
+        const maybeInst = card.installments ?? card.installment ?? card.qtdParcelas ?? null;
+        const maybePer = (card as any).installment_value ?? (card as any).perInstallment ?? null;
+
+        const nInst = Number(maybeInst);
+        const nPer = Number(maybePer);
+
+        if (Number.isFinite(nInst) && Number.isFinite(nPer)) {
+          originalInstallmentPlan = { installments: nInst, value: Number(nPer) };
+        } else if (Number.isFinite(nInst)) {
+          // só veio número de parcelas -> calcular valor aproximado dividindo o total
+          const perCalc = Number((finalGrandTotal / nInst).toFixed(2));
+          originalInstallmentPlan = { installments: nInst, value: perCalc };
+        } else if (typeof maybeInst === 'string' && /^\d+$/.test(maybeInst)) {
+          // string numérica -> coerção segura
+          const n = Number(maybeInst);
+          const perCalc = Number((finalGrandTotal / n).toFixed(2));
+          originalInstallmentPlan = { installments: n, value: perCalc };
+        } else {
+          // nada válido vindo do card para parcelamento
+          originalInstallmentPlan = undefined;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('placeOrder -> erro ao construir originalInstallmentPlan:', err);
+    originalInstallmentPlan = undefined;
+  }
+
+  if (originalInstallmentPlan) {
+    // log temporário para verificação em staging; remova em produção
+    console.log('placeOrder -> originalInstallmentPlan:', originalInstallmentPlan);
+  }
+
+  const persistedPayment = await persistPaymentOnDb({
+    finalGrandTotal,
+    billingType,
+    paymentResult,
+    normalizedFields,
+    orderId: createdOrder.id,
+    customerId: customer.id,
+    originalInstallmentPlan
+  });
 
   // 8) buscar o pedido completo (items + payments + customer) e retornar para frontend
   const full = await prisma.order.findUnique({ where: { id: createdOrder.id }, include: { items: true, payment: true, customer: true } as any });

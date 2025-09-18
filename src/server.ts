@@ -55,6 +55,7 @@ app.use(router);
 
 // Servir arquivos estáticos
 app.use('/files', express.static(path.resolve(__dirname, '..', 'images')));
+app.use("/commentAttachment", express.static(path.join(process.cwd(), "commentAttachment")));
 
 // Error handler
 const errorHandler: ErrorRequestHandler = (err: unknown, _req, res, _next) => {

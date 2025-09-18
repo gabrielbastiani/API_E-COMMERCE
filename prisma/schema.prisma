@@ -361,6 +361,7 @@ model UserEcommerce {
   last_access               DateTime?                   @db.Timestamptz(3)
   notificationUserEcommerce NotificationUserEcommerce[]
   commentOrder              CommentOrder[]
+  order                     Order[]
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
 
@@ -794,25 +795,27 @@ model BuyTogether {
 }
 
 model Order {
-  id                String           @id @default(uuid())
-  id_order_store    String?          @unique
-  total             Float // Total dos produtos
-  shippingCost      Float // Custo do frete (separado para relatórios)
-  grandTotal        Float // total + shippingCost - descontos
-  status            OrderStatus      @default(PENDING)
-  address           Address          @relation(fields: [address_id], references: [id])
-  address_id        String
-  shippingMethod    String?
-  trackingCode      String? // Código de rastreio
-  estimatedDelivery String? // Data estimada de entrega
-  customer          Customer         @relation(fields: [customer_id], references: [id])
-  customer_id       String           @db.Uuid
-  promotion_id      Json?
-  cart_id           String?          @db.Uuid
-  items             OrderItem[]
-  payment           Payment?
-  appliedPromotions PromotionUsage[]
-  commentOrder      CommentOrder[]
+  id                        String           @id @default(uuid())
+  id_order_store            String?          @unique
+  total                     Float // Total dos produtos
+  shippingCost              Float // Custo do frete (separado para relatórios)
+  grandTotal                Float // total + shippingCost - descontos
+  status                    OrderStatus      @default(PENDING)
+  address                   Address          @relation(fields: [address_id], references: [id])
+  address_id                String
+  shippingMethod            String?
+  trackingCode              String? // Código de rastreio
+  estimatedDelivery         String? // Data estimada de entrega
+  customer                  Customer         @relation(fields: [customer_id], references: [id])
+  customer_id               String           @db.Uuid
+  promotion_id              Json?
+  cart_id                   String?          @db.Uuid
+  assignedUserEcommerce     UserEcommerce?   @relation(fields: [assigned_userEcommerce_id], references: [id], onDelete: SetNull)
+  assigned_userEcommerce_id String?
+  items                     OrderItem[]
+  payment                   Payment?
+  appliedPromotions         PromotionUsage[]
+  commentOrder              CommentOrder[]
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
 
@@ -871,14 +874,29 @@ model CommentOrder {
   order_id         String
   customer         Customer           @relation(fields: [customer_id], references: [id])
   customer_id      String             @db.Uuid
-  userEcommerce    UserEcommerce      @relation(fields: [userEcommerce_id], references: [id])
-  userEcommerce_id String
+  userEcommerce    UserEcommerce?     @relation(fields: [userEcommerce_id], references: [id], onDelete: SetNull)
+  userEcommerce_id String?
   message          String
   status           StatusCommentOrder @default(PRIVATE)
+
+  commentAttachment CommentAttachment[]
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
 
   @@map("commentsOrder")
+}
+
+model CommentAttachment {
+  id         String       @id @default(uuid())
+  comment    CommentOrder @relation(fields: [comment_id], references: [id], onDelete: Cascade)
+  comment_id String
+  url        String // caminho/URL onde o arquivo está armazenado (ex: /commentAttachment)
+  filename   String
+  mimetype   String
+  size       Int
+  created_at DateTime     @default(now()) @db.Timestamptz(3)
+
+  @@map("commentAttachments")
 }
 
 model AbandonedCart {
