@@ -1,4 +1,3 @@
-// src/services/checkout/checkoutServices/createOrderTransaction.ts
 import prisma from "../../../prisma";
 
 export async function createOrderTransaction(params: {
@@ -108,7 +107,9 @@ export async function createOrderTransaction(params: {
             },
         });
 
-        // ---------------- criar orderItems e decrementar estoque ----------------
+        // ---------------- criar orderItems e reservar estoque (nova lógica) ----------------
+        const reservationWarnings: string[] = [];
+
         for (const it of items) {
             await tx.orderItem.create({
                 data: {
@@ -116,26 +117,71 @@ export async function createOrderTransaction(params: {
                     product_id: it.product_id,
                     price: it.price ?? 0,
                     quantity: it.quantity ?? 1,
+                    variant_id: it.variant_id ?? undefined,
                 },
             });
 
+            const qty = Number(it.quantity ?? 0);
+            if (qty <= 0) continue;
+
             try {
-                await tx.product.update({
-                    where: { id: it.product_id },
-                    data: { stock: { decrement: it.quantity ?? 0 } },
-                });
-            } catch {
-                // mantive comportamento original (não quebrar por erro de estoque)
+                if (it.variant_id) {
+                    // 1) tenta mover (stock -> reservedStock) na variante
+                    try {
+                        await tx.productVariant.update({
+                            where: { id: it.variant_id },
+                            data: {
+                                stock: { decrement: qty },
+                                reservedStock: { increment: qty },
+                            },
+                        });
+                    } catch (err) {
+                        // se falhar, tentamos pelo product (fallback), e registramos warning
+                        reservationWarnings.push(
+                            `Falha ao reservar ${qty} unidades da variante ${it.variant_id} (produto ${it.product_id}).`
+                        );
+                    }
+
+                    // 2) atualiza agregação no nível do product também (manter soma consistente)
+                    try {
+                        await tx.product.update({
+                            where: { id: it.product_id },
+                            data: {
+                                stock: { decrement: qty },
+                                reservedStock: { increment: qty },
+                            },
+                        });
+                    } catch (err) {
+                        reservationWarnings.push(
+                            `Falha ao atualizar estoque agregado do produto ${it.product_id} para ${qty} unidades reservadas.`
+                        );
+                    }
+                } else {
+                    // Sem variante: operamos só no product
+                    try {
+                        await tx.product.update({
+                            where: { id: it.product_id },
+                            data: {
+                                stock: { decrement: qty },
+                                reservedStock: { increment: qty },
+                            },
+                        });
+                    } catch (err) {
+                        reservationWarnings.push(
+                            `Falha ao reservar ${qty} unidades do produto ${it.product_id}.`
+                        );
+                    }
+                }
+            } catch (err) {
+                // mantive comportamento original: não quebrar a criação do pedido por problema de estoque
+                // apenas logamos (ou empilhamos warning)
+                reservationWarnings.push(
+                    `Erro genérico ao processar reserva para produto ${it.product_id} — ${String(err)}`
+                );
             }
         }
 
         // ---------------- PROCESSAR PROMOÇÕES (atomicamente) ----------------
-        // Comportamento:
-        // - promotionDetails esperado: [{ id: string, discountApplied: number }, ...]
-        // - Valida perUserCouponLimit e totalCouponCount (atomically).
-        // - Resolve conflitos non-cumulative: escolhe 1 vencedor (maior priority, empate -> último enviado).
-        // - Se frontend enviou promotionDetails mas **nenhuma** promo foi aplicada -> THROW com reasons.
-        // - Retorna arrays appliedPromotions/skippedPromotions para serem propagados.
         let appliedPromotionsResult: Array<{ id: string; discountApplied: number }> = [];
         let skippedPromotionsResult: Array<{ id: string; reason: string }> = [];
 

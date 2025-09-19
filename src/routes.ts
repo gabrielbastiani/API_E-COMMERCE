@@ -457,7 +457,7 @@ router.get('/menus/get/data', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUP
 // ----------------------------- ROUTES STORE ----------------------------- //
 // --- MARKETING PUBLICAÇÔES --- //
 router.get('/marketing_publication/existing_sidebar', new ExistingSidebarBannerPageController().handle);
-router.get('/marketing_publication/blog_publications/slides', new SlideStoreMarketingPublicationController().handle);
+router.get('/marketing_publication/store_publications/slides', new SlideStoreMarketingPublicationController().handle);
 router.get('/marketing_publication/store_publications/popup', new PopupStoreMarketingPublicationController().handle);
 router.get('/marketing_publication/interval_banner/page_banner', new IntervalBannerPageController().handle);
 router.get('/marketing_publication/existing_mosaic', new ExistingMosaicController().handle);

@@ -8,11 +8,7 @@ export async function getOrderHandler(req: Request, res: Response) {
             res.status(400).json({ message: 'order_id obrigatório' });
             return;
         }
-
-        // Se você autentica o usuário e injeta customer_id em req (como em outros pontos),
-        // capitalize abaixo para segurança. Pode ser undefined para admins/public.
         
-
         const order = await OrderService.getOrderById(id);
         res.json(order);
     } catch (err: any) {

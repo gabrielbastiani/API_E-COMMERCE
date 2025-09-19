@@ -28,6 +28,7 @@ enum Role {
 }
 
 enum OrderStatus {
+  PAID
   PENDING
   PROCESSING
   SHIPPED
@@ -481,6 +482,7 @@ model ProductVariant {
 
   productVariantImage ProductVariantImage[]
   productVariantVideo ProductVariantVideo[]
+  orderItem           OrderItem[]
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
   updated_at DateTime @updatedAt
@@ -801,8 +803,8 @@ model Order {
   shippingCost              Float // Custo do frete (separado para relatórios)
   grandTotal                Float // total + shippingCost - descontos
   status                    OrderStatus      @default(PENDING)
-  address                   Address          @relation(fields: [address_id], references: [id])
-  address_id                String
+  address                   Address?         @relation(fields: [address_id], references: [id])
+  address_id                String?
   shippingMethod            String?
   trackingCode              String? // Código de rastreio
   estimatedDelivery         String? // Data estimada de entrega
@@ -823,13 +825,15 @@ model Order {
 }
 
 model OrderItem {
-  id         String  @id @default(uuid())
-  quantity   Int     @default(1)
+  id         String          @id @default(uuid())
+  quantity   Int             @default(1)
   price      Float
-  order      Order   @relation(fields: [order_id], references: [id])
+  order      Order           @relation(fields: [order_id], references: [id])
   order_id   String
-  product    Product @relation(fields: [product_id], references: [id])
-  product_id String  @db.Uuid
+  product    Product         @relation(fields: [product_id], references: [id])
+  product_id String          @db.Uuid
+  variant    ProductVariant? @relation(fields: [variant_id], references: [id])
+  variant_id String?         @db.Uuid
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
 
@@ -890,7 +894,7 @@ model CommentAttachment {
   id         String       @id @default(uuid())
   comment    CommentOrder @relation(fields: [comment_id], references: [id], onDelete: Cascade)
   comment_id String
-  url        String // caminho/URL onde o arquivo está armazenado (ex: /commentAttachment)
+  url        String
   filename   String
   mimetype   String
   size       Int
@@ -1007,14 +1011,15 @@ model MelhorEnvioWebhookLog {
 }
 
 model ShippingLabel {
-  id            String   @id @default(uuid())
-  melhorEnvioId String   @unique
+  id            String  @id @default(uuid())
+  melhorEnvioId String  @unique
   protocol      String?
   status        String
   tracking      String?
   trackingUrl   String?
-  created_at    DateTime @default(now()) @db.Timestamptz(3)
-  updated_at    DateTime @updatedAt
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @updatedAt
 
   @@map("shippingsLabel")
 }
