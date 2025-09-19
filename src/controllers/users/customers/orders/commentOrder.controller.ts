@@ -41,7 +41,7 @@ export async function postOrderComment(req: Request, res: Response) {
     if (files && files.length > 0) {
       // prepare attachments payload and save DB records
       const attachPayload = files.map((f) => ({
-        url: `/uploads/comments/${f.filename}`, // servir estático esta rota (veja Observações)
+        url: `/commentAttachment/${f.filename}`, // servir estático esta rota (veja Observações)
         filename: f.originalname,
         mimetype: f.mimetype,
         size: f.size,

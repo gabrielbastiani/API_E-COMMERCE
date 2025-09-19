@@ -561,7 +561,7 @@ router.get('/customer/orders', isAuthenticatedCustomer, new CustomerOrderControl
 import { uploadCommentFiles } from "./middlewares/uploadCommentFiles";
 
 import { getOrderComments, postOrderComment } from "./controllers/users/customers/orders/commentOrder.controller";
-import { adminGetOrderComments, adminPostOrderComment, adminSetCommentVisibility } from "./controllers/users/users_ecommerce/commentOrderAdmin.controller";
+import { adminGetOrderComments, adminPostOrderComment } from "./controllers/users/users_ecommerce/commentOrderAdmin.controller";
 
 // cliente
 router.get("/customer/orders/:orderId/comments", isAuthenticatedCustomer, getOrderComments);
@@ -570,7 +570,7 @@ router.post("/customer/orders/:orderId/comments", isAuthenticatedCustomer, uploa
 // admin
 router.get("/admin/orders/:orderId/comments", isAuthenticatedEcommerce, adminGetOrderComments);
 router.post("/admin/orders/:orderId/comments", isAuthenticatedEcommerce, uploadCommentFiles.array("files", 5), adminPostOrderComment);
-router.post("/admin/comments/:commentId/visibility", isAuthenticatedEcommerce, adminSetCommentVisibility);
+/* router.post("/admin/comments/:commentId/visibility", isAuthenticatedEcommerce, adminSetCommentVisibility); */
 
 
 export { router };
