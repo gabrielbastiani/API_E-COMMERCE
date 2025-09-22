@@ -562,6 +562,11 @@ import { uploadCommentFiles } from "./middlewares/uploadCommentFiles";
 
 import { getOrderComments, postOrderComment } from "./controllers/users/customers/orders/commentOrder.controller";
 import { adminGetOrderComments, adminPostOrderComment } from "./controllers/users/users_ecommerce/commentOrderAdmin.controller";
+import { QuestionProductCreateController } from './controllers/product/question/QuestionProductCreateController';
+import { QuestionProductUpdateController } from './controllers/product/question/QuestionProductUpdateController';
+import { QuestionProductStatusApprovedController } from './controllers/product/question/QuestionProductStatusApprovedController';
+import { QuestionProductCMSController } from './controllers/product/question/QuestionProductCMSController';
+import { QuestionProductDeleteController } from './controllers/product/question/QuestionProductDeleteController';
 
 // cliente
 router.get("/customer/orders/:orderId/comments", isAuthenticatedCustomer, getOrderComments);
@@ -570,7 +575,13 @@ router.post("/customer/orders/:orderId/comments", isAuthenticatedCustomer, uploa
 // admin
 router.get("/admin/orders/:orderId/comments", isAuthenticatedEcommerce, adminGetOrderComments);
 router.post("/admin/orders/:orderId/comments", isAuthenticatedEcommerce, uploadCommentFiles.array("files", 5), adminPostOrderComment);
-/* router.post("/admin/comments/:commentId/visibility", isAuthenticatedEcommerce, adminSetCommentVisibility); */
+
+// --- QUESTION PRODUCT --- //
+router.post('/question/create', isAuthenticatedCustomer, new QuestionProductCreateController().handle);
+router.put('/question/update/status', isAuthenticatedEcommerce, new QuestionProductUpdateController().handle);
+router.get('/question/statusApproved', new QuestionProductStatusApprovedController().handle);
+router.get('/question/cms', isAuthenticatedEcommerce, new QuestionProductCMSController().handle);
+router.delete('/question/delete', isAuthenticatedEcommerce, new QuestionProductDeleteController().handle);
 
 
 export { router };

@@ -282,7 +282,6 @@ enum QuestionStatus {
   PENDING
   APPROVED
   REJECTED
-  DELETED
 }
 
 model EcommerceData {
@@ -621,6 +620,7 @@ model QuestionProduct {
   product_id              String                    @db.Uuid
   question                String
   status                  QuestionStatus            @default(PENDING)
+  
   responseQuestionProduct ResponseQuestionProduct[]
 
   created_at DateTime @default(now()) @db.Timestamptz(3)
