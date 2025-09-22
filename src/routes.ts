@@ -567,6 +567,7 @@ import { QuestionProductUpdateController } from './controllers/product/question/
 import { QuestionProductStatusApprovedController } from './controllers/product/question/QuestionProductStatusApprovedController';
 import { QuestionProductCMSController } from './controllers/product/question/QuestionProductCMSController';
 import { QuestionProductDeleteController } from './controllers/product/question/QuestionProductDeleteController';
+import { ResponseQuestionProductCreateController } from './controllers/product/question/ResponseQuestionProductCreateController';
 
 // cliente
 router.get("/customer/orders/:orderId/comments", isAuthenticatedCustomer, getOrderComments);
@@ -578,6 +579,7 @@ router.post("/admin/orders/:orderId/comments", isAuthenticatedEcommerce, uploadC
 
 // --- QUESTION PRODUCT --- //
 router.post('/question/create', isAuthenticatedCustomer, new QuestionProductCreateController().handle);
+router.post('/response/ecommerce/product', isAuthenticatedEcommerce, new ResponseQuestionProductCreateController().handle);
 router.put('/question/update/status', isAuthenticatedEcommerce, new QuestionProductUpdateController().handle);
 router.get('/question/statusApproved', new QuestionProductStatusApprovedController().handle);
 router.get('/question/cms', isAuthenticatedEcommerce, new QuestionProductCMSController().handle);
