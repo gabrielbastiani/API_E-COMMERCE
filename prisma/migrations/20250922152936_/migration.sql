@@ -5,7 +5,7 @@ CREATE TYPE "TypeUser" AS ENUM ('FISICA', 'JURIDICA');
 CREATE TYPE "Role" AS ENUM ('EMPLOYEE', 'ADMIN', 'SUPER_ADMIN');
 
 -- CreateEnum
-CREATE TYPE "OrderStatus" AS ENUM ('PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED');
+CREATE TYPE "OrderStatus" AS ENUM ('PAID', 'PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED');
 
 -- CreateEnum
 CREATE TYPE "PaymentMethod" AS ENUM ('CREDIT_CARD', 'DEBIT_CARD', 'BOLETO', 'PIX', 'BANK_TRANSFER');
@@ -96,6 +96,9 @@ CREATE TYPE "ActionType" AS ENUM ('FIXED_VARIANT_DISCOUNT', 'FIXED_PRODUCT_DISCO
 
 -- CreateEnum
 CREATE TYPE "DisplayType" AS ENUM ('SPOT', 'PRODUCT_PAGE');
+
+-- CreateEnum
+CREATE TYPE "QuestionStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED', 'DELETED');
 
 -- CreateTable
 CREATE TABLE "ecommerceDatas" (
@@ -374,6 +377,31 @@ CREATE TABLE "productsVideos" (
 );
 
 -- CreateTable
+CREATE TABLE "questionsproducts" (
+    "id" TEXT NOT NULL,
+    "customer_id" UUID NOT NULL,
+    "product_id" UUID NOT NULL,
+    "question" TEXT NOT NULL,
+    "status" "QuestionStatus" NOT NULL DEFAULT 'PENDING',
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "questionsproducts_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "responsesquestionsoroduct" (
+    "id" TEXT NOT NULL,
+    "userEcommerce_id" TEXT NOT NULL,
+    "questionProduct_id" TEXT NOT NULL,
+    "response" TEXT NOT NULL,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "responsesquestionsoroduct_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "promotions" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -468,6 +496,7 @@ CREATE TABLE "promotionUsages" (
     "promotion_id" TEXT NOT NULL,
     "customer_id" UUID NOT NULL,
     "order_id" TEXT NOT NULL,
+    "titlePromotion" TEXT,
     "discountApplied" DOUBLE PRECISION NOT NULL,
     "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -536,13 +565,14 @@ CREATE TABLE "orders" (
     "shippingCost" DOUBLE PRECISION NOT NULL,
     "grandTotal" DOUBLE PRECISION NOT NULL,
     "status" "OrderStatus" NOT NULL DEFAULT 'PENDING',
-    "address_id" TEXT NOT NULL,
+    "address_id" TEXT,
     "shippingMethod" TEXT,
     "trackingCode" TEXT,
     "estimatedDelivery" TEXT,
     "customer_id" UUID NOT NULL,
     "promotion_id" JSONB,
     "cart_id" UUID,
+    "assigned_userEcommerce_id" TEXT,
     "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "orders_pkey" PRIMARY KEY ("id")
@@ -555,6 +585,7 @@ CREATE TABLE "orderItens" (
     "price" DOUBLE PRECISION NOT NULL,
     "order_id" TEXT NOT NULL,
     "product_id" UUID NOT NULL,
+    "variant_id" UUID,
     "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "orderItens_pkey" PRIMARY KEY ("id")
@@ -589,12 +620,25 @@ CREATE TABLE "commentsOrder" (
     "id" TEXT NOT NULL,
     "order_id" TEXT NOT NULL,
     "customer_id" UUID NOT NULL,
-    "userEcommerce_id" TEXT NOT NULL,
+    "userEcommerce_id" TEXT,
     "message" TEXT NOT NULL,
     "status" "StatusCommentOrder" NOT NULL DEFAULT 'PRIVATE',
     "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "commentsOrder_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "commentAttachments" (
+    "id" TEXT NOT NULL,
+    "comment_id" TEXT NOT NULL,
+    "url" TEXT NOT NULL,
+    "filename" TEXT NOT NULL,
+    "mimetype" TEXT NOT NULL,
+    "size" INTEGER NOT NULL,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "commentAttachments_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -1054,6 +1098,18 @@ ALTER TABLE "productsImages" ADD CONSTRAINT "productsImages_product_id_fkey" FOR
 ALTER TABLE "productsVideos" ADD CONSTRAINT "productsVideos_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "products"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "questionsproducts" ADD CONSTRAINT "questionsproducts_customer_id_fkey" FOREIGN KEY ("customer_id") REFERENCES "customers"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "questionsproducts" ADD CONSTRAINT "questionsproducts_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "products"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "responsesquestionsoroduct" ADD CONSTRAINT "responsesquestionsoroduct_userEcommerce_id_fkey" FOREIGN KEY ("userEcommerce_id") REFERENCES "usersEcommerce"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "responsesquestionsoroduct" ADD CONSTRAINT "responsesquestionsoroduct_questionProduct_id_fkey" FOREIGN KEY ("questionProduct_id") REFERENCES "questionsproducts"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "promotion_coupons" ADD CONSTRAINT "promotion_coupons_promotion_id_fkey" FOREIGN KEY ("promotion_id") REFERENCES "promotions"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -1102,16 +1158,22 @@ ALTER TABLE "reviews" ADD CONSTRAINT "reviews_product_id_fkey" FOREIGN KEY ("pro
 ALTER TABLE "reviews" ADD CONSTRAINT "reviews_customer_id_fkey" FOREIGN KEY ("customer_id") REFERENCES "customers"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "orders" ADD CONSTRAINT "orders_address_id_fkey" FOREIGN KEY ("address_id") REFERENCES "address"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "orders" ADD CONSTRAINT "orders_address_id_fkey" FOREIGN KEY ("address_id") REFERENCES "address"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "orders" ADD CONSTRAINT "orders_customer_id_fkey" FOREIGN KEY ("customer_id") REFERENCES "customers"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "orders" ADD CONSTRAINT "orders_assigned_userEcommerce_id_fkey" FOREIGN KEY ("assigned_userEcommerce_id") REFERENCES "usersEcommerce"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "orderItens" ADD CONSTRAINT "orderItens_order_id_fkey" FOREIGN KEY ("order_id") REFERENCES "orders"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "orderItens" ADD CONSTRAINT "orderItens_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "products"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "orderItens" ADD CONSTRAINT "orderItens_variant_id_fkey" FOREIGN KEY ("variant_id") REFERENCES "productsVariants"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "carts" ADD CONSTRAINT "carts_customer_id_fkey" FOREIGN KEY ("customer_id") REFERENCES "customers"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -1132,7 +1194,10 @@ ALTER TABLE "commentsOrder" ADD CONSTRAINT "commentsOrder_order_id_fkey" FOREIGN
 ALTER TABLE "commentsOrder" ADD CONSTRAINT "commentsOrder_customer_id_fkey" FOREIGN KEY ("customer_id") REFERENCES "customers"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "commentsOrder" ADD CONSTRAINT "commentsOrder_userEcommerce_id_fkey" FOREIGN KEY ("userEcommerce_id") REFERENCES "usersEcommerce"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "commentsOrder" ADD CONSTRAINT "commentsOrder_userEcommerce_id_fkey" FOREIGN KEY ("userEcommerce_id") REFERENCES "usersEcommerce"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "commentAttachments" ADD CONSTRAINT "commentAttachments_comment_id_fkey" FOREIGN KEY ("comment_id") REFERENCES "commentsOrder"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "abandonedCarts" ADD CONSTRAINT "abandonedCarts_cart_id_fkey" FOREIGN KEY ("cart_id") REFERENCES "carts"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
