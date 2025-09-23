@@ -31,7 +31,8 @@ class CreateConfigurationService {
                 faq: "Perguntas e respostas",
                 payment_methods: "Metodos de pagamentos",
                 technical_assistance: null,
-                about_store: "Escreva uma descrição para o blog, do que se trata...",
+                about_store: "Escreva uma descrição para a loja, do que se trata...",
+                resume_about_store: "Escreva um resumo da descrição sobre a loja...",
                 privacy_policies: "Escrveva aqui seu texto das suas politicas de privacidades focado na lei LGPD"
             }
         })

@@ -21,6 +21,7 @@ interface ConfigEcommerce {
     country?: string;
     privacy_policies?: string;
     about_store?: string;
+    resume_about_store?: string;
     exchanges_and_returns?: string;
     how_to_buy?: string;
     shipping_delivery_time?: string;
@@ -49,6 +50,7 @@ class UpdateConfigurationEcommerceService {
         country,
         privacy_policies,
         about_store,
+        resume_about_store,
         exchanges_and_returns,
         how_to_buy,
         shipping_delivery_time,
@@ -97,6 +99,10 @@ class UpdateConfigurationEcommerceService {
 
         if (about_store) {
             dataToUpdate.about_store = about_store;
+        }
+
+        if (resume_about_store) {
+            dataToUpdate.resume_about_store = resume_about_store
         }
 
         if (exchanges_and_returns) {
