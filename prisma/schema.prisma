@@ -426,48 +426,49 @@ model PasswordRecoveryCustomer {
 }
 
 model Product {
-  id                   String               @id @default(uuid()) @db.Uuid
-  name                 String
-  slug                 String?              @unique
-  metaTitle            String?
-  metaDescription      String?
-  keywords             Json?
-  brand                String?
-  ean                  String?
-  description          String
-  skuMaster            String?              @unique
-  price_of             Float?
-  price_per            Float
-  weight               Float?
-  length               Float?
-  width                Float?
-  height               Float?
-  stock                Int                  @default(0)
-  reservedStock        Int                  @default(0)
-  view                 Int?                 @default(0)
-  mainPromotion        Promotion?           @relation("FeaturedPromotion", fields: [mainPromotion_id], references: [id])
-  mainPromotion_id     String?
-  buyTogether          BuyTogether?         @relation(fields: [buyTogether_id], references: [id])
-  buyTogether_id       String?
-  status               StatusProduct        @default(DISPONIVEL)
-  categories           ProductCategory[]
-  images               ProductImage[]
-  reviews              Review[]
-  cartItems            CartItem[]
-  orderItems           OrderItem[]
-  favorites            Favorite[]
-  productsDescriptions ProductDescription[]
-  variants             ProductVariant[] // Relacionamento com variantes
-  videos               ProductVideo[]
-  productView          ProductView[]
-  productRelations     ProductRelation[]
-  parentRelations      ProductRelation[]    @relation("parentRelation")
-  childRelations       ProductRelation[]    @relation("childRelation")
-  promotions           Promotion[]          @relation("ProductPromotions")
+  id                     String                   @id @default(uuid()) @db.Uuid
+  name                   String
+  slug                   String?                  @unique
+  metaTitle              String?
+  metaDescription        String?
+  keywords               Json?
+  brand                  String?
+  ean                    String?
+  description            String
+  skuMaster              String?                  @unique
+  price_of               Float?
+  price_per              Float
+  weight                 Float?
+  length                 Float?
+  width                  Float?
+  height                 Float?
+  stock                  Int                      @default(0)
+  reservedStock          Int                      @default(0)
+  view                   Int?                     @default(0)
+  mainPromotion          Promotion?               @relation("FeaturedPromotion", fields: [mainPromotion_id], references: [id])
+  mainPromotion_id       String?
+  buyTogether            BuyTogether?             @relation(fields: [buyTogether_id], references: [id])
+  buyTogether_id         String?
+  status                 StatusProduct            @default(DISPONIVEL)
+  categories             ProductCategory[]
+  images                 ProductImage[]
+  reviews                Review[]
+  cartItems              CartItem[]
+  orderItems             OrderItem[]
+  favorites              Favorite[]
+  productsDescriptions   ProductDescription[]
+  variants               ProductVariant[] // Relacionamento com variantes
+  videos                 ProductVideo[]
+  productView            ProductView[]
+  productRelations       ProductRelation[]
+  parentRelations        ProductRelation[]        @relation("parentRelation")
+  childRelations         ProductRelation[]        @relation("childRelation")
+  promotions             Promotion[]              @relation("ProductPromotions")
+  questionProduct        QuestionProduct[]
+  productCharacteristics ProductCharacteristics[]
 
-  created_at      DateTime          @default(now()) @db.Timestamptz(3)
-  updated_at      DateTime          @updatedAt
-  QuestionProduct QuestionProduct[]
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @updatedAt
 
   @@map("products")
 }
@@ -611,6 +612,20 @@ model ProductVideo {
   updated_at DateTime @updatedAt
 
   @@map("productsVideos")
+}
+
+model ProductCharacteristics {
+  id         String  @id @default(uuid())
+  product    Product @relation(fields: [product_id], references: [id])
+  product_id String  @db.Uuid
+  key        String // ex: "cor"
+  value      String // ex: "Azul"
+  image      String?
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @updatedAt
+
+  @@map("productsCharacteristics")
 }
 
 model QuestionProduct {
