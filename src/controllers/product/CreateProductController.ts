@@ -6,26 +6,62 @@ import prismaClient from "../../prisma";
 class CreateProductController {
     async handle(req: Request, res: Response) {
         try {
-            // Recebe todos os arquivos via multer
-            const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-
+            const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
             const { userEcommerce_id } = req.body;
 
-            // Função para parsear JSONs que podem vir como string ou array
+            const parseMaybeArrayRaw = (raw: any): any[] => {
+                if (raw === undefined || raw === null) return [];
+                if (Array.isArray(raw)) return raw;
+                if (typeof raw === 'string') {
+                    try {
+                        const parsed = JSON.parse(raw);
+                        return Array.isArray(parsed) ? parsed : [parsed];
+                    } catch (err) {
+                        return [];
+                    }
+                }
+                if (typeof raw === 'object') return [raw];
+                return [];
+            };
+
             const safeParse = (raw?: any) => {
                 if (raw === undefined || raw === null) return [];
                 if (typeof raw === 'string') {
-                    try {
-                        return JSON.parse(raw);
-                    } catch (e) {
-                        console.error('Erro ao parsear JSON:', raw);
-                        return [];
-                    }
+                    try { return JSON.parse(raw); } catch (e) { return []; }
                 }
                 return Array.isArray(raw) ? raw : [];
             };
 
-            // Parse das variantes (que podem vir como string JSON ou já como objeto)
+            const rawItems = parseMaybeArrayRaw(req.body.characteristics);
+
+            const flattenedItems: any[] = [];
+            for (const rawItem of rawItems) {
+                if (typeof rawItem === 'string') {
+                    try {
+                        const parsed = JSON.parse(rawItem);
+                        if (Array.isArray(parsed)) {
+                            flattenedItems.push(...parsed);
+                        } else if (parsed && typeof parsed === 'object') {
+                            flattenedItems.push(parsed);
+                        }
+                    } catch (err) {
+                    }
+                } else if (Array.isArray(rawItem)) {
+                    flattenedItems.push(...rawItem);
+                } else if (rawItem && typeof rawItem === 'object') {
+                    flattenedItems.push(rawItem);
+                }
+            }
+
+            const parsedCharacteristics = flattenedItems.map((c: any) => {
+                const key = typeof c?.key === 'string' ? String(c.key).trim() : null;
+                const value = typeof c?.value === 'string' ? String(c.value).trim() : null;
+                const imageName = c?.imageName ?? null;
+                return { key, value, imageName };
+            });
+
+            const characteristicsFiltered = parsedCharacteristics.filter((c: any) => c.key && c.value);
+
             const variants = safeParse(req.body.variants).map((variant: any) => ({
                 ...variant,
                 videoLinks: safeParse(variant.videoLinks).filter((url: any) => typeof url === 'string'),
@@ -38,7 +74,6 @@ class CreateProductController {
                     : []
             }));
 
-            // Parse das relações
             const rawRelations = safeParse(req.body.relations) as any[];
             const relations = rawRelations.map((r) => ({
                 relationDirection: r.relationDirection as "child" | "parent",
@@ -50,10 +85,9 @@ class CreateProductController {
 
             const buyTogether_id = req.body.buyTogether_id || null;
 
-            // Montagem do objeto productData
             const productData = {
                 name: req.body.name,
-                slug: req.body.slug, // opcional
+                slug: req.body.slug,
                 metaTitle: req.body.metaTitle,
                 metaDescription: req.body.metaDescription,
                 keywords: safeParse(req.body.keywords),
@@ -68,23 +102,21 @@ class CreateProductController {
                 width: req.body.width ? Number(req.body.width) : undefined,
                 height: req.body.height ? Number(req.body.height) : undefined,
                 stock: req.body.stock ? Number(req.body.stock) : undefined,
-                status: req.body.status, // se não vier, o serviço define default
+                status: req.body.status,
                 mainPromotion_id: req.body.mainPromotion_id,
                 videoLinks: safeParse(req.body.videoLinks).filter((url: any) => typeof url === 'string'),
                 categories: safeParse(req.body.categories),
                 descriptions: safeParse(req.body.productDescriptions),
-                // Aqui já passamos as variantes com suas imagens e primaryImageName
-                variants: variants,
-                relations: relations,
-                // Nova propriedade: nome da imagem principal do produto
+                variants,
+                relations,
                 primaryMainImageName: req.body.primaryMainImageName,
                 buyTogether_id,
+                characteristics: characteristicsFiltered
             };
 
             const createProductService = new CreateProductService();
             const product = await createProductService.execute(productData, files);
 
-            // Notificação de criação para administradores e superadministradores
             const user_data = await prismaClient.userEcommerce.findUnique({
                 where: { id: userEcommerce_id }
             });
@@ -108,14 +140,16 @@ class CreateProductController {
                 type: NotificationType.PRODUCT
             }));
 
-            await prismaClient.notificationUserEcommerce.createMany({
-                data: notificationsData
-            });
+            if (notificationsData.length) {
+                await prismaClient.notificationUserEcommerce.createMany({
+                    data: notificationsData
+                });
+            }
 
             res.json(product);
-            
+
         } catch (error) {
-            console.error(error);
+            console.error('CreateProductController.handle error:', error);
             res.status(500).json({ error: "Internal server error" });
         }
     }

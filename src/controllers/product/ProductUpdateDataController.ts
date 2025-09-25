@@ -3,7 +3,6 @@ import { ProductUpdateDataService } from "../../services/product/productUpdateDa
 import { StatusProduct } from "@prisma/client";
 
 export class ProductUpdateDataController {
-    // Agora explicitamente Promise<void>
     async handle(req: Request, res: Response): Promise<void> {
         try {
             // Espera receber um único campo “payload” contendo o JSON como string
@@ -28,8 +27,6 @@ export class ProductUpdateDataController {
                 return;
             }
 
-            // Monta o objeto productData conforme a interface atualizada
-            // OBS: aqui NÃO forçamos existingImages = [] caso o campo não exista no payload.
             const productData = {
                 id: idStr,
                 name: parsed.name as string | undefined,
@@ -53,7 +50,6 @@ export class ProductUpdateDataController {
                     parsed.mainPromotion_id != null ? String(parsed.mainPromotion_id) : null,
                 buyTogether_id:
                     parsed.buyTogether_id != null ? String(parsed.buyTogether_id) : null,
-                // Novos campos para principal do produto
                 primaryMainImageId: parsed.primaryMainImageId as string | undefined,
                 primaryMainImageName: parsed.primaryMainImageName as string | undefined,
 
@@ -62,19 +58,18 @@ export class ProductUpdateDataController {
                 existingImages: Array.isArray(parsed.existingImages) ? parsed.existingImages : undefined,
                 descriptions: Array.isArray(parsed.descriptions) ? parsed.descriptions : undefined,
                 variants: Array.isArray(parsed.variants) ? parsed.variants : undefined,
-                relations: Array.isArray(parsed.relations) ? parsed.relations : undefined
+                relations: Array.isArray(parsed.relations) ? parsed.relations : undefined,
+
+                // **NOVO**: características vindas do CMS (cada item: { id?, key, value, imageName? })
+                characteristics: Array.isArray(parsed.characteristics) ? parsed.characteristics : undefined
             };
 
-            // Agrupa arquivos do Multer (suporta array e fields)
+            // Normaliza req.files para um array allFiles (suporta upload.any() e upload.fields())
             let allFiles: Express.Multer.File[] = [];
 
-            // Caso Multer retorne array (ex: multer.array())
             if (Array.isArray(req.files)) {
                 allFiles = req.files as Express.Multer.File[];
-            }
-            // Caso Multer retorne objeto (ex: multer.fields([...]))
-            else if (req.files && typeof req.files === "object") {
-                // req.files: { fieldname: Express.Multer.File[] }
+            } else if (req.files && typeof req.files === "object") {
                 for (const k of Object.keys(req.files)) {
                     const v = (req.files as any)[k];
                     if (Array.isArray(v)) {
@@ -86,35 +81,45 @@ export class ProductUpdateDataController {
                 }
             }
 
+            // Estrutura que passaremos ao service
             const files = {
                 images: [] as Express.Multer.File[],
                 variantImages: {} as Record<string, Express.Multer.File[]>,
-                attributeImages: {} as Record<string, Record<number, Express.Multer.File[]>>
+                attributeImages: {} as Record<string, Record<number, Express.Multer.File[]>>,
+                characteristicImages: [] as Express.Multer.File[]
             };
 
-            // O frontend pode enviar fieldnames com '_' (antigo) ou '::' (novo).
-            // Exemplo esperado:
-            // - productImage::<filename>
-            // - variantImage::<variantId>::<filename>
-            // - attributeImage::<variantId>::<attrIdx>::<filename>
-            // Também aceitaremos a convenção antiga com underscore: productImage_<...>
+            // Organiza arquivos por convenção de nome de campo
             for (const f of allFiles) {
-                // detecta separador
-                const sep = f.fieldname.includes("::") ? "::" : "_";
-                const parts = f.fieldname.split(sep);
+                const field = f.fieldname || '';
+                // se campo for exatamente 'characteristicImages' (padrao de criação/edicao), guarda no array
+                if (field === 'characteristicImages' || field === 'characteristicImage') {
+                    files.characteristicImages.push(f);
+                    continue;
+                }
 
-                // normalize nome do tipo no index 0
+                // separador pode ser '::' ou '_' (sua convenção existente)
+                const sep = field.includes("::") ? "::" : (field.includes("_") ? "_" : null);
+                if (!sep) {
+                    // campos que não seguem convenção - tente tratar como imagens principais
+                    if (field === 'images' || field === 'image' || field === 'productImage') {
+                        files.images.push(f);
+                    } else {
+                        // unknown - ignore
+                    }
+                    continue;
+                }
+
+                const parts = field.split(sep);
                 const type = parts[0];
 
                 if (type === "productImage") {
                     files.images.push(f);
                 } else if (type === "variantImage" && parts[1]) {
-                    // pode ser variantImage::<variantId>::<filename>  OR variantImage_<variantId>_<filename>
                     const variantId = parts[1];
                     if (!files.variantImages[variantId]) files.variantImages[variantId] = [];
                     files.variantImages[variantId].push(f);
                 } else if (type === "attributeImage" && parts[1] && typeof parts[2] !== "undefined") {
-                    // attributeImage::<variantId>::<attrIdx>::<filename>
                     const variantId = parts[1];
                     const attrIdx = Number(parts[2]);
                     if (!files.attributeImages[variantId]) files.attributeImages[variantId] = {};
@@ -123,8 +128,8 @@ export class ProductUpdateDataController {
                     }
                     files.attributeImages[variantId][attrIdx].push(f);
                 } else {
-                    // campo desconhecido — ignore (poderia logar)
-                    // console.warn(`[ProductUpdateDataController] unknown file fieldname: ${f.fieldname}`);
+                    // fallback: if field === 'images' push to images
+                    if (field === 'images') files.images.push(f);
                 }
             }
 

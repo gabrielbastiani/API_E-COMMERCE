@@ -39,16 +39,14 @@ interface ProductRequest {
         ean?: string;
         mainPromotion_id?: string;
         videoLinks?: string[];
-        // Nova propriedade para imagem principal da variante:
         primaryImageName?: string;
-        images?: string[]; // nomes (originalname) de todas as imagens da variante
+        images?: string[];
         attributes: {
             key: string;
             value: string;
             status?: StatusVariant;
-            // Nova propriedade para imagem principal do atributo:
             primaryAttributeImageName?: string;
-            images?: string[]; // nomes (originalname) de todas as imagens do atributo
+            images?: string[];
         }[];
     }[];
     relations?: {
@@ -58,9 +56,13 @@ interface ProductRequest {
         sortOrder?: number;
         isRequired?: boolean;
     }[];
-    // Nova propriedade para indicar imagem principal do produto:
     primaryMainImageName?: string;
     buyTogether_id?: string;
+    characteristics?: {
+        key: string | null;
+        value: string | null;
+        imageName?: string | null;
+    }[];
 }
 
 class CreateProductService {
@@ -105,13 +107,15 @@ class CreateProductService {
                 const validVideoLinks = productData.videoLinks
                     .filter(url => typeof url === 'string' && url.startsWith('http'));
 
-                await prisma.productVideo.createMany({
-                    data: validVideoLinks.map((url, idx) => ({
-                        product_id: product.id,
-                        url,
-                        isPrimary: idx === 0
-                    }))
-                });
+                if (validVideoLinks.length) {
+                    await prisma.productVideo.createMany({
+                        data: validVideoLinks.map((url, idx) => ({
+                            product_id: product.id,
+                            url,
+                            isPrimary: idx === 0
+                        }))
+                    });
+                }
             }
 
             // Categorias
@@ -125,7 +129,7 @@ class CreateProductService {
             }
 
             // Descrições
-            if (productData.descriptions) {
+            if (productData.descriptions && productData.descriptions.length > 0) {
                 await prisma.productDescription.createMany({
                     data: productData.descriptions.map(desc => ({
                         product_id: product.id,
@@ -136,14 +140,19 @@ class CreateProductService {
                 });
             }
 
-            // Imagens principais do produto (utiliza primaryMainImageName se informado)
-            if (files.images) {
+            // Imagens principais do produto
+            if (files?.images) {
                 await this.processMainImages(
                     prisma,
                     product.id,
                     files.images,
                     productData.primaryMainImageName
                 );
+            }
+
+            // CORREÇÃO: Características do produto - processar mesmo sem arquivos
+            if (productData.characteristics && productData.characteristics.length > 0) {
+                await this.processCharacteristics(prisma, product.id, productData.characteristics, files);
             }
 
             // Variantes
@@ -167,8 +176,8 @@ class CreateProductService {
                 );
             }
 
-            // Retorna produto completo incluindo vídeos e demais relacionamentos
-            return prisma.product.findUnique({
+            // Retorna produto completo
+            const foundProduct = await prisma.product.findUnique({
                 where: { id: product.id },
                 include: {
                     categories: true,
@@ -186,34 +195,27 @@ class CreateProductService {
                     },
                     productRelations: true,
                     childRelations: true,
-                    parentRelations: true
+                    parentRelations: true,
+                    productCharacteristics: true
                 }
             });
+
+            return foundProduct;
         });
     }
 
-    /**
-     * Processa as imagens principais do produto, marcando isPrimary com base no nome informado.
-     * @param prisma - instância do Prisma dentro da transação
-     * @param product_id - ID do produto recém-criado
-     * @param images - array de arquivos recebidos pelo multer
-     * @param primaryImageName - nome (originalname) da imagem que deve ser marcada como principal
-     */
     private async processMainImages(
         prisma: any,
         product_id: string,
         images: any[],
         primaryImageName?: string
     ) {
-        // Se primaryImageName bater com algum originalname, ele recebe isPrimary = true.
-        // Caso contrário, pode-se manter apenas a primeira como isPrimary = true (ou nenhuma, se preferir).
         const imageRecords = images.map((image: any, index: number) => {
             let isPrimaryFlag = false;
 
             if (primaryImageName && image.originalname === primaryImageName) {
                 isPrimaryFlag = true;
             } else if (!primaryImageName && index === 0) {
-                // Se não informar nenhum primaryImageName, marcar a primeira por padrão
                 isPrimaryFlag = true;
             } else {
                 isPrimaryFlag = false;
@@ -221,18 +223,98 @@ class CreateProductService {
 
             return {
                 product_id: product_id,
-                url: path.basename(image.path),
+                url: path.basename(image.path || (image.destination && image.filename ? path.join(image.destination, image.filename) : image.filename || image.originalname)),
                 altText: image.originalname,
                 isPrimary: isPrimaryFlag
             };
         });
 
-        await prisma.productImage.createMany({ data: imageRecords });
+        if (imageRecords.length) {
+            await prisma.productImage.createMany({ data: imageRecords });
+        }
     }
 
-    /**
-     * Processa cada variante: cria a variante, vídeos, atributos e imagens (variante e atributo).
-     */
+    private async processCharacteristics(
+        prisma: any,
+        product_id: string,
+        characteristics: ProductRequest["characteristics"],
+        files: any
+    ) {
+        if (!Array.isArray(characteristics) || characteristics.length === 0) {
+            return
+        }
+
+        // CORREÇÃO: Buscar arquivos de características
+        const characteristicFiles = files?.characteristicImages || []
+
+        const recordsToCreate: any[] = []
+
+        for (const [index, characteristic] of characteristics.entries()) {
+            const key = typeof characteristic?.key === 'string' ? String(characteristic.key).trim() : null
+            const value = typeof characteristic?.value === 'string' ? String(characteristic.value).trim() : null
+            const imageName = characteristic?.imageName ?? null
+
+            if (!key || !value) {
+                console.warn(`processCharacteristics: item ${index} ignorado - key ou value faltando`, characteristic)
+                continue
+            }
+
+            let imageUrl: string | null = null
+
+            // CORREÇÃO: Processar imagem apenas se houver imageName e arquivos
+            if (imageName && characteristicFiles.length > 0) {
+                const match = characteristicFiles.find((f: any) =>
+                    f.originalname === imageName ||
+                    f.filename === imageName
+                )
+
+                if (match) {
+                    try {
+                        imageUrl = path.basename(
+                            match.path ||
+                            (match.destination && match.filename ?
+                                path.join(match.destination, match.filename) :
+                                match.filename || match.originalname)
+                        )
+                    } catch (err) {
+                        console.error(`processCharacteristics: erro ao processar imagem para "${key}"`, err)
+                    }
+                } else {
+                    console.warn(`processCharacteristics: imagem não encontrada para "${key}" -> imageName=${imageName}`)
+                }
+            }
+
+            recordsToCreate.push({
+                product_id,
+                key,
+                value,
+                image: imageUrl
+            })
+        }
+
+        if (recordsToCreate.length === 0) {
+            return
+        }
+
+        // CORREÇÃO: Usar o modelo correto (ProductCharacteristics conforme seu schema)
+        try {
+            await prisma.productCharacteristics.createMany({
+                data: recordsToCreate
+            })
+        } catch (error) {
+            console.error('processCharacteristics: erro ao criar características em lote, tentando uma por uma', error)
+
+            // Fallback: criar uma por uma
+            for (const rec of recordsToCreate) {
+                try {
+                    await prisma.productCharacteristics.create({ data: rec })
+                } catch (err) {
+                    console.error('processCharacteristics: falha ao criar característica individual', rec, err)
+                }
+            }
+        }
+    }
+
     private async processVariant(
         prisma: any,
         product_id: string,
@@ -281,8 +363,8 @@ class CreateProductService {
                 }
             });
 
-            // Imagens de atributo (se existirem) — usa primaryAttributeImageName se informado
-            if (files.attributeImages && Array.isArray(attribute.images)) {
+            // Imagens de atributo
+            if (files?.attributeImages && Array.isArray(attribute.images)) {
                 const candidateAttributeFiles = files.attributeImages
                     .filter((img: any) => attribute.images.includes(img.originalname));
 
@@ -291,12 +373,11 @@ class CreateProductService {
                     if (attribute.primaryAttributeImageName && img.originalname === attribute.primaryAttributeImageName) {
                         isPrimaryFlag = true;
                     } else if (!attribute.primaryAttributeImageName && idx === 0) {
-                        // Se não informar, marca a primeira por padrão (opcional)
-                        isPrimaryFlag = false; // mantive como false, mas pode ser idx===0 se desejar
+                        isPrimaryFlag = false;
                     }
                     return {
                         variantAttribute_id: newAttribute.id,
-                        url: path.basename(img.path),
+                        url: path.basename(img.path || (img.destination && img.filename ? path.join(img.destination, img.filename) : img.filename || img.originalname)),
                         altText: img.originalname,
                         isPrimary: isPrimaryFlag
                     };
@@ -308,8 +389,8 @@ class CreateProductService {
             }
         }
 
-        // Imagens da variante — usa primaryImageName se informado
-        if (files.variantImages && Array.isArray(variant.images)) {
+        // Imagens da variante
+        if (files?.variantImages && Array.isArray(variant.images)) {
             const candidateVariantFiles = files.variantImages
                 .filter((img: any) => variant.images.includes(img.originalname));
 
@@ -318,12 +399,11 @@ class CreateProductService {
                 if (variant.primaryImageName && img.originalname === variant.primaryImageName) {
                     isPrimaryFlag = true;
                 } else if (!variant.primaryImageName && idx === 0) {
-                    // Se não informar, pode marcar a primeira como principal (ou deixar todas false)
-                    isPrimaryFlag = false; // mantive como false, mas se quiser marcar a primeira, use idx === 0
+                    isPrimaryFlag = false;
                 }
                 return {
                     productVariant_id: newVariant.id,
-                    url: path.basename(img.path),
+                    url: path.basename(img.path || (img.destination && img.filename ? path.join(img.destination, img.filename) : img.filename || img.originalname)),
                     altText: img.originalname,
                     isPrimary: isPrimaryFlag
                 };
@@ -335,7 +415,6 @@ class CreateProductService {
         }
     }
 
-    // Processa relações entre produtos (sem alterações aqui)
     private async processProductRelations(
         prisma: any,
         product_id: string,
@@ -371,4 +450,4 @@ class CreateProductService {
     }
 }
 
-export { CreateProductService };
+export { CreateProductService }

@@ -51,7 +51,8 @@ class CmsGetProductService {
                         mainVariants: true
                     }
                 },
-                productRelations: true
+                productRelations: true,
+                productCharacteristics: true
             }
         });
 

@@ -235,8 +235,10 @@ const fields = [
     { name: "images", maxCount: 20 },
     { name: "videos", maxCount: 10 },
     { name: "variantImages", maxCount: 50 },
-    { name: "attributeImages", maxCount: 20 }
+    { name: "attributeImages", maxCount: 20 },
+    { name: 'characteristicImages', maxCount: 10 }
 ];
+
 const temp_file = multer(uploadConfig.upload("./temp_file"));
 const controller = new ColorsController();
 
