@@ -63,7 +63,7 @@ class FilterService {
 
   async findAll() {
     return prismaClient.filter.findMany({
-      include: { options: true, group: true },
+      include: { group: true },
       orderBy: { order: "asc" }
     });
   }
@@ -71,7 +71,9 @@ class FilterService {
   async findById(id: string) {
     return prismaClient.filter.findUnique({
       where: { id },
-      include: { options: true, group: true }
+      include: {
+        group: true
+      }
     });
   }
 

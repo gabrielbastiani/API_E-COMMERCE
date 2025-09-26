@@ -27,6 +27,7 @@ class ProductsBatchService {
             mainPromotion: true,
           },
         },
+        productCharacteristics: true,
         productsDescriptions: true,
       },
     });

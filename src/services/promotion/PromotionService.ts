@@ -58,14 +58,21 @@ export interface CreatePromotionDto {
 
 export class PromotionService {
   static applyPromotions: any
+
   async createFull(data: CreatePromotionDto) {
+
+    // Normaliza coupons: remove espaços em branco e dupes
+    const normalizedCoupons = Array.isArray(data.coupons) && data.coupons.length > 0
+      ? Array.from(new Set(data.coupons.map(c => String(c).trim()).filter(Boolean)))
+      : undefined
 
     return prisma.promotion.create({
       data: {
         name: data.name,
-        description: data.description,
-        startDate: data.startDate ? data.startDate : null,
-        endDate: data.endDate ? data.endDate : null,
+        description: data.description ?? undefined,
+        // usa undefined se não vier data para não sobrescrever campos por null
+        startDate: data.startDate ?? undefined,
+        endDate: data.endDate ?? undefined,
 
         hasCoupon: data.hasCoupon,
         multipleCoupons: data.multipleCoupons,
@@ -73,8 +80,13 @@ export class PromotionService {
         perUserCouponLimit: data.perUserCouponLimit,
         totalCouponCount: data.totalCouponCount,
 
-        coupons: data.coupons && data.coupons.length > 0
-          ? { create: data.coupons.map<CouponInput>(code => ({ code })) }
+        // Se houver coupons, usa nested createMany (mais eficiente) — prisma aceita nested createMany
+        coupons: normalizedCoupons && normalizedCoupons.length > 0
+          ? {
+            createMany: {
+              data: normalizedCoupons.map<CouponInput>(code => ({ code }))
+            }
+          }
           : undefined,
 
         status: data.status,

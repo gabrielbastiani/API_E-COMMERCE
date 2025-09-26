@@ -38,19 +38,74 @@ export class PromotionController {
                 if (!field) return undefined
                 if (Array.isArray(field)) return field
                 try {
-                    return JSON.parse(field)
+                    const parsed = JSON.parse(field)
+                    return Array.isArray(parsed) ? parsed : undefined
                 } catch {
                     return undefined
                 }
             }
 
-            const parseBool = (v: any) => (typeof v === 'string' ? v === 'true' : Boolean(v))
+            const parseBool = (v: any) => {
+                if (typeof v === 'string') {
+                    const l = v.toLowerCase().trim()
+                    return l === 'true' || l === '1'
+                }
+                return Boolean(v)
+            }
 
             const parseDate = (v: any): Date | undefined => {
                 if (!v) return undefined;
                 // v === "YYYY-MM-DDThh:mm" → Date interpretará como local
-                return new Date(v);
+                const d = new Date(v);
+                return isNaN(d.getTime()) ? undefined : d;
             };
+
+            // --- Novo: parse robusto para o campo 'coupons' ---
+            const parseStringArrayOrSingle = (field: any): string[] | undefined => {
+                if (field == null) return undefined
+
+                // Se já é array
+                if (Array.isArray(field)) {
+                    const arr = field.map(String).map(s => s.trim()).filter(Boolean)
+                    return arr.length > 0 ? arr : undefined
+                }
+
+                // Se for string — pode ser JSON stringificado, CSV ou single value
+                if (typeof field === 'string') {
+                    const raw = field.trim()
+                    if (raw === '') return undefined
+
+                    // tenta JSON.parse (ex.: '["A","B"]')
+                    if ((raw.startsWith('[') && raw.endsWith(']')) || raw.startsWith('"')) {
+                        try {
+                            const parsed = JSON.parse(raw)
+                            if (Array.isArray(parsed)) {
+                                const arr = parsed.map(String).map(s => s.trim()).filter(Boolean)
+                                return arr.length > 0 ? arr : undefined
+                            }
+                        } catch {
+                            // ignore parse error e seguir
+                        }
+                    }
+
+                    // se conter vírgula, trata como CSV
+                    if (raw.includes(',')) {
+                        const arr = raw.split(',').map(s => s.trim()).filter(Boolean)
+                        return arr.length > 0 ? arr : undefined
+                    }
+
+                    // caso simples: único código
+                    return raw ? [raw] : undefined
+                }
+
+                // outros tipos (number etc.)
+                try {
+                    const coerced = String(field).trim()
+                    return coerced ? [coerced] : undefined
+                } catch {
+                    return undefined
+                }
+            }
 
             const dto: CreatePromotionDto = {
                 name: String(b.name),
@@ -63,7 +118,8 @@ export class PromotionController {
                 reuseSameCoupon: parseBool(b.reuseSameCoupon),
                 perUserCouponLimit: b.perUserCouponLimit != null ? Number(b.perUserCouponLimit) : undefined,
                 totalCouponCount: b.totalCouponCount != null ? Number(b.totalCouponCount) : undefined,
-                coupons: Array.isArray(b.coupons) ? b.coupons.map(String) : [],
+                // usa parser robusto (retorna undefined quando não houver cupons)
+                coupons: parseStringArrayOrSingle(b.coupons),
 
                 status: b.status || "Indisponivel",
                 cumulative: parseBool(b.cumulative),

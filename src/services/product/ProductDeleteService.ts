@@ -40,6 +40,22 @@ export class ProductDeleteService {
                 where: { product_id: { in: id_delete } },
             });
 
+            const productChar = await prisma.productCharacteristics.findMany({
+                where: { product_id: { in: id_delete } },
+                select: { id: true, image: true },
+            });
+            // Apaga arquivos no disco
+            for (const img of productChar) {/* @ts-ignore */
+                const filePath = path.join(imagesDir, img?.image);
+                if (fs.existsSync(filePath)) {
+                    fs.unlinkSync(filePath);
+                }
+            }
+            // Remove do banco
+            await prisma.productCharacteristics.deleteMany({
+                where: { product_id: { in: id_delete } },
+            });
+
             //
             // 2) Vídeos de produto
             //

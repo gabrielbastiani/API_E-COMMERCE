@@ -1,7 +1,6 @@
 import { Prisma } from "@prisma/client";
 import prismaClient from "../../prisma";
 
-
 interface CreateFilterDTO {
   name: string;
   fieldName?: string | null;
@@ -89,9 +88,6 @@ class FilterService {
       payload.attributeKeys = attributeKeys === null ? null : (attributeKeys as Prisma.InputJsonValue);
     }
 
-    // handle options update: depending on your prisma schema you may want nested writes,
-    // e.g. update many/createMany/deleteMany for filterOption. This code assumes you send full options array
-    // and backend handles options separately (via FilterOptionService). If you want nested, adapt here.
     if (Array.isArray(options)) {
       payload.options = options as any;
     }
