@@ -13,8 +13,8 @@ interface CreateFilterDTO {
   minValue?: number | null;
   maxValue?: number | null;
   groupId?: string | null;
-  // attributeKeys stored as JSON in DB
   attributeKeys?: string[] | null;
+  forSearch?: boolean; // NOVO CAMPO
   options?: Array<any>;
 }
 
@@ -28,28 +28,24 @@ class FilterService {
       attributeKeys,
       options,
       groupId,
+      forSearch = false, // Valor padrão
       ...rest
     } = data;
 
-    // build data object carefully so prisma typings accept null vs undefined
-    const payload: Record<string, any> = { ...rest };
+    const payload: Record<string, any> = { ...rest, forSearch };
 
     // groupId: allow explicit null (set null) or undefined (omit)
     if (Object.prototype.hasOwnProperty.call(data, "groupId")) {
-      // if provided and null -> set null; if provided string -> set that string
       payload.groupId = groupId === null ? null : groupId;
     }
 
     // attributeKeys is JSON column in schema
     if (Object.prototype.hasOwnProperty.call(data, "attributeKeys")) {
-      // Prisma expects an InputJsonValue; cast ensures TS is happy
       payload.attributeKeys = attributeKeys === null ? null : (attributeKeys as Prisma.InputJsonValue);
     }
 
     // handle nested options if provided (createMany or connect) - simple create for now
     if (Array.isArray(options) && options.length > 0) {
-      // Expect options to be created separately via filterOption endpoints, but if you
-      // want nested create you can adapt here. For now we pass options as-is only if DB expects nested create.
       payload.options = options as any;
     }
 
@@ -62,7 +58,14 @@ class FilterService {
 
   async findAll() {
     return prismaClient.filter.findMany({
-      include: { group: true },
+      include: {
+        group: true,
+        categoryFilter: {
+          include: {
+            category: true
+          }
+        }
+      },
       orderBy: { order: "asc" }
     });
   }
@@ -71,13 +74,17 @@ class FilterService {
     return prismaClient.filter.findUnique({
       where: { id },
       include: {
-        group: true
+        group: true,
+        categoryFilter: {
+          include: {
+            category: true
+          }
+        }
       }
     });
   }
 
-  async update({ id, attributeKeys, options, groupId, ...rest }: UpdateFilterDTO) {
-    // build data object conditionally to avoid TS/Prisma mismatches
+  async update({ id, attributeKeys, options, groupId, forSearch, ...rest }: UpdateFilterDTO) {
     const payload: Record<string, any> = { ...rest };
 
     if (Object.prototype.hasOwnProperty.call(arguments[0], "groupId")) {
@@ -86,6 +93,10 @@ class FilterService {
 
     if (Object.prototype.hasOwnProperty.call(arguments[0], "attributeKeys")) {
       payload.attributeKeys = attributeKeys === null ? null : (attributeKeys as Prisma.InputJsonValue);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(arguments[0], "forSearch")) {
+      payload.forSearch = forSearch;
     }
 
     if (Array.isArray(options)) {

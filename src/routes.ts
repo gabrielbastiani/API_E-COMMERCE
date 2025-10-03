@@ -434,6 +434,15 @@ router.get('/filters/detectAttributeKeys', async (req, res, next) => {
         next(err);
     }
 });
+import { FilterForSearchController } from './controllers/filter/FilterForSearchController';
+const filterForSearchController = new FilterForSearchController();
+router.get('/filters/forSearch', filterForSearchController.getFiltersForSearch);
+router.get('/filters/forSearch/cms', filterForSearchController.getAllFiltersForCMS);
+router.post('/filters/forSearch/detect-keys', filterForSearchController.detectAttributeKeysForSearch);
+router.patch('/filters/:filterId/forSearch', filterForSearchController.updateFilterForSearch);
+import { CategoryFiltersController } from './controllers/filter/CategoryFiltersController'; 
+const categoryFiltersController = new CategoryFiltersController();
+router.get('/categories/:slug/filters', categoryFiltersController.getFiltersByCategorySlug);
 
 // --- MENUS --- //
 router.post("/menu/create", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), upload_image.single('file'), new CreateMenuController().handle);
@@ -508,6 +517,10 @@ router.post('/shipment/calculate', calculateFreightHandler);
 // --- PROMOTION --- //
 router.post("/promotions/apply", ApplyPromotionController.apply);
 router.post("/coupon/validate", ValidationCouponController.handle);
+router.get('/store/promotions', (req, res, next) => {
+  const ctrl = new InfosPromotionsStoreController();
+  Promise.resolve(ctrl.handle(req, res)).catch(next);
+});
 
 // --- FAVORITE --- //
 router.post('/favorite/create', new CreateFavoriteController().handle);
@@ -570,6 +583,7 @@ import { QuestionProductStatusApprovedController } from './controllers/product/q
 import { QuestionProductCMSController } from './controllers/product/question/QuestionProductCMSController';
 import { QuestionProductDeleteController } from './controllers/product/question/QuestionProductDeleteController';
 import { ResponseQuestionProductCreateController } from './controllers/product/question/ResponseQuestionProductCreateController';
+import { InfosPromotionsStoreController } from './controllers/promotion/InfosPromotionsStoreController';
 
 // cliente
 router.get("/customer/orders/:orderId/comments", isAuthenticatedCustomer, getOrderComments);

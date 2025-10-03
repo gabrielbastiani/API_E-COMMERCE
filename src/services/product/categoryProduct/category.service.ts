@@ -1,9 +1,5 @@
-// services/product/categoryProduct/category.service.ts
 import prisma from "../../../prisma";
 
-/**
- * Tipagens mínimas
- */
 export type ProductListOptions = {
     page?: number;
     perPage?: number;
@@ -519,7 +515,42 @@ export async function getProductsByCategorySlug(slug: string, opts: ProductListO
                 }
             },
             categories: { include: { category: true } },
-            productCharacteristics: true // importante para o CMS quando ele faz fallback detectando chaves
+            productCharacteristics: true,
+            mainPromotion: {
+                include: {
+                    actions: true,
+                    badges: true,
+                    categories: true,
+                    conditions: true,
+                    coupons: true,
+                    displays: true,
+                    variantPromotions: {
+                        include: {
+                            mainPromotion: {
+                                include: {
+                                    actions: true,
+                    badges: true,
+                    categories: true,
+                    conditions: true,
+                    coupons: true,
+                    displays: true,
+                                }
+                            }
+                        }
+                    },
+
+                }
+            },
+            promotions: {
+                include: {
+                    actions: true,
+                    badges: true,
+                    categories: true,
+                    conditions: true,
+                    coupons: true,
+                    displays: true,
+                }
+            }
         },
         orderBy: orderBy ? orderBy : undefined,
         skip,

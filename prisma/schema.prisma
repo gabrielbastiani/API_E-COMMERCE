@@ -1230,6 +1230,7 @@ model Filter {
   order            Int                @default(0) // Define a ordem de exibição entre os filtros
   autoPopulate     Boolean            @default(false) // Se verdadeiro, o sistema pode preencher opções baseado nos produtos cadastrados
   // Para filtros do tipo RANGE
+  forSearch        Boolean            @default(false) // Novo: se o filtro é para busca
   minValue         Float? // Ex.: preço mínimo pré-configurado (opcional)
   maxValue         Float? // Ex.: preço máximo pré-configurado (opcional)
   // Relacionamento com grupos de filtros (opcional)

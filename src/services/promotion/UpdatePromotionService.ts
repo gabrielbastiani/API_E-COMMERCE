@@ -60,6 +60,32 @@ export class UpdatePromotionService {
             throw new Error('Data de término deve ser após a de início.')
         }
 
+        // --- VALIDAÇÕES RELACIONADAS A CUPONS (ANTES DA TRANSAÇÃO) ---
+        // Somente quando o cliente explicitamente quer hasCoupon = true (fornecido no DTO)
+        if (data.hasCoupon === true) {
+            // Determina quantos cupons serão considerados após a operação:
+            // - se data.coupons veio, considere esse array
+            // - senão, verifique cupons existentes no BD
+            const providedCouponsCount = Array.isArray(data.coupons) ? data.coupons.length : undefined
+
+            // busca cupons existentes só se necessário
+            const existingCoupons = await prisma.coupon.findMany({ where: { promotion_id: id } })
+            const existingCount = existingCoupons.length
+
+            const totalAfter = providedCouponsCount !== undefined ? providedCouponsCount : existingCount
+
+            if (!totalAfter || totalAfter <= 0) {
+                throw new Error('Quando "hasCoupon" for true, é obrigatório haver pelo menos 1 código de cupom (envie via `coupons` ou mantenha/adicione no banco).')
+            }
+
+            // determina o valor final de multipleCoupons (prioriza o valor vindo no DTO, senão o existente)
+            const finalMultiple = data.multipleCoupons !== undefined ? data.multipleCoupons : existing.multipleCoupons
+
+            if (!finalMultiple && totalAfter > 1) {
+                throw new Error('A promoção está configurada para **não permitir múltiplos cupons**. Se desejar mais de 1 cupom, ative `multipleCoupons`.')
+            }
+        }
+
         // 2) Transactional update
         return prisma.$transaction(async tx => {
             // 2.0) Lógica extra: se veio status, ajusta flags
@@ -86,6 +112,12 @@ export class UpdatePromotionService {
                 if ((data as any)[key] !== undefined) {
                     flat[key] = (data as any)[key]
                 }
+            }
+
+            if (!flat.hasCoupon) {
+                await tx.coupon.deleteMany({
+                    where: { promotion_id: id }
+                })
             }
 
             // 2.2) Executa o update
