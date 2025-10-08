@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
-import { CategoryFilterService } from "../../services/filter/CategoryFilterService"; 
+import { UpdateFilterService } from "../../services/filter/UpdateFilterService"; 
 
-class CategoryFilterController {
-    private service = new CategoryFilterService();
+class UpdateFilterController {
+    private service = new UpdateFilterService();
 
     async handleCreate(req: Request, res: Response) {
         const cf = await this.service.create(req.body);
@@ -34,4 +34,4 @@ class CategoryFilterController {
     }
 }
 
-export { CategoryFilterController };
+export { UpdateFilterController };

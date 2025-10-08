@@ -22,7 +22,7 @@ interface UpdateFilterDTO extends Partial<CreateFilterDTO> {
   id: string;
 }
 
-class FilterService {
+class CreateFilterService {
   async create(data: CreateFilterDTO) {
     const {
       attributeKeys,
@@ -115,4 +115,4 @@ class FilterService {
   }
 }
 
-export { FilterService };
+export { CreateFilterService };
