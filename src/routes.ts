@@ -165,15 +165,15 @@ import { FindUniqueBuyTogetherController } from "./controllers/buyTogether/FindU
 
 // --- FILTERS --- //
 import { FilterGroupController } from "./controllers/filter/FilterGroupController";
-import { UpdateFilterController } from './controllers/filter/UpdateFilterController'; 
+import { UpdateCategoryFilterController } from './controllers/filter/UpdateCategoryFilterController'; 
 import { FilterCmsController } from "./controllers/filter/FilterCmsController";
 import { FilterDeleteController } from "./controllers/filter/FilterDeleteController";
 import { StatusFilterController } from "./controllers/filter/StatusFilterController";
 import { GetFilterCategoriesController } from "./controllers/filter/GetFilterCategoriesController";
-import { CreateFilterController } from './controllers/filter/CreateFilterController';
-const createFilter = new CreateFilterController();
+import { CreateAndUpdateFilterController } from './controllers/filter/CreateAndUpdateFilterController';
+const createAndUpdateFilter = new CreateAndUpdateFilterController();
 const ctrlFilterGroup = new FilterGroupController();
-const updateFilter = new UpdateFilterController();
+const updateCategoryFilter = new UpdateCategoryFilterController();
 const filterDeleteCtrl = new FilterDeleteController();
 
 // --- MENUS --- //
@@ -402,18 +402,18 @@ router.delete('/buyTogether/delete', isAuthenticatedEcommerce, checkRole(["ADMIN
 router.get('/buy_together/:id', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new FindUniqueBuyTogetherController().handle);
 
 // --- FILTERS --- //
-// --- Create filter
-router.post("/filters/create", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), createFilter.handleCreate.bind(createFilter));
-router.get("/filters/getAll", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), createFilter.handleGetAll.bind(createFilter));
-router.get("/filters/get/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), createFilter.handleGetOne.bind(createFilter));
-router.put("/filter/update/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), createFilter.handleUpdate.bind(createFilter));
-router.delete("/filter/delete/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), createFilter.handleDelete.bind(createFilter));
-// --- Update filter
-router.post("/categoryFilters/create", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), updateFilter.handleCreate.bind(updateFilter));
-router.get("/categoryFilters/getAll", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), updateFilter.handleGetAll.bind(updateFilter));
-router.get("/categoryFilters/get/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), updateFilter.handleGetOne.bind(updateFilter));
-router.put("/categoryFilters/update/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), updateFilter.handleUpdate.bind(updateFilter));
-router.delete("/categoryFilters/delete/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), updateFilter.handleDelete.bind(updateFilter));
+// --- Create and update filter
+router.post("/filters/create", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), createAndUpdateFilter.handleCreate.bind(createAndUpdateFilter));
+router.get("/filters/getAll", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), createAndUpdateFilter.handleGetAll.bind(createAndUpdateFilter));
+router.get("/filters/get/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), createAndUpdateFilter.handleGetOne.bind(createAndUpdateFilter));
+router.put("/filter/update/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), createAndUpdateFilter.handleUpdate.bind(createAndUpdateFilter));
+router.delete("/filter/delete/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), createAndUpdateFilter.handleDelete.bind(createAndUpdateFilter));
+// --- Update category filter
+router.post("/categoryFilters/create", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), updateCategoryFilter.handleCreate.bind(updateCategoryFilter));
+router.get("/categoryFilters/getAll", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), updateCategoryFilter.handleGetAll.bind(updateCategoryFilter));
+router.get("/categoryFilters/get/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), updateCategoryFilter.handleGetOne.bind(updateCategoryFilter));
+router.put("/categoryFilters/update/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), updateCategoryFilter.handleUpdate.bind(updateCategoryFilter));
+router.delete("/categoryFilters/delete/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), updateCategoryFilter.handleDelete.bind(updateCategoryFilter));
 
 router.get("/products/busca", searchController);
 // --- Create group filter
@@ -437,6 +437,10 @@ router.get('/filters/detectAttributeKeys', async (req, res, next) => {
         next(err);
     }
 });
+import { getSearchFilters } from "./controllers/filter/SearchFiltersController";
+import { searchProducts } from "./controllers/filter/ProductsController";
+router.get("/filters/search", getSearchFilters);
+router.get("/products/busca/page", searchProducts);
 
 // --- MENUS --- //
 router.post("/menu/create", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), upload_image.single('file'), new CreateMenuController().handle);

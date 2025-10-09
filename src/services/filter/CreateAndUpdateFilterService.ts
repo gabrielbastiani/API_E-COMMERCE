@@ -1,5 +1,5 @@
 import { Prisma } from "@prisma/client";
-import prismaClient from "../../prisma";
+import prismaClient from "../../prisma"; // ajuste se necessário
 
 interface CreateFilterDTO {
   name: string;
@@ -10,10 +10,10 @@ interface CreateFilterDTO {
   isActive?: boolean;
   order?: number;
   autoPopulate?: boolean;
+  forSearch?: boolean; // ADICIONADO: sinaliza se o filtro aparece na página de busca
   minValue?: number | null;
   maxValue?: number | null;
   groupId?: string | null;
-  // attributeKeys stored as JSON in DB
   attributeKeys?: string[] | null;
   options?: Array<any>;
 }
@@ -22,34 +22,31 @@ interface UpdateFilterDTO extends Partial<CreateFilterDTO> {
   id: string;
 }
 
-class CreateFilterService {
+class CreateAndUpdateFilterService {
   async create(data: CreateFilterDTO) {
-    const {
-      attributeKeys,
-      options,
-      groupId,
-      ...rest
-    } = data;
+    const { attributeKeys, options, groupId, ...rest } = data;
 
     // build data object carefully so prisma typings accept null vs undefined
     const payload: Record<string, any> = { ...rest };
 
     // groupId: allow explicit null (set null) or undefined (omit)
     if (Object.prototype.hasOwnProperty.call(data, "groupId")) {
-      // if provided and null -> set null; if provided string -> set that string
       payload.groupId = groupId === null ? null : groupId;
+    }
+
+    // forSearch: copy if provided
+    if (Object.prototype.hasOwnProperty.call(data, "forSearch")) {
+      payload.forSearch = data.forSearch === null ? null : data.forSearch;
     }
 
     // attributeKeys is JSON column in schema
     if (Object.prototype.hasOwnProperty.call(data, "attributeKeys")) {
-      // Prisma expects an InputJsonValue; cast ensures TS is happy
       payload.attributeKeys = attributeKeys === null ? null : (attributeKeys as Prisma.InputJsonValue);
     }
 
     // handle nested options if provided (createMany or connect) - simple create for now
     if (Array.isArray(options) && options.length > 0) {
-      // Expect options to be created separately via filterOption endpoints, but if you
-      // want nested create you can adapt here. For now we pass options as-is only if DB expects nested create.
+      // The DB schema you've shown stores options likely as separate rows — here we simply pass options as JSON if needed.
       payload.options = options as any;
     }
 
@@ -84,12 +81,16 @@ class CreateFilterService {
     });
   }
 
-  async update({ id, attributeKeys, options, groupId, ...rest }: UpdateFilterDTO) {
+  async update({ id, attributeKeys, options, groupId, forSearch, ...rest }: UpdateFilterDTO) {
     // build data object conditionally to avoid TS/Prisma mismatches
     const payload: Record<string, any> = { ...rest };
 
     if (Object.prototype.hasOwnProperty.call(arguments[0], "groupId")) {
       payload.groupId = groupId === null ? null : groupId;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(arguments[0], "forSearch")) {
+      payload.forSearch = forSearch === null ? null : forSearch;
     }
 
     if (Object.prototype.hasOwnProperty.call(arguments[0], "attributeKeys")) {
@@ -115,4 +116,4 @@ class CreateFilterService {
   }
 }
 
-export { CreateFilterService };
+export { CreateAndUpdateFilterService };

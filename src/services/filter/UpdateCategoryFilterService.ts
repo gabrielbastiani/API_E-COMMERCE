@@ -9,7 +9,7 @@ interface UpdateCategoryFilterDTO extends Partial<CreateCategoryFilterDTO> {
     id: string;
 }
 
-class UpdateFilterService {
+class UpdateCategoryFilterService {
     async create(data: CreateCategoryFilterDTO) {
         return prismaClient.categoryFilter.create({ data });
     }
@@ -41,4 +41,4 @@ class UpdateFilterService {
     }
 }
 
-export { UpdateFilterService };
+export { UpdateCategoryFilterService };

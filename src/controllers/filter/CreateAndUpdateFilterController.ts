@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
-import { CreateFilterService } from '../../services/filter/CreateFilterService';
+import { CreateAndUpdateFilterService } from '../../services/filter/CreateAndUpdateFilterService';
 
-const service = new CreateFilterService();
+const service = new CreateAndUpdateFilterService();
 
-class CreateFilterController {
+class CreateAndUpdateFilterController {
     async handleCreate(req: Request, res: Response) {
         try {
             const created = await service.create(req.body);
@@ -59,4 +59,4 @@ class CreateFilterController {
     }
 }
 
-export { CreateFilterController };
+export { CreateAndUpdateFilterController };
