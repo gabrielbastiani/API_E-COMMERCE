@@ -42,11 +42,10 @@ export async function searchProducts({
   const where: Prisma.ProductWhereInput = {
     OR: [
       { name: { contains: searchTerm, mode: "insensitive" } },
-      { slug: { contains: searchTerm, mode: "insensitive" } },
       { brand: { contains: searchTerm, mode: "insensitive" } },
       {
         keywords: {
-          array_contains: [searchTerm], // se keywords for Json[] de strings
+          array_contains: [searchTerm],
         } as any,
       },
       {
@@ -62,15 +61,6 @@ export async function searchProducts({
                 },
               },
             ],
-          },
-        },
-      },
-      {
-        categories: {
-          some: {
-            category: {
-              name: { contains: searchTerm, mode: "insensitive" },
-            },
           },
         },
       },
