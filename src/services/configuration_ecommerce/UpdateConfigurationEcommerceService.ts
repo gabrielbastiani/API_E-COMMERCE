@@ -143,7 +143,7 @@ class UpdateConfigurationEcommerceService {
 
         if (logo) {
             if (ecommerceData?.logo) {
-                const imagePath = path.resolve(__dirname + '/' + '..' + '/' + '..' + '/' + '..' + '/' + 'images' + '/' + ecommerceData?.logo);
+                const imagePath = path.resolve(__dirname + '/' + '..' + '/' + '..' + '/' + '..' + '/' + 'images' + '/' + 'ecommerce' + '/' + ecommerceData?.logo);
                 console.log(`Deleting image: ${imagePath}`);
                 fs.unlink(imagePath, (err) => {
                     if (err) {
@@ -158,7 +158,7 @@ class UpdateConfigurationEcommerceService {
 
         if (favicon) {
             if (ecommerceData?.favicon) {
-                const imagePath = path.resolve(__dirname + '/' + '..' + '/' + '..' + '/' + '..' + '/' + 'images' + '/' + ecommerceData?.favicon);
+                const imagePath = path.resolve(__dirname + '/' + '..' + '/' + '..' + '/' + '..' + '/' + 'images' + '/' + 'ecommerce' + '/' + ecommerceData?.favicon);
                 console.log(`Deleting image: ${imagePath}`);
                 fs.unlink(imagePath, (err) => {
                     if (err) {

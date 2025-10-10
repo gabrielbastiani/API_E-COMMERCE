@@ -10,10 +10,10 @@ import { UpdateConfigurationEcommerceController } from "../../controllers/config
 import { GetConfigurationsEcommerceController } from "../../controllers/configuration_ecommerce/GetConfigurationsEcommerceController";
 
 const router = Router();
-const upload_image = multer(uploadConfig.upload("./images"));
+const upload_image_ecommerce = multer(uploadConfig.upload("./images/ecommerce"));
 
-router.post('/create/ecommerce', upload_image.fields([{ name: 'logo', maxCount: 1 }, { name: 'favicon', maxCount: 1 }]), new CreateConfigurationController().handle);
-router.put('/configuration_ecommerce/update', isAuthenticatedEcommerce, checkRole(['SUPER_ADMIN']), upload_image.fields([{ name: 'logo', maxCount: 1 }, { name: 'favicon', maxCount: 1 }]), new UpdateConfigurationEcommerceController().handle);
+router.post('/create/ecommerce', upload_image_ecommerce.fields([{ name: 'logo', maxCount: 1 }, { name: 'favicon', maxCount: 1 }]), new CreateConfigurationController().handle);
+router.put('/configuration_ecommerce/update', isAuthenticatedEcommerce, checkRole(['SUPER_ADMIN']), upload_image_ecommerce.fields([{ name: 'logo', maxCount: 1 }, { name: 'favicon', maxCount: 1 }]), new UpdateConfigurationEcommerceController().handle);
 router.get('/configuration_ecommerce/get_configs', new GetConfigurationsEcommerceController().handle);
 router.get('/configuration_ecommerce/delete_all_files', isAuthenticatedEcommerce, checkRole(['SUPER_ADMIN']), new DeleteFilesExcelController().handle);
 

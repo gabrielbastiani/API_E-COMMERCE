@@ -3,7 +3,7 @@ import path from "path";
 import fs from "fs";
 
 // pasta de uploads para comentários
-const UPLOAD_DIR = path.join(process.cwd(), "commentAttachment");
+const UPLOAD_DIR = path.join(process.cwd(), "../../images/commentAttachment");
 
 // cria pasta se não existir
 if (!fs.existsSync(UPLOAD_DIR)) {

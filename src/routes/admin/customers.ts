@@ -18,12 +18,12 @@ import { BulkDeleteCustomerController } from "../../controllers/users/customers/
 import { AllCustomerController } from "../../controllers/users/customers/AllCustomerController";
 
 const router = Router();
-const upload_image = multer(uploadConfig.upload("./images"));
+const upload_image_customer = multer(uploadConfig.upload("./images/customer"));
 const temp_file = multer(uploadConfig.upload("./temp_file"));
 
 router.post('/user/customer/create', new CustomerCreateController().handle);
 router.post('/user/customer/session', new CustomerAuthController().handle);
-router.put('/user/customer/update', isAuthenticatedCustomer, upload_image.single('file'), new CustomerUpdateDataController().handle);
+router.put('/user/customer/update', isAuthenticatedCustomer, upload_image_customer.single('file'), new CustomerUpdateDataController().handle);
 router.put('/user/customer/delete_photo', isAuthenticatedCustomer, new CustomerPhotoDeleteController().handle);
 router.get('/user/customer/me', isAuthenticatedCustomer, new CustomerDetailController().handle);
 router.delete('/user/customer/delete_user_customer', isAuthenticatedCustomer, checkRole(['ADMIN', 'SUPER_ADMIN']), new CustomerDeleteController().handle);

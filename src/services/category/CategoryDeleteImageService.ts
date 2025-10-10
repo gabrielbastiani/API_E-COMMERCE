@@ -15,7 +15,7 @@ class CategoryDeleteImageService {
             }
         });
 
-        const imagePath = path.resolve(__dirname + '/' + '..' + '/' + '..' + '/' + '..' + '/' + 'images' + '/' + image_category?.image);
+        const imagePath = path.resolve(__dirname + '/' + '..' + '/' + '..' + '/' + '..' + '/' + 'images' + '/' + 'category' + '/' + image_category?.image);
         fs.unlink(imagePath, (err) => {
             if (err) {
                 console.error(`Failed to delete old image: ${err.message}`);

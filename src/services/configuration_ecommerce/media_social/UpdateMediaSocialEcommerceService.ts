@@ -33,7 +33,7 @@ class UpdateMediaSocialEcommerceService {
 
         if (logo_media) {
             if (mediasSocial?.logo_media) {
-                const imagePath = path.resolve(__dirname + '/' + '..' + '/' + '..' + '/' + '..' + '/' + '..' + '/' + 'images' + '/' + mediasSocial?.logo_media);
+                const imagePath = path.resolve(__dirname + '/' + '..' + '/' + '..' + '/' + '..' + '/' + '..' + '/' + 'images' + '/' + 'mediaSocial' + '/' + mediasSocial?.logo_media);
                 console.log(`Deleting image: ${imagePath}`);
                 fs.unlink(imagePath, (err) => {
                     if (err) {

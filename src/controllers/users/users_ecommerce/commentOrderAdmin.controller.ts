@@ -1,10 +1,6 @@
 import { Request, Response } from "express";
 import * as service from "../../../services/users/customers/orders/commentOrder.service";
 
-/**
- * POST /admin/orders/:orderId/comments
- * Body: form-data (message, visible, assignToOrder, files[])
- */
 export async function adminPostOrderComment(req: Request, res: Response) {
   try {
     const { orderId } = req.params;
@@ -33,7 +29,7 @@ export async function adminPostOrderComment(req: Request, res: Response) {
     // se houver arquivos enviados (Multer preenche req.files)
     if (files && files.length > 0) {
       const attachPayload = files.map((f) => ({
-        url: `/commentAttachment/${f.filename}`, // rota pública que você deve servir (ver server.ts)
+        url: `../../../../images/commentAttachment/${f.filename}`, // rota pública que você deve servir (ver server.ts)
         filename: f.originalname,
         mimetype: f.mimetype,
         size: f.size,

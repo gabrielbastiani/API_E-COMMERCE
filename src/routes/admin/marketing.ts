@@ -25,13 +25,13 @@ import { SlideStoreMarketingPublicationController } from "../../controllers/mark
 import { ExistingMosaicController } from "../../controllers/marketing_publication/ExistingMosaicController";
 
 const router = Router();
-const upload_image = multer(uploadConfig.upload("./images"));
+const upload_image_marketing = multer(uploadConfig.upload("./images/marketing"));
 const temp_file = multer(uploadConfig.upload("./temp_file"));
 
-router.post('/marketing_publication/create', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), upload_image.single('file'), new CreateMarketingPublicationController().handle);
+router.post('/marketing_publication/create', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), upload_image_marketing.single('file'), new CreateMarketingPublicationController().handle);
 router.patch('/marketing_publication/:marketingPublication_id/clicks', new UpdateViewsPuplicationsController().handle);
 router.get('/marketing_publication/store_publications/slides', new MarketingPublicationController().handle);
-router.put('/marketing_publication/update', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), upload_image.single('file'), new MarketingUpdateDataController().handle);
+router.put('/marketing_publication/update', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), upload_image_marketing.single('file'), new MarketingUpdateDataController().handle);
 router.delete('/marketing_publication/delete_publications', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new MarketingPublicationDeleteDeleteController().handle);
 router.put('/marketing_publication/delete_publications/delete_image', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new MarketingDeleteImageController().handle);
 router.put('/marketing_publication/interval_banner/update_data', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new IntervalUpdateDataController().handle);

@@ -18,12 +18,12 @@ import { AllUserController } from "../../controllers/users/users_ecommerce/AllUs
 import { UserDetailController } from "../../controllers/users/users_ecommerce/UserDetailController";
 
 const router = Router();
-const upload_image = multer(uploadConfig.upload("./images"));
+const upload_image_userEcommerce = multer(uploadConfig.upload("./images/userEcommerce"));
 
-router.post('/user/ecommerce/create', upload_image.single('file'), new UserCreateController().handle);
+router.post('/user/ecommerce/create', upload_image_userEcommerce.single('file'), new UserCreateController().handle);
 router.post('/user/ecommerce/session', new UserAuthController().handle);
 router.get('/user/ecommerce/me', isAuthenticatedEcommerce, new UserDetailController().handle);
-router.put('/user/ecommerce/update', isAuthenticatedEcommerce, upload_image.single('file'), new UserUpdateDataController().handle);
+router.put('/user/ecommerce/update', isAuthenticatedEcommerce, upload_image_userEcommerce.single('file'), new UserUpdateDataController().handle);
 router.get('/user/ecommerce/publicSuper_user', new SuperUserPublicController().handle);
 router.put('/user/ecommerce/delete_photo', isAuthenticatedEcommerce, new UserPhotoDeleteController().handle);
 router.delete('/user/ecommerce/delete_user', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new UserDeleteController().handle);

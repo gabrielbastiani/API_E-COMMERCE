@@ -15,7 +15,7 @@ class MarketingDeleteImageService {
             }
         });
 
-        const imagePath = path.resolve(__dirname + '/' + '..' + '/' + '..' + '/' + '..' + '/' + 'images' + '/' + image_publication?.image_url);
+        const imagePath = path.resolve(__dirname + '/' + '..' + '/' + '..' + '/' + '..' + '/' + 'images' + '/' + 'marketing' + '/' + image_publication?.image_url);
         fs.unlink(imagePath, (err) => {
             if (err) {
                 console.error(`Failed to delete old image: ${err.message}`);

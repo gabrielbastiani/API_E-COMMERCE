@@ -41,7 +41,7 @@ export class UpdateMenuItemService {
 
         // 2) remove ícone antigo se há um novo upload
         if (iconFileName && existing.icon) {
-            const oldPath = path.resolve("images", existing.icon);
+            const oldPath = path.resolve("images", "menu", existing.icon);
             fs.unlink(oldPath, err => err && console.warn("falha ao remover ícone antigo:", err));
         }
 

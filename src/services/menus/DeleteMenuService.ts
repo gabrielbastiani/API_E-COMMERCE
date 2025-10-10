@@ -22,7 +22,7 @@ export class DeleteMenuService {
     for (const menu of menus) {
       // a) ícone do menu
       if (menu.icon) {
-        const menuIconPath = path.resolve("images", menu.icon);
+        const menuIconPath = path.resolve("images", "menu", menu.icon);
         fs.unlink(menuIconPath, err => {
           if (err) console.warn(`Falha ao remover ícone do menu ${menu.id}:`, err);
         });
@@ -31,7 +31,7 @@ export class DeleteMenuService {
       // b) ícones de cada item
       for (const item of menu.items) {
         if (item.icon) {
-          const itemIconPath = path.resolve("images", item.icon);
+          const itemIconPath = path.resolve("images", "menu", item.icon);
           fs.unlink(itemIconPath, err => {
             if (err) console.warn(`Falha ao remover ícone do item ${item.id}:`, err);
           });

@@ -20,21 +20,21 @@ import { ItemMenuImageDeleteController } from "../../controllers/menus/menuItems
 import { MenuImageDeleteController } from "../../controllers/menus/MenuImageDeleteController";
 
 const router = Router();
-const upload_image = multer(uploadConfig.upload("./images"));
+const upload_image_menu = multer(uploadConfig.upload("./images/menu"));
 
 const ctrlMenu = new MenuGetForStoreController();
 
-router.post("/menu/create", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), upload_image.single('file'), new CreateMenuController().handle);
+router.post("/menu/create", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), upload_image_menu.single('file'), new CreateMenuController().handle);
 router.get("/menu/get", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new ListMenusController().handle);
-router.put("/menu/getUnique/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), upload_image.single('file'), new UpdateMenuController().handle);
+router.put("/menu/getUnique/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), upload_image_menu.single('file'), new UpdateMenuController().handle);
 router.delete("/menu/delete", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new DeleteMenuController().handle);
 router.delete('/menu/icon/delete', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new MenuImageDeleteController().handle);
-router.post("/menuItem/create", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), upload_image.single("file"),
+router.post("/menuItem/create", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), upload_image_menu.single("file"),
     (req, res, next) => new CreateMenuItemController().handle(req, res).catch(next)
 );
 router.delete('/menuItem/icon/delete', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new ItemMenuImageDeleteController().handle);
 router.get("/menuItem/get", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new ListMenuItemsController().handle);
-router.put("/menuItem/getUnique/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), upload_image.single("file"),
+router.put("/menuItem/getUnique/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), upload_image_menu.single("file"),
     (req, res, next) => new UpdateMenuItemController().handle(req, res).catch(next)
 );
 router.delete("/menuItem/get/delete/:id", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new DeleteMenuItemController().handle);

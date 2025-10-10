@@ -16,22 +16,22 @@ import { LookupController } from "../../controllers/product/LookupController";
 import { StatusProductController } from "../../controllers/product/StatusProductController";
 
 const router = Router();
-const upload_image = multer(uploadConfig.upload("./images"));
+const upload_image_product = multer(uploadConfig.upload("./images/product"));
 const fields = [
-    { name: "images", maxCount: 20 },
-    { name: "videos", maxCount: 10 },
+    { name: "images", maxCount: 50 },
+    { name: "videos", maxCount: 15 },
     { name: "variantImages", maxCount: 50 },
-    { name: "attributeImages", maxCount: 20 },
-    { name: 'characteristicImages', maxCount: 10 }
+    { name: "attributeImages", maxCount: 30 },
+    { name: 'characteristicImages', maxCount: 20 }
 ];
 
 const productUpdateController = new ProductUpdateDataController();
 const productsBatchController = new ProductsBatchController();
 
-router.post("/product/create", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), upload_image.fields(fields), new CreateProductController().handle);
+router.post("/product/create", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), upload_image_product.fields(fields), new CreateProductController().handle);
 router.get('/get/products', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new AllProductsController().handle);
 router.get('/product/cms/get', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new CmsGetProductController().handle);
-router.put("/product/update", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), upload_image.any(), productUpdateController.handle.bind(productUpdateController));
+router.put("/product/update", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), upload_image_product.any(), productUpdateController.handle.bind(productUpdateController));
 router.delete("/products/delete", isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), async (req, res) => { await new ProductDeleteController().handle(req, res); });
 router.put('/product/status', isAuthenticatedEcommerce, checkRole(["ADMIN", "SUPER_ADMIN"]), new StatusProductController().handle);
 

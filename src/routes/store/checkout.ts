@@ -5,6 +5,7 @@ import * as OrderController from '../../controllers/checkout/order.controller';
 import { handleAsaasWebhook } from '../../controllers/checkout/webhook/asaas.controller';
 import * as PaymentsController from '../../controllers/checkout/boletoWebScraping/payments.controller';
 import { WebhookController } from "../../controllers/frete/webhook.controller";
+import { calculateFreightHandler } from "../../controllers/frete/FreteController";
 
 const router = Router();
 
@@ -15,6 +16,7 @@ router.put('/checkout/addresses/:id', isAuthenticatedCustomer, CheckoutControlle
 router.delete('/checkout/addresses/:id', isAuthenticatedCustomer, CheckoutController.deleteAddress);
 
 router.post('/checkout/shipping', isAuthenticatedCustomer, CheckoutController.calculateShipping);
+router.post('/shipment/calculate', calculateFreightHandler);
 
 router.get('/checkout/payments/options', isAuthenticatedCustomer, CheckoutController.getPaymentOptions);
 

@@ -22,7 +22,7 @@ class UserDeleteService {
 
         users.forEach((userEcommerce) => {
             if (userEcommerce.photo) {
-                const imagePath = path.resolve(__dirname + '/' + '..' + '/' + '..' + '/' + '..' + '/' + 'images' + '/' + userEcommerce.photo);
+                const imagePath = path.resolve(__dirname + '/' + '..' + '/' + '..' + '/' + '..' + '/' + 'images' + '/' + 'userEcommerce' + '/' + userEcommerce.photo);
                 fs.unlink(imagePath, (err) => {
                     if (err) {
                         console.error(`Failed to delete image for userEcommerce ${userEcommerce.id}: ${err.message}`);

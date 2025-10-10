@@ -3,7 +3,7 @@ import fs from 'fs/promises';
 import path from 'path';
 
 // Caminho absoluto corrigido para a pasta de imagens
-const IMAGE_UPLOAD_DIR = path.join(process.cwd(), 'images'); // Alterado para 'images'
+const IMAGE_UPLOAD_DIR = path.join(process.cwd(), '../../../../images/seo');
 
 interface SeoProps {
     sEOSettings_id: string;

@@ -10,10 +10,10 @@ import { MediasSocialsEcommerceController } from "../../controllers/configuratio
 import { UpdateMediaSocialEcommerceController } from "../../controllers/configuration_ecommerce/media_social/UpdateMediaSocialEcommerceController";
 
 const router = Router();
-const upload_image = multer(uploadConfig.upload("./images"));
+const upload_image_mediaSocial = multer(uploadConfig.upload("./images/mediaSocial"));
 
-router.post('/create/media_social', isAuthenticatedEcommerce, checkRole(['SUPER_ADMIN']), upload_image.single('file'), new CreateMediaSocialEcommerceController().handle);
-router.put('/update/media_social', isAuthenticatedEcommerce, checkRole(['SUPER_ADMIN']), upload_image.single('file'), new UpdateMediaSocialEcommerceController().handle);
+router.post('/create/media_social', isAuthenticatedEcommerce, checkRole(['SUPER_ADMIN']), upload_image_mediaSocial.single('file'), new CreateMediaSocialEcommerceController().handle);
+router.put('/update/media_social', isAuthenticatedEcommerce, checkRole(['SUPER_ADMIN']), upload_image_mediaSocial.single('file'), new UpdateMediaSocialEcommerceController().handle);
 router.get('/get/media_social', new MediasSocialsEcommerceController().handle);
 router.delete('/delete/media_social', isAuthenticatedEcommerce, checkRole(['SUPER_ADMIN']), new DeleteMediasSocialsEcommerceController().handle);
 

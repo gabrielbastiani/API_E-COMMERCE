@@ -14,7 +14,7 @@ class DeleteMediasSocialsEcommerceService {
             }
         });
 
-        const imagePath = path.resolve(__dirname + '/' + '..' + '/' + '..' + '/' + '..' + '/' + '..' + '/' + 'images' + '/' + config?.logo_media);
+        const imagePath = path.resolve(__dirname + '/' + '..' + '/' + '..' + '/' + '..' + '/' + '..' + '/' + 'images' + '/' + 'mediaSocial' + '/' + config?.logo_media);
         fs.unlink(imagePath, (err) => {
             if (err) {
                 console.error(`Failed to delete old image: ${err.message}`);

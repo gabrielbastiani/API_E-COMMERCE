@@ -21,7 +21,7 @@ class CategoryDeleteService {
 
         categories.forEach((category) => {
             if (category.image) {
-                const imagePath = path.resolve(__dirname + '/' + '..' + '/' + '..' + '/' + '..' + '/' + 'images' + '/' + category.image);
+                const imagePath = path.resolve(__dirname + '/' + '..' + '/' + '..' + '/' + '..' + '/' + 'images' + '/' + 'category' + '/' + category.image);
                 fs.unlink(imagePath, (err) => {
                     if (err) {
                         console.error(`Failed to delete image for category ${category.id}: ${err.message}`);

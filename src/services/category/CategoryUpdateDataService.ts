@@ -42,7 +42,7 @@ class CategoryUpdateDataService {
 
         if (image) {
             if (category?.image) {
-                const imagePath = path.resolve(__dirname + '/' + '..' + '/' + '..' + '/' + '..' + '/' + 'images' + '/' + category?.image);
+                const imagePath = path.resolve(__dirname + '/' + '..' + '/' + '..' + '/' + '..' + '/' + 'images' + '/' + 'category' + '/' + category?.image);
                 console.log(`Deleting image: ${imagePath}`);
                 fs.unlink(imagePath, (err) => {
                     if (err) {

@@ -18,16 +18,16 @@ import { CategoriesStoreHomeController } from "../../controllers/category/Catego
 import { listProductsByCategory, listFiltersByCategory } from "../../controllers/product/categoryProduct/category.controller";
 
 const router = Router();
-const upload_image = multer(uploadConfig.upload("./images"));
+const upload_image_category = multer(uploadConfig.upload("./images/category"));
 const temp_file = multer(uploadConfig.upload("./temp_file"));
 
-router.post('/category/create', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), upload_image.single('file'), new CategoryCreateController().handle);
+router.post('/category/create', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), upload_image_category.single('file'), new CategoryCreateController().handle);
 router.get('/category/cms', isAuthenticatedEcommerce, new CategoriesController().handle);
 router.put('/category/updateOrder', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new CategoryUpdateOrderController().handle);
 router.post('/category/bulk_categories', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), temp_file.single("file"), new BulkCategoryImportController().handle);
 router.get('/category/donwload_excel_categories', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new GenerateExcelCategoryController().handle);
 router.get('/category/cms/all_categories', isAuthenticatedEcommerce, new AllCategoriesController().handle);
-router.put('/category/update', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), upload_image.single('file'), new CategoryUpdateDataController().handle);
+router.put('/category/update', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), upload_image_category.single('file'), new CategoryUpdateDataController().handle);
 router.delete('/category/delete_category', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new CategoryDeleteController().handle);
 router.put('/category/delete_image', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new CategoryDeleteImageController().handle);
 router.get('/category/products', isAuthenticatedEcommerce, checkRole(['ADMIN', 'SUPER_ADMIN']), new AllProductsCategoryController().handle);

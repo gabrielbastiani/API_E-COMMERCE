@@ -49,7 +49,7 @@ class BulkDeleteMarketingPublicationService {
 
             publications.forEach((publication) => {
                 if (publication.image_url) {
-                    const imagePath = path.resolve(__dirname + '/' + '..' + '/' + '..' + '/' + '..' + '/' + 'images' + '/' + publication.image_url);
+                    const imagePath = path.resolve(__dirname + '/' + '..' + '/' + '..' + '/' + '..' + '/' + 'images' + '/' + 'marketing' + '/' + publication.image_url);
                     fs.unlink(imagePath, (err) => {
                         if (err) {
                             console.error(`Failed to delete image for publication ${publication.id}: ${err.message}`);

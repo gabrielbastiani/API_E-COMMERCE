@@ -3,38 +3,64 @@ import prismaClient from '../../../prisma';
 import fs from 'fs/promises';
 import path from 'path';
 
-const IMAGE_UPLOAD_DIR = path.join(process.cwd(), 'images');
+const IMAGE_UPLOAD_DIR = path.resolve(process.cwd(), 'images', 'seo');
 
 class DeleteTwitterImageController {
     async handle(req: Request, res: Response) {
-        const { sEOSettings_id, imageIndex } = req.body;
-
         try {
+            const { sEOSettings_id } = req.body;
+            let imageIndex = req.body.imageIndex;
+
+            if (!sEOSettings_id) {
+                res.status(400).json({ error: "sEOSettings_id é obrigatório" });
+            }
+
+            imageIndex = Number(imageIndex);
+            if (Number.isNaN(imageIndex) || imageIndex < 0) {
+                res.status(400).json({ error: "imageIndex inválido" });
+            }
+
             const settings = await prismaClient.sEOSettings.findUnique({
                 where: { id: sEOSettings_id }
             });
 
-            if (!settings) res.status(404).json({ error: "Configuração não encontrada" });
+            if (!settings) {
+            res.status(404).json({ error: "Configuração não encontrada" });
+            }
 
-            const images = settings!.twitterImages as string[];
+            const images = Array.isArray(settings?.twitterImages) ? settings.twitterImages as string[] : [];
             const imageToDelete = images[imageIndex];
 
-            if (!imageToDelete) res.status(404).json({ error: "Imagem não encontrada" });
+            if (!imageToDelete) {
+                res.status(404).json({ error: "Imagem não encontrada" });
+            }
 
-            // Deletar arquivo físico
-            await fs.unlink(path.join(IMAGE_UPLOAD_DIR, imageToDelete));
+            const imagePath = path.join(IMAGE_UPLOAD_DIR, imageToDelete);
 
-            // Atualizar banco
+            // Tentar deletar o arquivo físico; ignorar se já não existir (ENOENT)
+            try {
+                await fs.unlink(imagePath);
+            } catch (err: any) {
+                if (err && err.code === 'ENOENT') {
+                    console.warn(`Arquivo não encontrado ao tentar deletar: ${imagePath}. Prosseguindo com atualização do DB.`);
+                } else {
+                    console.error("Erro ao deletar arquivo Twitter:", err);
+                    res.status(500).json({ error: "Erro ao deletar arquivo físico da imagem" });
+                }
+            }
+
+            // Atualizar banco de dados removendo a imagem
             const updatedImages = images.filter((_, i) => i !== imageIndex);
-            await prismaClient.sEOSettings.update({
+            const updated = await prismaClient.sEOSettings.update({
                 where: { id: sEOSettings_id },
                 data: { twitterImages: updatedImages }
             });
 
-            res.json({ success: true });
+            res.json({ success: true, twitterImages: updated.twitterImages ?? updatedImages });
 
         } catch (error) {
-            res.status(500).json({ error: "Erro ao remover imagem OG" });
+            console.error("Erro no DeleteTwitterImageController:", error);
+            res.status(500).json({ error: "Erro ao remover imagem Twitter" });
         }
     }
 }

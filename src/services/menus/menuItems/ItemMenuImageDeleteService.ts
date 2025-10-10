@@ -15,7 +15,7 @@ class ItemMenuImageDeleteService {
             }
         });
 
-        const imagePath = path.resolve(__dirname + '/' + '..' + '/' + '..' + '/' + '..' + '/' + '..' + '/' + 'images' + '/' + menu_item?.icon);
+        const imagePath = path.resolve(__dirname + '/' + '..' + '/' + '..' + '/' + '..' + '/' + '..' + '/' + 'images' + '/' + 'menu' + '/' + menu_item?.icon);
         fs.unlink(imagePath, (err) => {
             if (err) {
                 console.error(`Failed to delete old image: ${err.message}`);

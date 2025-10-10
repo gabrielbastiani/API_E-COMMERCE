@@ -14,7 +14,7 @@ export class DeleteMenuItemService {
 
         // 2) se tiver ícone, remover do disco
         if (existing.icon) {
-            const filePath = path.resolve("images", existing.icon);
+            const filePath = path.resolve("images", "menu", existing.icon);
             fs.unlink(filePath, err => {
                 if (err) {
                     console.warn("Falha ao remover arquivo de ícone:", err);

@@ -34,6 +34,7 @@ import storeReview from "./store/review";
 import storeWebhooks from "./store/webhooks";
 import storeComments from "./store/comments";
 import storeQuestion from "./store/question";
+import promotionsStore from "./store/promotion";
 
 const router = Router();
 
@@ -71,6 +72,7 @@ router.use(storeReview);
 router.use(storeWebhooks);
 router.use(storeComments);
 router.use(storeQuestion);
+router.use(promotionsStore);
 
 // export same name as before if app imports { router }
 export { router };
